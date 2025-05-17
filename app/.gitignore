@@ -1,0 +1,37 @@
+# Gradle
+.gradle/
+**/build/
+!gradle-wrapper.jar
+
+# Local configuration file (contains SDK path etc.)
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+
+# Mac/Linux system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# External native build
+.cxx/
+.externalNativeBuild/
+
+# Capture files
+captures/
+
+# Jetpack Compose Compiler reports
+composeCompiler/
+
+# Signing files
+*.jks
