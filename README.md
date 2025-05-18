@@ -68,3 +68,5 @@ To function properly, the app requests the following permissions:
 - ViewModel + LiveData
 
 All illustrations and icons are the exclusive copyrighted property of Ivy. Any use, reproduction, distribution, or modification of these materials is strictly prohibited without explicit written permission from Ivy.
+
+The artist of the icon can be reached though this link: https://ivyu.artstation.com/
