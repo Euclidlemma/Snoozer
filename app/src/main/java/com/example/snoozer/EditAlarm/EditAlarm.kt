@@ -71,7 +71,7 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
         onSave = {
             if (selectedDays.isEmpty()) {
                 Toast.makeText(currentContext, "Day must be selected", Toast.LENGTH_LONG).show()
-            } else if (startHour >= endHour) {
+            } else if (detLater(startHour, startMinute, endHour, endMinute)) {
                 Toast.makeText(currentContext, "Ending Hour must be later then the Start hour", Toast.LENGTH_LONG).show()
             }
             else {
@@ -378,6 +378,15 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
     }
 }
 
+fun detLater(startHour: Int, startMinute: Int, endHour: Int, endMinute: Int): Boolean {
+    return if (startHour > endHour) {
+        true
+    } else if ((startHour == endHour) && startMinute > endMinute) {
+        true
+    } else {
+        false
+    }
+}
 
 
 
