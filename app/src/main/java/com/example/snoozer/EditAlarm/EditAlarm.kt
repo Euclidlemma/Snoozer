@@ -62,7 +62,7 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
     var startMinute by rememberSaveable { mutableIntStateOf(selectedAlarm?.startMinute ?: 0) }
     var endHour by rememberSaveable { mutableIntStateOf(selectedAlarm?.endHour ?: 9) }
     var endMinute by rememberSaveable { mutableIntStateOf(selectedAlarm?.endMinute ?: 0) }
-    var work by remember { mutableStateOf("Work") }
+    var work by rememberSaveable { mutableStateOf(selectedAlarm?.work ?: "Work") }
 
     val currentContext = LocalContext.current
 
@@ -71,8 +71,10 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
         onSave = {
             if (selectedDays.isEmpty()) {
                 Toast.makeText(currentContext, "Day must be selected", Toast.LENGTH_LONG).show()
-            } else if (detLater(startHour, startMinute, endHour, endMinute)) {
-                Toast.makeText(currentContext, "Ending Hour must be later then the Start hour", Toast.LENGTH_LONG).show()
+            } else if (startHour == endHour && startMinute == endMinute) {
+                // An end time earlier than the start is allowed: it means the window runs
+                // overnight into the next day (e.g. 22:00 ~ 07:00).
+                Toast.makeText(currentContext, "Start and end time can't be the same", Toast.LENGTH_LONG).show()
             }
             else {
                 if (selectedAlarm == null) alarmViewModel.insertAlarm(
@@ -92,6 +94,8 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
                     work
                 )
                 Toast.makeText(currentContext, "Snoozer Saved", Toast.LENGTH_SHORT).show()
+                // Leave the screen so a second tap can't insert a duplicate.
+                navController.popBackStack()
             }
         },
         onDelete = { if (selectedAlarm != null) showDelete = true },
@@ -375,16 +379,6 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
                 Text("Delete")
             }
         }
-    }
-}
-
-fun detLater(startHour: Int, startMinute: Int, endHour: Int, endMinute: Int): Boolean {
-    return if (startHour > endHour) {
-        true
-    } else if ((startHour == endHour) && startMinute > endMinute) {
-        true
-    } else {
-        false
     }
 }
 

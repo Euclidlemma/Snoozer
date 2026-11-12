@@ -1,5 +1,6 @@
 package com.example.snoozer.alarm
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -7,14 +8,18 @@ import androidx.lifecycle.*
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import androidx.lifecycle.map
+import com.example.snoozer.receiver.RingerController
 import com.example.snoozer.scheduler.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
 class AlarmViewModel @Inject constructor(
     private val repository: AlarmRepository,
     private val scheduler: AlarmScheduler,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
     private val allAlarms: LiveData<List<Alarm>> = repository.getAlarm()
 
@@ -50,6 +55,7 @@ class AlarmViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteAlarm(alarm)
             scheduler.cancelAlarm(alarm)
+            releaseRingerIfIdle(alarm)
         }
     }
 
@@ -71,8 +77,23 @@ class AlarmViewModel @Inject constructor(
                 repository.updateAlarm(updatedAlarm)
                 scheduler.cancelAlarm(current)
                 scheduler.scheduleAlarm(updatedAlarm)
+                releaseRingerIfIdle(current)
             }
         }
+    }
+
+    /**
+     * Deleting or editing a window while it is muting the phone cancels its pending unmute,
+     * which would leave the phone silent. If [changed] (the old version) was active and no
+     * saved window (including an edited one) still covers now, restore the ringer right away.
+     */
+    private suspend fun releaseRingerIfIdle(changed: Alarm) {
+        val now = LocalDateTime.now()
+        if (!AlarmTime.isActiveAt(changed, now)) return
+        val stillActive = repository.getAllAlarmsDirect().any {
+            it.isEnabled && AlarmTime.isActiveAt(it, now)
+        }
+        if (!stillActive) RingerController.restore(appContext)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

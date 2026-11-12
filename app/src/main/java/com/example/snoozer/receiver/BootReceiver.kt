@@ -1,10 +1,10 @@
 package com.example.snoozer.receiver
 
+import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import androidx.annotation.RequiresApi
+import android.util.Log
 import com.example.snoozer.alarm.AlarmRepository
 import com.example.snoozer.scheduler.AlarmScheduler
 import dagger.hilt.EntryPoint
@@ -23,25 +23,42 @@ interface ReceiverEntryPoint {
 }
 
 
+/**
+ * Reschedules every saved alarm when the system may have cleared or shifted them:
+ * reboot, app update, clock/time-zone change, or exact-alarm permission granted.
+ * Rescheduling is idempotent: the same request codes replace existing PendingIntents.
+ */
 class BootReceiver : BroadcastReceiver() {
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            // Reschedule all alarms here
-            val entryPoint = EntryPointAccessors.fromApplication(
-                context.applicationContext,
-                ReceiverEntryPoint::class.java
-            )
-            val repository = entryPoint.alarmRepository()
-            val scheduler = entryPoint.alarmScheduler()
+        if (intent.action !in RESCHEDULE_ACTIONS) return
 
-            // Reschedule alarms
-            CoroutineScope(Dispatchers.IO).launch {
-                val alarms = repository.getAllAlarmsDirect()
-                alarms.forEach {
-                    scheduler.scheduleAlarm(it)
-                }
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            ReceiverEntryPoint::class.java
+        )
+        val repository = entryPoint.alarmRepository()
+        val scheduler = entryPoint.alarmScheduler()
+
+        // goAsync() keeps the process alive until the database read finishes.
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
+            } catch (e: Exception) {
+                Log.e("BootReceiver", "Error rescheduling alarms after ${intent.action}", e)
+            } finally {
+                pending.finish()
             }
         }
+    }
+
+    private companion object {
+        val RESCHEDULE_ACTIONS = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+        )
     }
 }

@@ -9,10 +9,11 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.snoozer.alarm.Alarm
+import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.receiver.AlarmReceiver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
-import java.util.Calendar
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 class AlarmScheduler @Inject constructor(@ApplicationContext private val context: Context) {
@@ -43,15 +44,14 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
     @RequiresApi(Build.VERSION_CODES.O)
     private fun scheduleExactAlarm(alarm: Alarm, day: DayOfWeek, isStart: Boolean) {
         Log.d("Alarm Scheduler daycheck", day.value.toString())
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, if (day.value == 7) 1 else day.value + 1)
-            set(Calendar.HOUR_OF_DAY, if (isStart) alarm.startHour else alarm.endHour)
-            set(Calendar.MINUTE, if (isStart) alarm.startMinute else alarm.endMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-
-            if (before(Calendar.getInstance())) add(Calendar.WEEK_OF_YEAR, 1)
-        }
+        // `day` is always the window's start day; an overnight window unmutes the day after.
+        val trigger = AlarmTime.nextTrigger(
+            day = if (isStart) day else AlarmTime.endDay(alarm, day),
+            hour = if (isStart) alarm.startHour else alarm.endHour,
+            minute = if (isStart) alarm.startMinute else alarm.endMinute,
+            now = ZonedDateTime.now()
+        )
+        val triggerMillis = trigger.toInstant().toEpochMilli()
 
         val action = if (isStart) "MUTE" else "UNMUTE"
         val requestCode = generateRequestCode(alarm.id, day, action)
@@ -73,13 +73,23 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
         )
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            pendingIntent
-        )
+        // On Android 12+ the user can deny or revoke exact alarms (denied by default on 14+).
+        // Calling setExact* without it throws SecurityException, so fall back to an inexact
+        // alarm instead of crashing. BootReceiver reschedules exactly once it is granted.
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+        try {
+            if (canExact) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+            } else {
+                Log.w("AlarmScheduler", "Exact alarm permission missing; scheduling inexact alarm")
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+            }
+        } catch (e: SecurityException) {
+            Log.e("AlarmScheduler", "Could not schedule exact alarm", e)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+        }
         Log.d("Generated reqcode in schedule", requestCode.toString())
-        Log.d("AlarmScheduler", "Scheduling alarm for: $action at ${calendar.time}")
+        Log.d("AlarmScheduler", "Scheduling alarm for: $action at $trigger")
 
     }
 
