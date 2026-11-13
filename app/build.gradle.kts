@@ -1,6 +1,6 @@
 plugins {
+    // AGP 9 compiles Kotlin itself ("built-in Kotlin"); no separate kotlin-android plugin.
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.example.snoozer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         // Play Store identity. Permanent once the first build is uploaded.
@@ -37,9 +37,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
