@@ -2,50 +2,72 @@ package com.example.snoozer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Material baseline (used when dynamic color is unavailable, i.e. below Android 12)
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Snoozer's doodle palette. Light mode is graphite pencil on paper; dark mode is
+// chalk on a slate board. Screens never use these directly: they read
+// MaterialTheme.colorScheme or SnoozerTheme.colors, so both modes stay in one place.
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// ---- Light: pencil on paper ----
+val Paper = Color(0xFFFAF6EC)                 // page background
+val PaperCard = Color(0xFFFFFDF7)             // raised surfaces
+val PaperShade1 = Color(0xFFFCF8EF)
+val PaperShade2 = Color(0xFFF6F0E3)
+val PaperShade3 = Color(0xFFF1EADB)
+val PaperShade4 = Color(0xFFEBE3D2)
+val Graphite = Color(0xFF2E2B26)              // main ink
+val GraphiteSoft = Color(0xFF5A5449)          // secondary ink
+val GraphiteLine = Color(0xFF6B6457)          // outlines
+val PencilBlue = Color(0xFF3E6E99)
+val PencilLilac = Color(0xFF7E5A8C)
+val PencilYellow = Color(0xFFF2C94C)
+val PaperButton = Color(0xFFEDE4D0)           // soft (tonal) buttons
 
-// Snoozer brand palette. Every color the screens use comes from here through
-// SnoozerTheme.colors, so light and dark mode stay in one place.
+// ---- Dark: chalk on board ----
+val Board = Color(0xFF2A2D2F)
+val BoardCard = Color(0xFF303437)
+val BoardShade0 = Color(0xFF24272A)
+val BoardShade1 = Color(0xFF2E3134)
+val BoardShade2 = Color(0xFF33373A)
+val BoardShade3 = Color(0xFF3A3E41)
+val BoardShade4 = Color(0xFF42464A)
+val Chalk = Color(0xFFEDEAE2)
+val ChalkSoft = Color(0xFFC9C5BB)
+val ChalkLine = Color(0xFFA8A398)
+val ChalkBlue = Color(0xFF8FBCE6)
+val ChalkLilac = Color(0xFFD3A9DE)
+val ChalkYellow = Color(0xFFE8C55A)
+val BoardButton = Color(0xFF444A4E)
 
-// Category: Work (blue)
-val WorkContainerLight = Color(0xFF90D5FF)
-val OnWorkContainerLight = Color(0xFF0B2A3D)
-val WorkContainerDark = Color(0xFF1F4A63)
-val OnWorkContainerDark = Color(0xFFCFEAFF)
+// ---- Categories (colored-pencil fills) ----
+val WorkContainerLight = Color(0xFFC9DDF0)
+val OnWorkContainerLight = Color(0xFF1F3346)
+val WorkContainerDark = Color(0xFF2F4B63)
+val OnWorkContainerDark = Color(0xFFDCEBF8)
 
-// Category: Study (lilac)
-val StudyContainerLight = Color(0xFFDAB1DA)
-val OnStudyContainerLight = Color(0xFF3A1D3A)
-val StudyContainerDark = Color(0xFF573A57)
-val OnStudyContainerDark = Color(0xFFF5DDF5)
+val StudyContainerLight = Color(0xFFE3D0EA)
+val OnStudyContainerLight = Color(0xFF3A2244)
+val StudyContainerDark = Color(0xFF4E3B57)
+val OnStudyContainerDark = Color(0xFFF0E0F5)
 
 // The yellow circle behind the bell on the home screen
-val BellLight = Color(0xFFFFE600)
-val BellDark = Color(0xFFE6C700)
+val BellLight = PencilYellow
+val BellDark = ChalkYellow
 
-// Backing behind the black-line illustrations so they stay readable on dark cards
+// Backing behind the black-line illustrations so they stay readable on any card
 val IllustrationBackingLight = Color(0xFFFFFFFF)
-val IllustrationBackingDark = Color(0xFFF2F2F2)
+val IllustrationBackingDark = Color(0xFFF2F0EA)
 
-// Decorative bars on the home screen, left to right
+// Decorative bars on the home screen, left to right, in colored-pencil tones
 val RainbowLight = listOf(
-    Color(0xFFCC0000), // red
-    Color(0xFFFFB266), // orange
-    Color(0xFFCCFFFF), // light blue
-    Color(0xFFFFFACD), // beige
-    Color(0xFFD0BCFF), // purple
-    Color(0xFF00FF00), // lime
-    Color(0xFF6A5ACD), // slate blue
+    Color(0xFFD9534F), // red
+    Color(0xFFF0A35E), // orange
+    Color(0xFF8CC7D9), // sky
+    Color(0xFFE6D58F), // sand
+    Color(0xFFB39DDB), // lilac
+    Color(0xFF8BC17A), // leaf
+    Color(0xFF6F6AC0), // slate blue
 )
 
-// Same hues, toned down so they don't glare against a dark background
+// Same hues, toned down so they don't glare on the dark board
 val RainbowDark = listOf(
     Color(0xFFB33A3A),
     Color(0xFFD9904D),

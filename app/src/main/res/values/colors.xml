@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App colors are defined in Compose (ui/theme/Color.kt). -->
+    <!-- Window background shown while the app starts, before Compose draws.
+         Matches Paper in ui/theme/Color.kt; the night variant matches Board. -->
+    <color name="window_background">#FFFAF6EC</color>
 </resources>

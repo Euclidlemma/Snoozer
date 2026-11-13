@@ -237,8 +237,8 @@ fun ExactAlarmPermissionDialog(onDismiss: () -> Unit) {
 
 
 @RequiresApi(Build.VERSION_CODES.S)
-@Preview(name = "Light", showBackground = true)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF1C1B1F, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF2A2D2F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun MainScreen_preview(){
     SnoozerTheme {

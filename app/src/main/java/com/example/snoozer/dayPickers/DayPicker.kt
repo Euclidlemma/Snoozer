@@ -182,27 +182,23 @@ fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
             Column(verticalArrangement = Arrangement.Center) {
                 val formattedStartTime = String.format("%02d:%02d", alarm.startHour, alarm.startMinute)
                 val formattedEndTime = String.format("%02d:%02d", alarm.endHour, alarm.endMinute)
+                // Times are the most important text in the app: the largest, boldest
+                // style from the theme. No fixed height, so large system font sizes don't clip.
                 Text(
                     text = formattedStartTime,
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.displayMedium,
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
-                        .height(70.dp)
                         .padding(start = 20.dp),
                     textAlign = TextAlign.Center,
-                    fontSize = 50.sp,
-                    fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
                     text = "~ $formattedEndTime",
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.displayMedium,
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
-                        .height(70.dp)
                         .padding(start = 20.dp),
                     textAlign = TextAlign.Center,
-                    fontSize = 50.sp,
-                    fontWeight = FontWeight.ExtraBold,
                 )
             }
         }
@@ -210,16 +206,16 @@ fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
 }
 
 
-@Preview(name = "Light", showBackground = true)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF1C1B1F, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF2A2D2F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun AlarmCard_preview(){
     SnoozerTheme { AlarmCard(alarm = Alarm(startHour = 10, startMinute = 1, endHour = 10, endMinute = 1, daysOfWeek = DayOfWeek.entries, work = "Work"), onClick = {}) }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview(name = "Light", showBackground = true)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF1C1B1F, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF2A2D2F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun DayAlarmPage_preview() {
     SnoozerTheme { DayAlarmPage(alarms = listOf(
