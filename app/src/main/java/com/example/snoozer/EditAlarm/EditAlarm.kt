@@ -1,6 +1,7 @@
 package com.example.snoozer.EditAlarm
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.app.TimePickerDialog
 import android.os.Build
 import android.widget.Toast
@@ -37,7 +38,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
+import com.example.snoozer.ui.theme.SnoozerTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -233,7 +235,7 @@ fun TopBar(modifier: Modifier = Modifier, onBackClick: () -> Unit) {
         Button(
             onClick = onBackClick,
             modifier = Modifier.wrapContentSize(),
-            colors = ButtonDefaults.buttonColors(Color(0xFFD3D3D3))
+            colors = ButtonDefaults.filledTonalButtonColors()
         ) {
             Text("Back")
         }
@@ -279,7 +281,9 @@ fun WorkStudyDropdown(selectedOption: String, onOptionSelected: (String) -> Unit
 
     Box {
         Button(onClick = { expanded = true },
-            colors = ButtonDefaults.buttonColors(containerColor = if (selectedOption== "Work") Color(0xFF90D5FF) else Color(0xFFDAB1DA)))
+            colors = SnoozerTheme.colors.forCategory(selectedOption).let {
+                ButtonDefaults.buttonColors(containerColor = it.container, contentColor = it.content)
+            })
         {
             Text(selectedOption)
         }
@@ -363,7 +367,7 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
         Button(
             onClick = onSave,
             modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(Color(0xFFD3D3D3))
+            colors = ButtonDefaults.filledTonalButtonColors()
         ) {
             Text("Save")
         }
@@ -374,7 +378,10 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
             Button(
                 onClick = onDelete,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(Color.Red)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
             ) {
                 Text("Delete")
             }
@@ -385,23 +392,26 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
 
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview
+@Preview(name = "Light")
+@Preview(name = "Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun ButtonPreview () {
-    EditScreen(
-        onBackClick = { },
-        onSave = {  },
-        onDelete = {  },
-        selectedDays = listOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
-        onDaysChanged = {},
-        startHour = 8,
-        startMinute = 10,
-        endHour = 10,
-        endMinute = 8,
-        onTimeChangedStart = { h, n -> h+n},
-        onTimeChangedEnd = { h, n -> h+n},
-        isEditing = false,
-        onOptionSelected = {},
-        selectedOption = "Work"
-    )
+    SnoozerTheme {
+        EditScreen(
+            onBackClick = { },
+            onSave = {  },
+            onDelete = {  },
+            selectedDays = listOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+            onDaysChanged = {},
+            startHour = 8,
+            startMinute = 10,
+            endHour = 10,
+            endMinute = 8,
+            onTimeChangedStart = { h, n -> h+n},
+            onTimeChangedEnd = { h, n -> h+n},
+            isEditing = true,
+            onOptionSelected = {},
+            selectedOption = "Work"
+        )
+    }
 }

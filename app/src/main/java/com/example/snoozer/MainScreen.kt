@@ -1,5 +1,6 @@
 package com.example.snoozer
 
+import android.content.res.Configuration
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
@@ -49,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.snoozer.Route.Routes
-import com.example.snoozer.ui.theme.*
+import com.example.snoozer.ui.theme.SnoozerTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -105,39 +106,32 @@ fun MainScreen(navController: NavController) {
         ExactAlarmPermissionDialog(onDismiss = { showExactAlarmDialog = false })
     }
 
-    SnoozerTheme {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Top
-        ) {
-            RainbowRow(modifier = Modifier.weight(1f))
-            AppName(modifier = Modifier.weight(1f), rotation.value, startAnimation) {
-                startAnimation = true
-            }
+    // The theme and background come from MainActivity.
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Top
+    ) {
+        RainbowRow(modifier = Modifier.weight(1f))
+        AppName(modifier = Modifier.weight(1f), rotation.value, startAnimation) {
+            startAnimation = true
         }
     }
 }
 
+// Heights (dp) of the decorative bars, left to right; colors come from the theme.
+private val StickHeights = listOf(170, 140, 180, 160, 150, 190, 130)
+
 @Composable
 fun RainbowRow(modifier:Modifier = Modifier) {
+    val colors = SnoozerTheme.colors.rainbow
     Row(
         modifier = modifier.fillMaxWidth()
     ) {
         Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = red, height = 170)
-        Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = orange, height = 140)
-        Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = LightBlue, height = 180)
-        Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = beige, height = 160)
-        Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = Purple80, height = 150)
-        Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = Lime, height = 190)
-        Spacer(modifier = Modifier.weight(0.5f))
-        Sticks(modifier = Modifier.weight(1f), color = SlateBlue, height = 130)
-        Spacer(modifier = Modifier.weight(0.5f))
+        StickHeights.forEachIndexed { i, height ->
+            Sticks(modifier = Modifier.weight(1f), color = colors[i % colors.size], height = height)
+            Spacer(modifier = Modifier.weight(0.5f))
+        }
     }
 }
 
@@ -156,7 +150,7 @@ fun AppName(modifier:Modifier = Modifier, degrees: Float, startAnimation: Boolea
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "SNOOZER", style = MaterialTheme.typography.headlineLarge)
-        Box(modifier = Modifier.wrapContentSize().background(color = Color.Yellow, shape = CircleShape)
+        Box(modifier = Modifier.wrapContentSize().background(color = SnoozerTheme.colors.bell, shape = CircleShape)
             .clickable(onClick = onClick)) {
             Image(
                 painter = painterResource(id = R.drawable.bell_jar_1096279_1280),
@@ -243,7 +237,8 @@ fun ExactAlarmPermissionDialog(onDismiss: () -> Unit) {
 
 
 @RequiresApi(Build.VERSION_CODES.S)
-@Preview
+@Preview(name = "Light", showBackground = true)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF1C1B1F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun MainScreen_preview(){
     SnoozerTheme {

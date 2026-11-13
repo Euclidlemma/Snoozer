@@ -1,10 +1,14 @@
 package com.example.snoozer.dayPickers
 
+import android.content.res.Configuration
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,7 +52,7 @@ import androidx.navigation.NavController
 import com.example.snoozer.R
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmViewModel
-import com.example.snoozer.ui.theme.*
+import com.example.snoozer.ui.theme.SnoozerTheme
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 
@@ -59,7 +63,8 @@ import java.time.DayOfWeek
 fun DayPickerMain(navController: NavController,
                   dayPickerViewModel: DayPickerViewModel = hiltViewModel(),
                   alarmViewModel: AlarmViewModel) {
-    SnoozerTheme {
+    // The theme comes from MainActivity.
+    run {
         val tabIndex by dayPickerViewModel.tabIndex.observeAsState(0)
         val tabs = dayPickerViewModel.tabs
         val pagerState = rememberPagerState(
@@ -141,10 +146,14 @@ fun DayAlarmPage(alarms: List<Alarm>, onAlarmClick: (Alarm) -> Unit) {
 @SuppressLint("DefaultLocale")
 @Composable
 fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
+    val categoryColors = SnoozerTheme.colors.forCategory(alarm.work)
     Card(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(20.dp),
-        colors = CardDefaults.cardColors(containerColor = if (alarm.work == "Work") Color(0xFF90D5FF) else Color(0xFFDAB1DA)),
+        colors = CardDefaults.cardColors(
+            containerColor = categoryColors.container,
+            contentColor = categoryColors.content
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .padding(4.dp)
@@ -161,7 +170,14 @@ fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
             Image(
                 painter = painterResource(if (alarm.work == "Work") R.drawable.work else R.drawable.study),
                 contentDescription = "Alarm Icon",
-                modifier = Modifier.size(100.dp, 100.dp)
+                // The art is black lines on transparent, so give it a light backing
+                // to stay readable on the dark-mode card colors.
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(92.dp)
+                    .clip(CircleShape)
+                    .background(SnoozerTheme.colors.illustrationBacking)
+                    .padding(6.dp)
             )
             Column(verticalArrangement = Arrangement.Center) {
                 val formattedStartTime = String.format("%02d:%02d", alarm.startHour, alarm.startMinute)
@@ -176,7 +192,6 @@ fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
                     textAlign = TextAlign.Center,
                     fontSize = 50.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black
                 )
                 Text(
                     text = "~ $formattedEndTime",
@@ -188,7 +203,6 @@ fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
                     textAlign = TextAlign.Center,
                     fontSize = 50.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black
                 )
             }
         }
@@ -196,19 +210,21 @@ fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
 }
 
 
-@Preview
+@Preview(name = "Light", showBackground = true)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF1C1B1F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun AlarmCard_preview(){
-    AlarmCard(alarm = Alarm(startHour = 10, startMinute = 1, endHour = 10, endMinute = 1, daysOfWeek = DayOfWeek.entries, work = "Work"), onClick = {})
+    SnoozerTheme { AlarmCard(alarm = Alarm(startHour = 10, startMinute = 1, endHour = 10, endMinute = 1, daysOfWeek = DayOfWeek.entries, work = "Work"), onClick = {}) }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview
+@Preview(name = "Light", showBackground = true)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF1C1B1F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun DayAlarmPage_preview() {
-    DayAlarmPage(alarms = listOf(
+    SnoozerTheme { DayAlarmPage(alarms = listOf(
         Alarm(0,  9, 0, 10, 0, listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), work = "Work"),
         Alarm(1,  10, 0, 11, 0, listOf(DayOfWeek.WEDNESDAY, DayOfWeek.TUESDAY), work = "Study")
 
-    ), onAlarmClick = {})
+    ), onAlarmClick = {}) }
 }

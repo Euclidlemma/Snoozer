@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window theme so the app doesn't flash white while launching in dark mode.
+         Compose draws everything after that; colors live in ui/theme. -->
+    <style name="Theme.Snoozer" parent="android:Theme.Material.NoActionBar" />
+</resources>
