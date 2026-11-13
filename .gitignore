@@ -1,12 +1,12 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+# Android Studio / IntelliJ project settings are machine-specific (JDK paths,
+# selected device, run configs) and get rewritten on every sync. Keep only the
+# shared code style and inspection profiles so everyone formats code the same.
+/.idea/*
+!/.idea/codeStyles/
+!/.idea/inspectionProfiles/
 .DS_Store
 /build
 /captures
