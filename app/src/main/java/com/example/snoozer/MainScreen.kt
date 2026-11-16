@@ -14,7 +14,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,14 +23,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -50,6 +47,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.snoozer.Route.Routes
+import com.example.snoozer.ui.doodle.DoodleAlertDialog
+import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.SketchyShape
+import com.example.snoozer.ui.doodle.doodleFill
+import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -129,36 +131,47 @@ fun RainbowRow(modifier:Modifier = Modifier) {
     ) {
         Spacer(modifier = Modifier.weight(0.5f))
         StickHeights.forEachIndexed { i, height ->
-            Sticks(modifier = Modifier.weight(1f), color = colors[i % colors.size], height = height)
+            Sticks(modifier = Modifier.weight(1f), color = colors[i % colors.size], height = height, seed = i)
             Spacer(modifier = Modifier.weight(0.5f))
         }
     }
 }
 
+/** One decorative bar, drawn like a colored-pencil block with a pencil outline. */
 @Composable
-fun Sticks(modifier: Modifier, color: Color, height: Int) {
+fun Sticks(modifier: Modifier, color: Color, height: Int, seed: Int = 0) {
+    val radius = 8.dp
     Box(modifier = modifier
         .height(height.dp)
-        .background(color = color))
+        .doodleFill(color, cornerRadius = radius, wobble = 1.dp, seed = seed)
+        .sketchyBorder(MaterialTheme.colorScheme.onBackground, width = 1.5.dp, cornerRadius = radius, wobble = 1.dp, seed = seed))
 }
 
 @Composable
 fun AppName(modifier:Modifier = Modifier, degrees: Float, startAnimation: Boolean, onClick: () -> Unit) {
+    val bellShape = remember { SketchyShape(cornerRadius = DoodleDefaults.Round, seed = 11) }
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Top,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "SNOOZER", style = MaterialTheme.typography.headlineLarge)
-        Box(modifier = Modifier.wrapContentSize().background(color = SnoozerTheme.colors.bell, shape = CircleShape)
-            .clickable(onClick = onClick)) {
+        Text(text = "SNOOZER", style = MaterialTheme.typography.displaySmall)
+        // Wobbly yellow circle. The border is applied before the clip so its stroke isn't cut off;
+        // the clip keeps the fill and the touch ripple inside the hand-drawn outline.
+        Box(
+            modifier = Modifier
+                .size(104.dp)
+                .sketchyBorder(MaterialTheme.colorScheme.onBackground, cornerRadius = DoodleDefaults.Round, seed = 11)
+                .clip(bellShape)
+                .doodleFill(SnoozerTheme.colors.bell, cornerRadius = DoodleDefaults.Round, seed = 11)
+                .clickable(onClickLabel = "Open schedules", role = Role.Button, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.bell_jar_1096279_1280),
-                contentDescription = "bell icon main",
+                contentDescription = "Snoozer bell",
                 modifier = Modifier
-                    .height(70.dp)
-                    .width(70.dp)
-                    .padding(10.dp)
+                    .size(64.dp)
                     .rotate(if (startAnimation) degrees else 0f)
             )
         }
@@ -184,24 +197,16 @@ fun hasExactAlarmPermission(context: Context): Boolean {
 fun DndPermissionDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
 
-    AlertDialog(
+    DoodleAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Permission Required") },
-        text = { Text("To mute or unmute your phone automatically, please allow Do Not Disturb access.") },
-        confirmButton = {
-            TextButton(onClick = {
-                val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
-                context.startActivity(intent)
-                onDismiss()
-            }) {
-                Text("Open Settings")
-            }
+        title = "Permission required",
+        text = "To mute and unmute your phone on schedule, Snoozer needs Do Not Disturb access.",
+        confirmLabel = "Open settings",
+        onConfirm = {
+            context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+            onDismiss()
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        dismissLabel = "Cancel",
     )
 }
 
@@ -210,26 +215,16 @@ fun DndPermissionDialog(onDismiss: () -> Unit) {
 fun ExactAlarmPermissionDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
 
-    AlertDialog(
+    DoodleAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Permission Required") },
-        text = {
-            Text("To schedule alarms that work reliably, the app needs permission to schedule exact alarms.")
+        title = "Permission required",
+        text = "To mute your phone at exactly the right time, Snoozer needs permission to schedule exact alarms.",
+        confirmLabel = "Open settings",
+        onConfirm = {
+            context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+            onDismiss()
         },
-        confirmButton = {
-            TextButton(onClick = {
-                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                context.startActivity(intent)
-                onDismiss()
-            }) {
-                Text("Open Settings")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        dismissLabel = "Cancel",
     )
 }
 

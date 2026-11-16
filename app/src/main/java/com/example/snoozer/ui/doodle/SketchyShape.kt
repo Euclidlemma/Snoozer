@@ -26,6 +26,11 @@ object DoodleDefaults {
     val BorderWidth: Dp = 2.dp
     /** Distance between wobble points; longer = gentler waves. */
     val SegmentLength: Dp = 22.dp
+    /**
+     * Use as a corner radius to get a wobbly circle (or pill): the radius is capped at
+     * half the shorter side, so a square becomes a circle.
+     */
+    val Round: Dp = 1000.dp
 }
 
 /**

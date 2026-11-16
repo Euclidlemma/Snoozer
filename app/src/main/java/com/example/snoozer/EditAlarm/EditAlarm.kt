@@ -9,25 +9,20 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -38,13 +33,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.MaterialTheme
-import com.example.snoozer.ui.theme.SnoozerTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.snoozer.alarm.AlarmViewModel
+import com.example.snoozer.ui.doodle.DoodleAlertDialog
+import com.example.snoozer.ui.doodle.DoodleButton
+import com.example.snoozer.ui.doodle.DoodleChip
+import com.example.snoozer.ui.doodle.DoodleDivider
+import com.example.snoozer.ui.theme.SnoozerTheme
 import java.time.DayOfWeek
 
 
@@ -72,7 +70,7 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
         onBackClick = { showDialog = true },
         onSave = {
             if (selectedDays.isEmpty()) {
-                Toast.makeText(currentContext, "Day must be selected", Toast.LENGTH_LONG).show()
+                Toast.makeText(currentContext, "Pick at least one day", Toast.LENGTH_LONG).show()
             } else if (startHour == endHour && startMinute == endMinute) {
                 // An end time earlier than the start is allowed: it means the window runs
                 // overnight into the next day (e.g. 22:00 ~ 07:00).
@@ -95,7 +93,7 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
                     selectedDays,
                     work
                 )
-                Toast.makeText(currentContext, "Snoozer Saved", Toast.LENGTH_SHORT).show()
+                Toast.makeText(currentContext, "Snoozer saved", Toast.LENGTH_SHORT).show()
                 // Leave the screen so a second tap can't insert a duplicate.
                 navController.popBackStack()
             }
@@ -122,61 +120,34 @@ fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel
         selectedOption = work
     )
 
-    // alert dialog pressing back button
+    // Confirm leaving with unsaved changes
     if (showDialog) {
-        AlertDialog(
+        DoodleAlertDialog(
             onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                        navController.popBackStack()
-                    }
-                ) {
-                    Text("OK")
-                }
+            title = "Leave without saving?",
+            text = "Your changes to this snoozer won't be saved.",
+            confirmLabel = "Leave",
+            onConfirm = {
+                showDialog = false
+                navController.popBackStack()
             },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            },
-            text = {
-                Text(text = "your change may not be saved. Do you want to proceed?")
-            }
+            dismissLabel = "Keep editing",
         )
     }
 
     if (showDelete) {
-        AlertDialog(
+        DoodleAlertDialog(
             onDismissRequest = { showDelete = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDelete = false
-                        selectedAlarm?.let { alarmViewModel.deleteAlarm(it) }
-                        navController.popBackStack()
-                    }
-                ) {
-                    Text("OK")
-                }
+            title = "Delete this snoozer?",
+            text = "Its mute schedule will be removed. This can't be undone.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                showDelete = false
+                selectedAlarm?.let { alarmViewModel.deleteAlarm(it) }
+                navController.popBackStack()
             },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDelete = false
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            },
-            text = {
-                Text(text = "are you sure you want to delete this snoozer?")
-            }
+            dismissLabel = "Cancel",
+            destructive = true,
         )
     }
 }
@@ -188,21 +159,20 @@ fun EditScreen(
     selectedDays: List<DayOfWeek>, onDaysChanged: (List<DayOfWeek>) -> Unit, startHour: Int, startMinute: Int, endHour: Int, endMinute: Int,
     onTimeChangedStart: (Int, Int) -> Unit, onTimeChangedEnd: (Int, Int) -> Unit, isEditing : Boolean,
     onOptionSelected :(String) -> Unit, selectedOption: String) {
-    Scaffold() { paddingValues ->
-        Box(
+    Scaffold { paddingValues ->
+        // Top bar, scrollable middle, bottom bar stacked in a column, so the middle can
+        // never slide under the buttons on small screens or with large font sizes.
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            TopBar(
-                modifier = Modifier.align(Alignment.TopStart),
-                onBackClick = onBackClick
-            )
+            TopBar(onBackClick = onBackClick)
 
             MiddleContent(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(top = 50.dp, bottom = 50.dp),
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
                 selectedDays = selectedDays,
                 onDaysChanged = onDaysChanged,
                 startHour = startHour,
@@ -216,7 +186,6 @@ fun EditScreen(
             )
 
             BottomBar(
-                modifier = Modifier.align(Alignment.BottomCenter),
                 onSave = onSave,
                 onDelete = onDelete,
                 isEditing = isEditing
@@ -230,13 +199,9 @@ fun TopBar(modifier: Modifier = Modifier, onBackClick: () -> Unit) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentHeight()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Button(
-            onClick = onBackClick,
-            modifier = Modifier.wrapContentSize(),
-            colors = ButtonDefaults.filledTonalButtonColors()
-        ) {
+        DoodleButton(onClick = onBackClick, seed = 41) {
             Text("Back")
         }
     }
@@ -250,25 +215,34 @@ fun MiddleContent(
     endHour: Int, endMinute: Int, onTimeChangedStart: (Int, Int) -> Unit, onTimeChangedEnd: (Int, Int) -> Unit,
     selectedOption: String,
     onOptionSelected :(String) -> Unit) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Column {
-            Text("Select Days:", modifier = Modifier.padding(10.dp))
-            MultiDayPicker(
-                selectedDays = selectedDays,
-                onSelectionChanged = onDaysChanged
-            )
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text("Days", style = MaterialTheme.typography.titleLarge)
+        MultiDayPicker(
+            selectedDays = selectedDays,
+            onSelectionChanged = onDaysChanged
+        )
+
+        DoodleDivider(seed = 51)
+
+        Text("Time", style = MaterialTheme.typography.titleLarge)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            TimePickerSection(label = "Start", hour = startHour, minute = startMinute, onTimeChanged = onTimeChangedStart, seed = 52)
+            TimePickerSection(label = "End", hour = endHour, minute = endMinute, onTimeChanged = onTimeChangedEnd, seed = 53)
         }
-        HorizontalDivider(modifier = Modifier.padding(40.dp))
 
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
-            TimePickerSection(label = "Start Time", hour = startHour, minute = startMinute, onTimeChanged = onTimeChangedStart)
+        DoodleDivider(seed = 54)
 
-            TimePickerSection(label = "End Time", hour = endHour, minute = endMinute, onTimeChanged = onTimeChangedEnd)
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(40.dp))
-
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
+        Text("Type", style = MaterialTheme.typography.titleLarge)
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             WorkStudyDropdown(selectedOption = selectedOption, onOptionSelected = onOptionSelected)
         }
     }
@@ -278,19 +252,23 @@ fun MiddleContent(
 fun WorkStudyDropdown(selectedOption: String, onOptionSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val options = listOf("Work", "Study")
+    val category = SnoozerTheme.colors.forCategory(selectedOption)
 
     Box {
-        Button(onClick = { expanded = true },
-            colors = SnoozerTheme.colors.forCategory(selectedOption).let {
-                ButtonDefaults.buttonColors(containerColor = it.container, contentColor = it.content)
-            })
-        {
+        // The button wears the selected category's colored-pencil fill.
+        DoodleButton(
+            onClick = { expanded = true },
+            containerColor = category.container,
+            contentColor = category.content,
+            hatchColor = category.hatch,
+            seed = 55,
+        ) {
             Text(selectedOption)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(option, style = MaterialTheme.typography.titleMedium) },
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
@@ -302,20 +280,21 @@ fun WorkStudyDropdown(selectedOption: String, onOptionSelected: (String) -> Unit
 }
 
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MultiDayPicker(
     selectedDays: List<DayOfWeek>,
     onSelectionChanged: (List<DayOfWeek>) -> Unit
 ) {
-    val allDays = DayOfWeek.entries.toTypedArray()
-    LazyRow(
+    // FlowRow wraps the seven chips onto two lines on narrow phones instead of scrolling sideways.
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(allDays) { day ->
+        DayOfWeek.entries.forEach { day ->
             val isSelected = day in selectedDays
-            FilterChip(
-                modifier = Modifier.padding(10.dp),
+            DoodleChip(
                 selected = isSelected,
                 onClick = {
                     val updatedDays = selectedDays.toMutableList().apply {
@@ -323,7 +302,8 @@ fun MultiDayPicker(
                     }
                     onSelectionChanged(updatedDays)
                 },
-                label = { Text(day.name.take(3)) }
+                label = day.name.take(1) + day.name.substring(1, 3).lowercase(),
+                seed = 60 + day.value,
             )
         }
     }
@@ -335,23 +315,28 @@ fun TimePickerSection(
     label: String,
     hour: Int,
     minute: Int,
-    onTimeChanged: (Int, Int) -> Unit
+    onTimeChanged: (Int, Int) -> Unit,
+    seed: Int = 0,
 ) {
     val context = LocalContext.current
     val time = String.format("%02d:%02d", hour, minute)
 
-    Button(modifier = Modifier.padding(20.dp),
+    DoodleButton(
+        modifier = Modifier.fillMaxWidth(0.8f),
+        seed = seed,
         onClick = {
-        val picker = TimePickerDialog(
-            context,
-            { _, h, m -> onTimeChanged(h, m) },
-            hour,
-            minute,
-            true
-        )
-        picker.show()
-    }) {
-        Text("$label: $time")
+            TimePickerDialog(
+                context,
+                { _, h, m -> onTimeChanged(h, m) },
+                hour,
+                minute,
+                true
+            ).show()
+        },
+    ) {
+        Text(label, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.weight(1f))
+        Text(time, style = MaterialTheme.typography.headlineMedium)
     }
 }
 
@@ -359,32 +344,36 @@ fun TimePickerSection(
 
 @Composable
 fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () -> Unit, isEditing: Boolean) {
+    val colors = MaterialTheme.colorScheme
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentHeight()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Button(
+        DoodleButton(
             onClick = onSave,
             modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.filledTonalButtonColors()
+            hatchColor = colors.primary,
+            seed = 71,
         ) {
             Text("Save")
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
         if (isEditing) {
-            Button(
+            DoodleButton(
                 onClick = onDelete,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
+                containerColor = colors.errorContainer,
+                contentColor = colors.onErrorContainer,
+                hatchColor = colors.error,
+                seed = 72,
             ) {
                 Text("Delete")
             }
+        } else {
+            // Keep Save the same width whether or not Delete is shown.
+            Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -392,8 +381,8 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
 
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview(name = "Light")
-@Preview(name = "Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF2A2D2F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun ButtonPreview () {
     SnoozerTheme {
