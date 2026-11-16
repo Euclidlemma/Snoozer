@@ -59,14 +59,14 @@ private val DarkColorScheme = darkColorScheme(
     outline = ChalkLine,
 )
 
-/** Background and text color for one schedule category (Work or Study). */
-@Immutable
-data class CategoryColors(val container: Color, val content: Color)
-
 /**
- * Brand colors that Material's color scheme doesn't cover. They stay the same with
- * dynamic color (Android 12+ wallpaper colors), so Work/Study keep their identity.
+ * Colors for one schedule category (Work or Study): the card's base fill, its text,
+ * and the colored-pencil hatching drawn over the fill.
  */
+@Immutable
+data class CategoryColors(val container: Color, val content: Color, val hatch: Color)
+
+/** Brand colors that Material's color scheme doesn't cover. */
 @Immutable
 data class SnoozerColors(
     val work: CategoryColors,
@@ -74,25 +74,33 @@ data class SnoozerColors(
     val bell: Color,
     val illustrationBacking: Color,
     val rainbow: List<Color>,
+    /** Faint ruled lines on the paper background (notebook look). */
+    val paperLine: Color,
+    /** Highlighter-marker stroke, e.g. under the selected day. */
+    val highlighter: Color,
 ) {
     /** Colors for an alarm's category string as stored in the database. */
     fun forCategory(category: String): CategoryColors = if (category == "Study") study else work
 }
 
 private val LightSnoozerColors = SnoozerColors(
-    work = CategoryColors(WorkContainerLight, OnWorkContainerLight),
-    study = CategoryColors(StudyContainerLight, OnStudyContainerLight),
+    work = CategoryColors(WorkContainerLight, OnWorkContainerLight, WorkHatchLight),
+    study = CategoryColors(StudyContainerLight, OnStudyContainerLight, StudyHatchLight),
     bell = BellLight,
     illustrationBacking = IllustrationBackingLight,
     rainbow = RainbowLight,
+    paperLine = PaperLineLight,
+    highlighter = PencilYellow,
 )
 
 private val DarkSnoozerColors = SnoozerColors(
-    work = CategoryColors(WorkContainerDark, OnWorkContainerDark),
-    study = CategoryColors(StudyContainerDark, OnStudyContainerDark),
+    work = CategoryColors(WorkContainerDark, OnWorkContainerDark, WorkHatchDark),
+    study = CategoryColors(StudyContainerDark, OnStudyContainerDark, StudyHatchDark),
     bell = BellDark,
     illustrationBacking = IllustrationBackingDark,
     rainbow = RainbowDark,
+    paperLine = PaperLineDark,
+    highlighter = ChalkYellow,
 )
 
 private val LocalSnoozerColors = staticCompositionLocalOf { LightSnoozerColors }

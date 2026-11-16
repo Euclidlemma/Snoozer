@@ -48,6 +48,16 @@ val OnStudyContainerLight = Color(0xFF3A2244)
 val StudyContainerDark = Color(0xFF4E3B57)
 val OnStudyContainerDark = Color(0xFFF0E0F5)
 
+// Pencil hatching drawn over the category fills (applied semi-transparent)
+val WorkHatchLight = Color(0xFF5B8DB8)
+val StudyHatchLight = Color(0xFFA57BB0)
+val WorkHatchDark = Color(0xFF8FBCE6)
+val StudyHatchDark = Color(0xFFD3A9DE)
+
+// Ruled notebook lines on the page background
+val PaperLineLight = Color(0xFFE9E1CC)
+val PaperLineDark = Color(0xFF363A3D)
+
 // The yellow circle behind the bell on the home screen
 val BellLight = PencilYellow
 val BellDark = ChalkYellow
