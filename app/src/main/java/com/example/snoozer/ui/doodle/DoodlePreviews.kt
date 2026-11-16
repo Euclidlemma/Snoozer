@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.res.painterResource
+import com.example.snoozer.R
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -45,6 +49,17 @@ private fun DoodleKitPreview() {
                 DoodleChip(selected = true, onClick = {}, label = "Mon", seed = 3)
                 DoodleChip(selected = false, onClick = {}, label = "Tue", seed = 4)
                 DoodleChip(selected = true, onClick = {}, label = "Wed", seed = 5)
+            }
+
+            // Hand-drawn icons, tinted with the current text color
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                listOf(
+                    R.drawable.ic_doodle_back,
+                    R.drawable.ic_doodle_add,
+                    R.drawable.ic_doodle_delete,
+                    R.drawable.ic_doodle_clock,
+                    R.drawable.ic_doodle_expand,
+                ).forEach { Icon(painterResource(it), contentDescription = null, modifier = Modifier.size(32.dp)) }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

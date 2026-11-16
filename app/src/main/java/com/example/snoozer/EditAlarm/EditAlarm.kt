@@ -16,9 +16,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -34,9 +36,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.snoozer.R
 import com.example.snoozer.alarm.AlarmViewModel
 import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import com.example.snoozer.ui.doodle.DoodleButton
@@ -202,6 +206,9 @@ fun TopBar(modifier: Modifier = Modifier, onBackClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         DoodleButton(onClick = onBackClick, seed = 41) {
+            // Decorative: the "Back" label already names the action for screen readers.
+            Icon(painterResource(R.drawable.ic_doodle_back), contentDescription = null)
+            Spacer(Modifier.width(6.dp))
             Text("Back")
         }
     }
@@ -264,6 +271,8 @@ fun WorkStudyDropdown(selectedOption: String, onOptionSelected: (String) -> Unit
             seed = 55,
         ) {
             Text(selectedOption)
+            Spacer(Modifier.width(6.dp))
+            Icon(painterResource(R.drawable.ic_doodle_expand), contentDescription = null)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
@@ -334,6 +343,8 @@ fun TimePickerSection(
             ).show()
         },
     ) {
+        Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null)
+        Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.weight(1f))
         Text(time, style = MaterialTheme.typography.headlineMedium)
@@ -369,6 +380,8 @@ fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () ->
                 hatchColor = colors.error,
                 seed = 72,
             ) {
+                Icon(painterResource(R.drawable.ic_doodle_delete), contentDescription = null)
+                Spacer(Modifier.width(6.dp))
                 Text("Delete")
             }
         } else {

@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -56,7 +55,6 @@ import com.example.snoozer.ui.theme.SnoozerTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun MainScreen(navController: NavController) {
     var startAnimation by remember { mutableStateOf(false) }
@@ -210,8 +208,8 @@ fun DndPermissionDialog(onDismiss: () -> Unit) {
     )
 }
 
-@RequiresApi(Build.VERSION_CODES.S)
 @Composable
+// Only shown when hasExactAlarmPermission() is false, which can only happen on Android 12+.
 fun ExactAlarmPermissionDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
 
@@ -231,7 +229,6 @@ fun ExactAlarmPermissionDialog(onDismiss: () -> Unit) {
 
 
 
-@RequiresApi(Build.VERSION_CODES.S)
 @Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF6EC)
 @Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF2A2D2F, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable

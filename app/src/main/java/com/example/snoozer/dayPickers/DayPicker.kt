@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -88,8 +89,12 @@ fun DayPickerMain(navController: NavController,
                 contentDescription = "Add snoozer",
                 seed = 31,
             ) {
-                // The FAB's description already says what it does; don't also read "+".
-                Text(text = "+", style = MaterialTheme.typography.displaySmall, modifier = Modifier.clearAndSetSemantics {})
+                // Decorative: the FAB's own description ("Add snoozer") is what gets announced.
+                Icon(
+                    painter = painterResource(R.drawable.ic_doodle_add),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                )
             }
         }
     ) { paddingValues ->
