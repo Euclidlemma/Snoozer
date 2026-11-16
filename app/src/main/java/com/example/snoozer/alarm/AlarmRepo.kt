@@ -1,5 +1,6 @@
 package com.example.snoozer.alarm
 import androidx.lifecycle.LiveData
+import kotlinx.coroutines.flow.Flow
 
 
 class AlarmRepository(private val alarmDao: AlarmDao) {
@@ -8,6 +9,8 @@ class AlarmRepository(private val alarmDao: AlarmDao) {
     fun getAlarm(): LiveData<List<Alarm>> {
         return alarmDao.getAllAlarms()
     }
+
+    fun observeAlarms(): Flow<List<Alarm>> = alarmDao.observeAll()
 
     suspend fun insertAlarm(alarm: Alarm): Long {
        return alarmDao.insertAlarm(alarm)

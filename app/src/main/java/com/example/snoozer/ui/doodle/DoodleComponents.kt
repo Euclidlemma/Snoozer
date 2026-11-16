@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.snoozer.ui.theme.CategoryColors
 import kotlin.math.max
@@ -46,6 +47,7 @@ import kotlin.random.Random
  *
  * @param hatchColor if set, colored-pencil hatching is drawn over [containerColor].
  * @param seed varies the wobble; give neighbouring buttons different seeds.
+ * @param wobble outline strength: [DoodleDefaults.Wobble] to stand out, [DoodleDefaults.WobbleLight] for calmer, secondary elements.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,17 +60,18 @@ fun DoodleButton(
     hatchColor: Color? = null,
     borderColor: Color = MaterialTheme.colorScheme.onSurface,
     seed: Int = 0,
+    wobble: Dp = DoodleDefaults.Wobble,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val shape = remember(seed) { SketchyShape(seed = seed) }
+    val shape = remember(seed, wobble) { SketchyShape(wobble = wobble, seed = seed) }
     Surface(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
             .alpha(if (enabled) 1f else 0.38f)
             .semantics { role = Role.Button }
-            .doodleFill(containerColor, hatchColor, seed = seed)
-            .sketchyBorder(borderColor, seed = seed),
+            .doodleFill(containerColor, hatchColor, wobble = wobble, seed = seed)
+            .sketchyBorder(borderColor, wobble = wobble, seed = seed),
         shape = shape,
         color = Color.Transparent,
         contentColor = contentColor,
@@ -97,12 +100,13 @@ fun DoodleCard(
     onClick: (() -> Unit)? = null,
     borderColor: Color = MaterialTheme.colorScheme.onSurface,
     seed: Int = 0,
+    wobble: Dp = DoodleDefaults.Wobble,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = remember(seed) { SketchyShape(seed = seed) }
+    val shape = remember(seed, wobble) { SketchyShape(wobble = wobble, seed = seed) }
     val decorated = modifier
-        .doodleFill(colors.container, colors.hatch, seed = seed)
-        .sketchyBorder(borderColor, seed = seed)
+        .doodleFill(colors.container, colors.hatch, wobble = wobble, seed = seed)
+        .sketchyBorder(borderColor, wobble = wobble, seed = seed)
     if (onClick != null) {
         Surface(
             onClick = onClick,
@@ -242,9 +246,10 @@ fun DoodleChip(
     label: String,
     modifier: Modifier = Modifier,
     seed: Int = 0,
+    wobble: Dp = DoodleDefaults.Wobble,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = remember(seed) { SketchyShape(cornerRadius = 12.dp, seed = seed) }
+    val shape = remember(seed, wobble) { SketchyShape(cornerRadius = 12.dp, wobble = wobble, seed = seed) }
     val fill = if (selected) colors.secondaryContainer else Color.Transparent
     val hatch = if (selected) colors.primary else null
     val border = if (selected) colors.onSurface else colors.outline
@@ -252,8 +257,8 @@ fun DoodleChip(
         onClick = onClick,
         modifier = modifier
             .semantics { this.selected = selected }
-            .doodleFill(fill, hatch, cornerRadius = 12.dp, seed = seed, hatchAlpha = 0.3f)
-            .sketchyBorder(border, width = if (selected) 2.dp else 1.5.dp, cornerRadius = 12.dp, seed = seed),
+            .doodleFill(fill, hatch, cornerRadius = 12.dp, wobble = wobble, seed = seed, hatchAlpha = 0.3f)
+            .sketchyBorder(border, width = if (selected) 2.dp else 1.5.dp, cornerRadius = 12.dp, wobble = wobble, seed = seed),
         shape = shape,
         color = Color.Transparent,
         contentColor = colors.onSurface,

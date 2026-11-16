@@ -2,11 +2,16 @@ package com.example.snoozer.alarm
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AlarmDao {
     @Query("SELECT * FROM alarms")
     fun getAllAlarms(): LiveData<List<Alarm>>
+
+    /** Emits the full list again whenever the table changes. */
+    @Query("SELECT * FROM alarms")
+    fun observeAll(): Flow<List<Alarm>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAlarm(alarm: Alarm): Long

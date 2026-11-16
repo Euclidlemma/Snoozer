@@ -133,4 +133,10 @@ object SnoozerTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalSnoozerColors.current
+
+    /** Text roles (title, headline, body, caption, label) built from the theme's typography. */
+    val type: SnoozerType
+        @Composable
+        @ReadOnlyComposable
+        get() = snoozerType(MaterialTheme.typography)
 }

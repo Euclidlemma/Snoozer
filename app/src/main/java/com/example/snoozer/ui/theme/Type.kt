@@ -1,6 +1,7 @@
 package com.example.snoozer.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -48,4 +49,30 @@ val Typography = Typography(
     labelLarge = Material.labelLarge.doodle(bold = true),
     labelMedium = Material.labelMedium.doodle(bold = true),
     labelSmall = Material.labelSmall.doodle(bold = true),
+)
+
+/**
+ * The few text roles screens should pick from, instead of choosing among Material's 15 styles.
+ * Each maps to one Material style, so Material components still look consistent with them.
+ */
+@Immutable
+data class SnoozerType(
+    /** Screen and section titles ("Monday · today"). */
+    val title: TextStyle,
+    /** The key number on a card: times, the next quiet time. */
+    val headline: TextStyle,
+    /** Normal reading text. */
+    val body: TextStyle,
+    /** Secondary details: duration, repeat days, hints. */
+    val caption: TextStyle,
+    /** Bold short labels on buttons and chips. */
+    val label: TextStyle,
+)
+
+internal fun snoozerType(typography: Typography) = SnoozerType(
+    title = typography.titleLarge,
+    headline = typography.headlineMedium,
+    body = typography.bodyLarge,
+    caption = typography.bodyMedium,
+    label = typography.labelLarge,
 )

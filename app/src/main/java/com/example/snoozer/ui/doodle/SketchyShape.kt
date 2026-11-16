@@ -22,7 +22,10 @@ import kotlin.random.Random
 /** Shared defaults so shapes, borders and fills built separately line up exactly. */
 object DoodleDefaults {
     val CornerRadius: Dp = 14.dp
+    /** Full hand-drawn wobble. Keep it for the one element per screen that should stand out. */
     val Wobble: Dp = 1.2.dp
+    /** A calmer outline for everything else (list cards, chips, secondary buttons). */
+    val WobbleLight: Dp = 0.6.dp
     val BorderWidth: Dp = 2.dp
     /** Distance between wobble points; longer = gentler waves. */
     val SegmentLength: Dp = 22.dp
