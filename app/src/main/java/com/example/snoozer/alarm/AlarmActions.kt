@@ -17,6 +17,26 @@ class AlarmActions @Inject constructor(
     private val timeSource: TimeSource,
     @ApplicationContext private val appContext: Context,
 ) {
+    /** Saves a new window and schedules it. */
+    suspend fun create(alarm: Alarm) {
+        val id = repository.insertAlarm(alarm)
+        scheduler.scheduleAlarm(alarm.copy(id = id.toInt()))
+    }
+
+    /** Replaces [old] with [new] (same id), moving its scheduled alarms to the new times. */
+    suspend fun update(old: Alarm, new: Alarm) {
+        repository.updateAlarm(new)
+        scheduler.cancelAlarm(old)
+        scheduler.scheduleAlarm(new)
+        releaseRingerIfIdle(old)
+    }
+
+    suspend fun delete(alarm: Alarm) {
+        repository.deleteAlarm(alarm)
+        scheduler.cancelAlarm(alarm)
+        releaseRingerIfIdle(alarm)
+    }
+
     /**
      * Switches a window on or off without deleting it. Switching off cancels its alarms and,
      * if it is muting the phone right now, gives the ringer back.

@@ -37,11 +37,8 @@ class DayPickerViewModel @Inject constructor(
             WeekUi.build(alarms, now)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** The saved alarm behind a card, for opening it in the edit screen. */
-    fun alarm(id: Int): Alarm? = latestAlarms.firstOrNull { it.id == id }
-
     fun onToggle(id: Int, enabled: Boolean) {
-        val alarm = alarm(id) ?: return
+        val alarm = latestAlarms.firstOrNull { it.id == id } ?: return
         viewModelScope.launch { actions.setEnabled(alarm, enabled) }
     }
 }

@@ -30,7 +30,6 @@ import androidx.navigation.NavController
 import com.example.snoozer.R
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.alarm.Alarm
-import com.example.snoozer.alarm.AlarmViewModel
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
 import com.example.snoozer.ui.theme.SnoozerTheme
@@ -39,24 +38,23 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 
-/** The week screen. State comes from [DayPickerViewModel]; the edit screen still uses [AlarmViewModel]. */
+/** The week screen. State comes from [DayPickerViewModel]. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DayPickerMain(
     navController: NavController,
-    alarmViewModel: AlarmViewModel,
     viewModel: DayPickerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(initialPage = viewModel.initialPage, pageCount = { 7 })
-    val openEditor: (Alarm?) -> Unit = { alarm ->
-        alarmViewModel.setSelectedAlarm(alarm) // null = creating a new snoozer
-        navController.navigate(Routes.EditAlarm.route)
+    // A new snoozer starts on the day being viewed.
+    val createOnCurrentDay = {
+        navController.navigate(Routes.EditAlarm.create(DayOfWeek.of(pagerState.currentPage + 1)))
     }
 
     Scaffold(
         floatingActionButton = {
-            DoodleFab(onClick = { openEditor(null) }, contentDescription = "Add snoozer", seed = 31) {
+            DoodleFab(onClick = createOnCurrentDay, contentDescription = "Add snoozer", seed = 31) {
                 // Decorative: the FAB's own description ("Add snoozer") is what gets announced.
                 Icon(painterResource(R.drawable.ic_doodle_add), contentDescription = null, modifier = Modifier.size(32.dp))
             }
@@ -70,9 +68,9 @@ fun DayPickerMain(
             WeekContent(
                 state = current,
                 pagerState = pagerState,
-                onCardClick = { id -> viewModel.alarm(id)?.let(openEditor) },
+                onCardClick = { id -> navController.navigate(Routes.EditAlarm.edit(id)) },
                 onToggle = viewModel::onToggle,
-                onAdd = { openEditor(null) },
+                onAdd = createOnCurrentDay,
                 modifier = Modifier.padding(padding),
             )
         }
