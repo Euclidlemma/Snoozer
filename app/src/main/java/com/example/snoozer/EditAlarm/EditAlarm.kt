@@ -8,7 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -53,6 +53,7 @@ import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleChip
 import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.DoodleSection
 import com.example.snoozer.ui.doodle.SketchyShape
 import com.example.snoozer.ui.doodle.doodleFill
 import com.example.snoozer.ui.doodle.sketchyBorder
@@ -241,27 +242,10 @@ private fun CategoryToggle(selected: String, onSelect: (String) -> Unit) {
     }
 }
 
-/** A paper card with a light pencil outline and a small heading, grouping related fields. */
-@Composable
-private fun SectionCard(title: String, seed: Int, content: @Composable ColumnScope.() -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .doodleFill(scheme.surface, wobble = DoodleDefaults.WobbleLight, seed = seed)
-            .sketchyBorder(scheme.outline, width = 1.5.dp, wobble = DoodleDefaults.WobbleLight, seed = seed)
-            .padding(Spacing.M),
-        verticalArrangement = Arrangement.spacedBy(Spacing.S),
-    ) {
-        Text(title, style = SnoozerTheme.type.title, modifier = Modifier.semantics { heading() })
-        content()
-    }
-}
-
 /** Start and end side by side, with a live line saying how long the phone will be quiet. */
 @Composable
 private fun WhenCard(state: EditUiState, onStartChange: (Int, Int) -> Unit, onEndChange: (Int, Int) -> Unit) {
-    SectionCard(title = "When", seed = 90) {
+    DoodleSection(title = "When", seed = 90) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.S),
@@ -309,7 +293,7 @@ private fun RepeatCard(
     onToggleDay: (DayOfWeek) -> Unit,
     onPreset: (RepeatPreset) -> Unit,
 ) {
-    SectionCard(title = "Repeat", seed = 93) {
+    DoodleSection(title = "Repeat", seed = 93) {
         // FlowRow wraps the chips onto two lines on narrow phones instead of scrolling sideways.
         FlowRow(
             modifier = Modifier.fillMaxWidth(),

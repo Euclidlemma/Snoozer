@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import com.example.snoozer.EditAlarm.EditAlarmScreen
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.dayPickers.DayPickerMain
+import com.example.snoozer.home.HomeScreen
 import com.example.snoozer.ui.theme.SnoozerTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
                     // scoped to its back stack entry.
                     NavHost(navController = navController, startDestination = Routes.Home.route) {
                         composable(Routes.Home.route) {
-                            MainScreen(navController = navController)
+                            HomeScreen(navController = navController)
                         }
 
                         composable(Routes.DayPicker.route) {
