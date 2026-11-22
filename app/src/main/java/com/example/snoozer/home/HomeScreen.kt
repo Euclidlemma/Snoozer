@@ -1,12 +1,6 @@
 package com.example.snoozer.home
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.R
 import com.example.snoozer.Route.Routes
+import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleDefaults
 import com.example.snoozer.ui.doodle.DoodleSection
@@ -54,6 +50,8 @@ import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.Permissions
+import com.example.snoozer.util.openDndSettings
+import com.example.snoozer.util.openExactAlarmSettings
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
@@ -64,34 +62,19 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     // Re-checking on every resume updates the checklist the moment the user comes back.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
 
+    val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
     val current = state ?: return // first database read; the screen is blank for a moment
     HomeContent(
         state = current,
-        onAllowDnd = { context.openSettings(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)) },
-        onAllowExactAlarms = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // The package URI opens Snoozer's own toggle instead of the full app list.
-                context.openSettings(
-                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))
-                )
-            }
-        },
+        onAllowDnd = context::openDndSettings,
+        onAllowExactAlarms = context::openExactAlarmSettings,
         onOpenWeek = {
-            navController.navigate(Routes.DayPicker.route) {
+            navController.navigateFrom(lifecycleOwner, Routes.DayPicker.route) {
                 popUpTo(Routes.Home.route) { inclusive = false }
                 launchSingleTop = true
             }
         },
     )
-}
-
-/** Some devices strip these Settings screens; fall back to Snoozer's app info page. */
-private fun Context.openSettings(intent: Intent) {
-    try {
-        startActivity(intent)
-    } catch (e: ActivityNotFoundException) {
-        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
-    }
 }
 
 /** Stateless home screen: header, today's status, the setup checklist and "Open my week". */

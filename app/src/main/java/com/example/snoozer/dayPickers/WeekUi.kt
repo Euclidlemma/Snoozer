@@ -24,6 +24,8 @@ sealed interface StatusUi {
     /** Not muted; the next window starts at [time] on [day] ("today", "tomorrow", "Wed"). */
     data class Next(val time: String, val day: String, val category: String, val startsIn: String) : StatusUi
     data object NothingScheduled : StatusUi
+    /** Do Not Disturb access is off, so no window can mute the phone, whatever the schedule says. */
+    data object NoAccess : StatusUi
 }
 
 @Immutable
@@ -60,13 +62,18 @@ data class AlarmCardUi(
 /** Pure mapping from saved alarms to [WeekUiState]; no Android types, so it is unit-tested. */
 object WeekUi {
 
-    fun build(alarms: List<Alarm>, now: LocalDateTime): WeekUiState = WeekUiState(
-        status = status(alarms, now),
-        days = DayOfWeek.entries.map { day(it, alarms, now) },
+    /**
+     * [canMute] is whether Snoozer has Do Not Disturb access. Without it the status says so
+     * and no card is marked active, since nothing is actually muting the phone.
+     */
+    fun build(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): WeekUiState = WeekUiState(
+        status = status(alarms, now, canMute),
+        days = DayOfWeek.entries.map { day(it, alarms, now, canMute) },
     )
 
-    fun status(alarms: List<Alarm>, now: LocalDateTime): StatusUi =
-        when (val s = AlarmTime.quietStatus(alarms, now)) {
+    fun status(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): StatusUi =
+        if (!canMute) StatusUi.NoAccess
+        else when (val s = AlarmTime.quietStatus(alarms, now)) {
             is QuietStatus.QuietUntil -> StatusUi.QuietNow(
                 until = AlarmTime.formatTime(s.until.hour, s.until.minute) +
                     if (s.until.toLocalDate() != now.toLocalDate()) " ${relativeDay(s.until, now)}" else "",
@@ -82,7 +89,7 @@ object WeekUi {
             QuietStatus.NothingScheduled -> StatusUi.NothingScheduled
         }
 
-    private fun day(day: DayOfWeek, alarms: List<Alarm>, now: LocalDateTime): DayUi {
+    private fun day(day: DayOfWeek, alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean): DayUi {
         val onDay = alarms
             .filter { day in it.daysOfWeek }
             .sortedWith(compareBy({ it.startHour }, { it.startMinute }, { it.id }))
@@ -99,11 +106,11 @@ object WeekUi {
             name = day.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
             isToday = isToday,
             summary = summary,
-            cards = onDay.map { card(it, day, now) },
+            cards = onDay.map { card(it, day, now, canMute) },
         )
     }
 
-    private fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime) = AlarmCardUi(
+    private fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
         id = alarm.id,
         category = alarm.work,
         start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute),
@@ -113,7 +120,7 @@ object WeekUi {
         repeatsOn = DayOfWeek.entries.map { it in alarm.daysOfWeek },
         repeatText = repeatText(alarm.daysOfWeek),
         enabled = alarm.isEnabled,
-        activeNow = alarm.isEnabled && occurrenceActive(alarm, day, now),
+        activeNow = canMute && alarm.isEnabled && occurrenceActive(alarm, day, now),
     )
 
     /**

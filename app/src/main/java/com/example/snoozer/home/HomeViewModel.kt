@@ -31,13 +31,14 @@ data class HomeUiState(
 
 object HomeUi {
     fun build(alarms: List<Alarm>, now: LocalDateTime, permissions: Permissions) =
-        HomeUiState(statusLine(WeekUi.status(alarms, now)), permissions)
+        HomeUiState(statusLine(WeekUi.status(alarms, now, canMute = permissions.dnd)), permissions)
 
     /** The status card's message squeezed into one line. Same source as the week screen. */
     fun statusLine(status: StatusUi): String = when (status) {
         is StatusUi.QuietNow -> "Quiet now, until ${status.until}"
         is StatusUi.Next -> "Next quiet time: ${status.time} ${status.day}"
         StatusUi.NothingScheduled -> "No quiet times planned yet"
+        StatusUi.NoAccess -> "Paused: Snoozer can't mute without Do Not Disturb access"
     }
 }
 

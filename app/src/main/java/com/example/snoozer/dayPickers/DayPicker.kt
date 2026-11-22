@@ -21,19 +21,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.R
 import com.example.snoozer.Route.Routes
+import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.ui.theme.Spacing
+import com.example.snoozer.util.openDndSettings
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDateTime
@@ -47,9 +53,15 @@ fun DayPickerMain(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(initialPage = viewModel.initialPage, pageCount = { 7 })
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
+
+    // Do Not Disturb access can be revoked in Settings while the app is in the background.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
+
     // A new snoozer starts on the day being viewed.
     val createOnCurrentDay = {
-        navController.navigate(Routes.EditAlarm.create(DayOfWeek.of(pagerState.currentPage + 1)))
+        navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.create(DayOfWeek.of(pagerState.currentPage + 1)))
     }
 
     Scaffold(
@@ -68,9 +80,10 @@ fun DayPickerMain(
             WeekContent(
                 state = current,
                 pagerState = pagerState,
-                onCardClick = { id -> navController.navigate(Routes.EditAlarm.edit(id)) },
+                onCardClick = { id -> navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.edit(id)) },
                 onToggle = viewModel::onToggle,
                 onAdd = createOnCurrentDay,
+                onAllowAccess = context::openDndSettings,
                 modifier = Modifier.padding(padding),
             )
         }
@@ -87,10 +100,15 @@ fun WeekContent(
     onToggle: (Int, Boolean) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    onAllowAccess: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxSize()) {
-        StatusCard(state.status, Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S))
+        StatusCard(
+            state.status,
+            onAllowAccess = onAllowAccess,
+            modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
+        )
         Spacer(Modifier.height(Spacing.S))
         WeekStrip(
             days = state.days,

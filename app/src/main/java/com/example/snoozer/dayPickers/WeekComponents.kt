@@ -58,7 +58,7 @@ import com.example.snoozer.ui.theme.Spacing
  * Yellow with the full wobble, since it is the one element that should stand out.
  */
 @Composable
-fun StatusCard(status: StatusUi, modifier: Modifier = Modifier) {
+fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: () -> Unit = {}) {
     val scheme = MaterialTheme.colorScheme
     val type = SnoozerTheme.type
     val yellow = CategoryColors(
@@ -90,6 +90,15 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier) {
                     StatusUi.NothingScheduled -> {
                         Text("No quiet times yet", style = type.title)
                         Text("Tap + to plan your first one.", style = type.caption)
+                    }
+                    // Without Do Not Disturb access nothing mutes, so say that instead of a schedule.
+                    StatusUi.NoAccess -> {
+                        Text("Snoozer is paused", style = type.title)
+                        Text("Do Not Disturb access is off, so your phone won't be muted.", style = type.caption)
+                        Spacer(Modifier.height(Spacing.S))
+                        DoodleButton(onClick = onAllowAccess, seed = 42, wobble = DoodleDefaults.WobbleLight) {
+                            Text("Allow access")
+                        }
                     }
                 }
             }

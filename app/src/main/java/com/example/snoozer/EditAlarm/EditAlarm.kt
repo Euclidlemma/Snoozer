@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.example.snoozer.Route.leaveEditScreen
 import com.example.snoozer.R
 import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import com.example.snoozer.ui.doodle.DoodleButton
@@ -74,12 +75,12 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             event.message?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-            navController.popBackStack()
+            navController.leaveEditScreen()
         }
     }
 
     val current = state
-    val onBack = { if (current?.hasChanges == true) confirmLeave = true else navController.popBackStack() }
+    val onBack = { if (current?.hasChanges == true) confirmLeave = true else navController.leaveEditScreen() }
     // The system back gesture asks too, not just the on-screen button.
     BackHandler(enabled = current?.hasChanges == true) { confirmLeave = true }
 
@@ -110,7 +111,7 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
             confirmLabel = "Leave",
             onConfirm = {
                 confirmLeave = false
-                navController.popBackStack()
+                navController.leaveEditScreen()
             },
             dismissLabel = "Keep editing",
         )

@@ -90,6 +90,14 @@ class WeekUiTest {
     }
 
     @Test
+    fun withoutDndAccess_statusSaysPausedAndNoCardIsActive() {
+        val a = alarm(1, 9, 0, 10, 30, MONDAY)
+        val ui = WeekUi.build(listOf(a), at(16, 9, 20), canMute = false)   // inside the window
+        assertEquals(StatusUi.NoAccess, ui.status)
+        assertFalse(ui.days[0].cards.single().activeNow)
+    }
+
+    @Test
     fun status_nothingScheduled() {
         assertEquals(StatusUi.NothingScheduled, WeekUi.status(emptyList(), at(16, 8, 0)))
     }

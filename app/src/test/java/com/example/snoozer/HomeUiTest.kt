@@ -27,6 +27,12 @@ class HomeUiTest {
     }
 
     @Test
+    fun statusLine_withoutDndAccess_saysPaused() {
+        assertEquals("Paused: Snoozer can't mute without Do Not Disturb access",
+            HomeUi.build(listOf(a), at(9, 15), all.copy(dnd = false)).statusLine)
+    }
+
+    @Test
     fun ready_needsDndOnly() {
         assertTrue(HomeUi.build(emptyList(), at(8, 0), all.copy(exactAlarms = false)).ready)
         assertFalse(HomeUi.build(emptyList(), at(8, 0), all.copy(dnd = false)).ready)
