@@ -1,5 +1,6 @@
 package com.example.snoozer.ui.theme
 
+import com.example.snoozer.alarm.Category
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -79,8 +80,13 @@ data class SnoozerColors(
     /** Highlighter-marker stroke, e.g. under the selected day. */
     val highlighter: Color,
 ) {
+    fun forCategory(category: Category): CategoryColors = when (category) {
+        Category.Work -> work
+        Category.Study -> study
+    }
+
     /** Colors for an alarm's category string as stored in the database. */
-    fun forCategory(category: String): CategoryColors = if (category == "Study") study else work
+    fun forCategory(category: String): CategoryColors = forCategory(Category.from(category))
 }
 
 private val LightSnoozerColors = SnoozerColors(
