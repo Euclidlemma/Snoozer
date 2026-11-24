@@ -1,11 +1,11 @@
 package com.example.snoozer.home
 
 import android.content.res.Configuration
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,19 +19,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -42,8 +42,9 @@ import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.DoodleIllustration
+import com.example.snoozer.ui.doodle.Illustrations
 import com.example.snoozer.ui.doodle.DoodleSection
-import com.example.snoozer.ui.doodle.SketchyShape
 import com.example.snoozer.ui.doodle.doodleFill
 import com.example.snoozer.ui.doodle.highlighter
 import com.example.snoozer.ui.doodle.sketchyBorder
@@ -94,9 +95,8 @@ fun HomeContent(
                 .padding(horizontal = Spacing.M),
             verticalArrangement = Arrangement.spacedBy(Spacing.L),
         ) {
-            RainbowRow(Modifier.padding(top = Spacing.M))
-            Header()
-            StatusLine(state.statusLine)
+            MascotHeader(Modifier.fillMaxWidth().padding(top = Spacing.M))
+            StatusLine(state.statusLine, Modifier.align(Alignment.CenterHorizontally))
             DoodleSection(title = "Setup", seed = 120) {
                 PermissionRow(
                     title = "Do Not Disturb access",
@@ -143,62 +143,46 @@ fun HomeContent(
     }
 }
 
-// Heights (dp) of the decorative bars, left to right; colors come from the theme.
-private val StickHeights = listOf(68, 56, 72, 64, 60, 76, 52)
-
-/** Seven colored-pencil bars standing on one baseline, one per weekday. Decorative. */
+/**
+ * Snoozer's mascot, the bell-hat guard with crossed arms, in the yellow circle, with the
+ * app name and a one-line explanation under it. The drawing is decorative: the name and
+ * tagline are what screen readers announce.
+ */
 @Composable
-private fun RainbowRow(modifier: Modifier = Modifier) {
-    val colors = SnoozerTheme.colors.rainbow
-    val ink = MaterialTheme.colorScheme.onBackground
-    Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.L),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.S),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        StickHeights.forEachIndexed { i, height ->
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(height.dp)
-                    .doodleFill(colors[i % colors.size], cornerRadius = 8.dp, wobble = 1.dp, seed = i)
-                    .sketchyBorder(ink, width = 1.5.dp, cornerRadius = 8.dp, wobble = 1.dp, seed = i)
-            )
-        }
+private fun MascotHeader(modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        DoodleIllustration(
+            image = Illustrations.Guard,
+            size = MascotSize,
+            round = true,
+            backing = SnoozerTheme.colors.bell,
+            outline = MaterialTheme.colorScheme.onBackground,
+            // The figure has its own margins; at full scale it fills the circle without touching it.
+            imageScale = 1f,
+            seed = 11,
+        )
+        Spacer(Modifier.height(Spacing.S))
+        Text(
+            "SNOOZER",
+            style = MaterialTheme.typography.displaySmall,
+            letterSpacing = 2.sp,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            "On guard, so your phone stays quiet.",
+            style = SnoozerTheme.type.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
-/** The bell in its yellow circle, the app name and a one-line explanation. */
-@Composable
-private fun Header() {
-    val bellShape = remember { SketchyShape(cornerRadius = DoodleDefaults.Round, seed = 11) }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.M)) {
-        // The border goes before the clip so its stroke isn't cut off.
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .sketchyBorder(MaterialTheme.colorScheme.onBackground, cornerRadius = DoodleDefaults.Round, seed = 11)
-                .clip(bellShape)
-                .doodleFill(SnoozerTheme.colors.bell, cornerRadius = DoodleDefaults.Round, seed = 11),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(painterResource(R.drawable.ic_doodle_bell), contentDescription = null, modifier = Modifier.size(44.dp))
-        }
-        Column {
-            Text("SNOOZER", style = SnoozerTheme.type.headline)
-            Text(
-                "Mutes your phone on a weekly schedule.",
-                style = SnoozerTheme.type.caption,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
+private val MascotSize = 196.dp
 
 /** Today's status from the same source as the week screen's card, as one highlighted line. */
 @Composable
-private fun StatusLine(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+private fun StatusLine(text: String, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
         Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(24.dp))
         Text(
             text,
@@ -252,6 +236,9 @@ private fun HomeReadyPreview() {
 }
 
 @Preview(name = "Home - first run", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
+// A small phone: the middle scrolls, and "Open my week" stays pinned at the bottom.
+@Preview(name = "Home - first run, small phone", widthDp = 320, heightDp = 568, showBackground = true,
+    backgroundColor = 0xFFFAF6EC)
 @Composable
 private fun HomeFirstRunPreview() {
     SnoozerTheme {
