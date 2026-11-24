@@ -324,7 +324,7 @@ fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier) 
                 .doodleFill(SnoozerTheme.colors.illustrationBacking, cornerRadius = DoodleDefaults.Round, seed = 52),
             contentAlignment = Alignment.Center,
         ) {
-            Image(painterResource(R.drawable.bell_jar_1096279_1280), contentDescription = null, modifier = Modifier.size(60.dp))
+            Image(painterResource(R.drawable.ic_doodle_bell), contentDescription = null, modifier = Modifier.size(60.dp))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("A free day", style = SnoozerTheme.type.title)

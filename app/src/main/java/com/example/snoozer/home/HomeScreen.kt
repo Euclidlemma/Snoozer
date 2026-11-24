@@ -182,7 +182,7 @@ private fun Header() {
                 .doodleFill(SnoozerTheme.colors.bell, cornerRadius = DoodleDefaults.Round, seed = 11),
             contentAlignment = Alignment.Center,
         ) {
-            Image(painterResource(R.drawable.bell_jar_1096279_1280), contentDescription = null, modifier = Modifier.size(44.dp))
+            Image(painterResource(R.drawable.ic_doodle_bell), contentDescription = null, modifier = Modifier.size(44.dp))
         }
         Column {
             Text("SNOOZER", style = SnoozerTheme.type.headline)
