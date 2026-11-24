@@ -44,6 +44,8 @@ import com.example.snoozer.R
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleCard
 import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.DoodleIllustration
+import com.example.snoozer.ui.doodle.illustration
 import com.example.snoozer.ui.doodle.DoodleSwitch
 import com.example.snoozer.ui.doodle.SketchyShape
 import com.example.snoozer.ui.doodle.doodleFill
@@ -74,18 +76,29 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: (
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.M),
         ) {
-            Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(36.dp))
+            // While a window is running or coming up, its category's drawing (the study or work
+            // character) leads the card; otherwise there's no category, so the clock stays.
+            val category = when (status) {
+                is StatusUi.QuietNow -> status.category
+                is StatusUi.Next -> status.category
+                StatusUi.NothingScheduled, StatusUi.NoAccess -> null
+            }
+            if (category != null) {
+                DoodleIllustration(category.illustration, size = StatusArtSize, round = true, seed = 43)
+            } else {
+                Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(36.dp))
+            }
             Column {
                 when (status) {
                     is StatusUi.QuietNow -> {
-                        Text("Quiet now · ${status.category}", style = type.caption)
+                        Text("Quiet now · ${status.category.label}", style = type.caption)
                         Text("until ${status.until}", style = type.headline)
                         Text(status.left, style = type.caption)
                     }
                     is StatusUi.Next -> {
                         Text("Next quiet time", style = type.caption)
                         Text("${status.time} ${status.day}", style = type.headline)
-                        Text("${status.category} · ${status.startsIn}", style = type.caption)
+                        Text("${status.category.label} · ${status.startsIn}", style = type.caption)
                     }
                     StatusUi.NothingScheduled -> {
                         Text("No quiet times yet", style = type.title)
@@ -105,6 +118,8 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: (
         }
     }
 }
+
+private val StatusArtSize = 76.dp
 
 /**
  * The seven days as handwritten letters. Today is circled, the selected day gets a
@@ -220,13 +235,13 @@ fun TimelineItem(
         ) {
             Column(Modifier.padding(start = Spacing.M, end = Spacing.S, top = Spacing.S, bottom = Spacing.M)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
-                    Tag(card.category, seed = card.id * 3)
+                    Tag(card.category.label, seed = card.id * 3)
                     if (card.activeNow) Tag("quiet now", seed = card.id * 3 + 1, highlighted = true)
                     Spacer(Modifier.weight(1f))
                     DoodleSwitch(
                         checked = card.enabled,
                         onCheckedChange = onToggle,
-                        contentDescription = "${card.category}, ${card.start} to ${card.end}",
+                        contentDescription = "${card.category.label}, ${card.start} to ${card.end}",
                         seed = card.id * 5,
                     )
                 }

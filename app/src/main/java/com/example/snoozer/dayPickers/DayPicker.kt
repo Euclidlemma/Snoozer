@@ -2,6 +2,7 @@ package com.example.snoozer.dayPickers
 
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,6 +36,7 @@ import com.example.snoozer.R
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
+import com.example.snoozer.alarm.Category
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
 import com.example.snoozer.ui.theme.SnoozerTheme
@@ -179,5 +181,21 @@ private fun EmptyWeekPreview() {
             pagerState = rememberPagerState(initialPage = 2, pageCount = { 7 }),
             onCardClick = {}, onToggle = { _, _ -> }, onAdd = {},
         )
+    }
+}
+
+// Every state of the status card: the category drawing shows only when there's a window.
+@Preview(name = "Status card - all states", widthDp = 360, showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Status card - all states, dark", widthDp = 360, showBackground = true, backgroundColor = 0xFF2A2D2F,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun StatusCardStatesPreview() {
+    SnoozerTheme {
+        Column(Modifier.padding(Spacing.M), verticalArrangement = Arrangement.spacedBy(Spacing.M)) {
+            StatusCard(StatusUi.QuietNow(until = "10:30", category = Category.Study, left = "1h 10m left"))
+            StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, startsIn = "in 3h 40m"))
+            StatusCard(StatusUi.NothingScheduled)
+            StatusCard(StatusUi.NoAccess)
+        }
     }
 }

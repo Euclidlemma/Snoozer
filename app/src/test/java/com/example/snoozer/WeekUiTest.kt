@@ -1,5 +1,6 @@
 package com.example.snoozer
 
+import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.dayPickers.StatusUi
 import com.example.snoozer.dayPickers.WeekUi
@@ -50,7 +51,7 @@ class WeekUiTest {
         assertEquals("9h", card.duration)
         assertEquals("Mon, Fri", card.repeatText)
         assertEquals(listOf(true, false, false, false, true, false, false), card.repeatsOn)
-        assertEquals("Study", card.category)
+        assertEquals(Category.Study, card.category)
     }
 
     @Test
@@ -73,19 +74,19 @@ class WeekUiTest {
     @Test
     fun status_quietNow() {
         val a = alarm(1, 9, 0, 10, 30, MONDAY, work = "Study")
-        assertEquals(StatusUi.QuietNow(until = "10:30", category = "Study", left = "1h 10m left"),
+        assertEquals(StatusUi.QuietNow(until = "10:30", category = Category.Study, left = "1h 10m left"),
             WeekUi.status(listOf(a), at(16, 9, 20)))
     }
 
     @Test
     fun status_next_todayTomorrowAndLater() {
         val mon = alarm(1, 22, 0, 23, 0, MONDAY)
-        assertEquals(StatusUi.Next("22:00", "today", "Work", "in 2h 15m"),
+        assertEquals(StatusUi.Next("22:00", "today", Category.Work, "in 2h 15m"),
             WeekUi.status(listOf(mon), at(16, 19, 45)))
-        assertEquals(StatusUi.Next("22:00", "tomorrow", "Work", "in 1 day"),
+        assertEquals(StatusUi.Next("22:00", "tomorrow", Category.Work, "in 1 day"),
             WeekUi.status(listOf(mon), at(15, 21, 0)))   // Sunday evening
         val sat = alarm(2, 9, 0, 10, 0, SATURDAY)
-        assertEquals(StatusUi.Next("09:00", "Sat", "Work", "in 5 days"),
+        assertEquals(StatusUi.Next("09:00", "Sat", Category.Work, "in 5 days"),
             WeekUi.status(listOf(sat), at(16, 8, 0)))
     }
 
