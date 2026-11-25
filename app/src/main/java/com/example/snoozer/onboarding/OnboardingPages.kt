@@ -334,7 +334,8 @@ private fun ColumnScope.HeadsUpPage() {
 
 @Composable
 private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
-    PageTitle("Plan your first quiet time")
+    // Help is usually opened by someone who already has snoozers, so "first" is for the first run only.
+    PageTitle(if (mode == OnboardingMode.FirstRun) "Plan your first quiet time" else "Plan a quiet time")
     // A dimmed sketch of the week screen with a pulsing ring around "+".
     Box(
         Modifier
@@ -374,7 +375,7 @@ private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
             "Once Setup is done, tap \"Open my week\", then + to plan your first quiet time. " +
                 "Start with Work or Study; you can change it anytime."
         } else {
-            "Tap + on the week screen to plan your first quiet time. Start with Work or Study; you can change it anytime."
+            "Tap + on the week screen to plan a quiet time. Pick Work or Study; you can change it anytime."
         }
     )
     Spacer(Modifier.height(Spacing.S))
