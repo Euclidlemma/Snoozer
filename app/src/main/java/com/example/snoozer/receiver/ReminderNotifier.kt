@@ -39,10 +39,18 @@ object ReminderNotifier {
             PackageManager.PERMISSION_GRANTED
         if (!granted || !NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
         val manager = context.getSystemService(NotificationManager::class.java)
-        return listOf(CHANNEL_STUDY, CHANNEL_WORK).any { id ->
-            val channel = manager.getNotificationChannel(id)
-            channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
-        }
+        return Category.entries.any { channelOn(manager, it) }
+    }
+
+    /** The categories whose reminder channel the user turned off in Android's settings. */
+    fun channelsOff(context: Context): Set<Category> {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return Category.entries.filterNot { channelOn(manager, it) }.toSet()
+    }
+
+    private fun channelOn(manager: NotificationManager, category: Category): Boolean {
+        val channel = manager.getNotificationChannel(channelFor(category))
+        return channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
     }
 
     /** Removes a shown reminder for this window (deleted, switched off, edited or started). */

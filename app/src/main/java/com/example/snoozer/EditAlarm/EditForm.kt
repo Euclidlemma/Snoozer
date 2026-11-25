@@ -7,6 +7,7 @@ import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.CategoryExplanation
 import com.example.snoozer.alarm.explain
 import com.example.snoozer.alarm.category
+import com.example.snoozer.util.Permissions
 import java.time.DayOfWeek
 
 /** Where a new snoozer of a category starts: its usual time and days. */
@@ -145,12 +146,25 @@ data class EditUiState(
 }
 
 object EditUi {
+    /**
+     * The panel's explanation, with the heads-up line telling the truth about [permissions].
+     * Each category has its own reminder channel, which can be off on its own. Setup only grants
+     * the app-wide permission (Android 13+); a channel turned off is fixed in Android's settings.
+     */
+    fun explainFor(category: Category, permissions: Permissions?): CategoryExplanation {
+        if (permissions == null) return category.explain(remindersOn = true)
+        return category.explain(
+            remindersOn = permissions.notifications && category !in permissions.reminderChannelsOff,
+            setupHasNotifications = permissions.notificationsApply && permissions.reminderChannelsOff.isEmpty(),
+        )
+    }
+
     fun describe(
         form: EditForm,
         original: EditForm,
         isNew: Boolean,
-        remindersOn: Boolean = true,
-        setupHasNotifications: Boolean = true,
+        /** Null assumes reminders can be shown (previews and tests that don't care). */
+        permissions: Permissions? = null,
     ): EditUiState {
         val probe = form.toNewAlarm()
         val minutes = AlarmTime.durationMinutes(probe)
@@ -176,7 +190,7 @@ object EditUi {
             error = error,
             // A new snoozer always counts as changed, so backing out asks before discarding it.
             hasChanges = isNew || form != original,
-            explanation = form.category.explain(remindersOn, setupHasNotifications),
+            explanation = explainFor(form.category, permissions),
         )
     }
 }

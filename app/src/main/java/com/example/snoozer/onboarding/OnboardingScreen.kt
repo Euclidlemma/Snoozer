@@ -48,13 +48,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnboardingScreen(onExit: (OnboardingExit) -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
     val spec = viewModel.spec
-    val pager = rememberPagerState(initialPage = spec.startPage, pageCount = { OnboardingPageCount })
+    // The pager holds only the pages this mode shows, so help can't be swiped back to Welcome.
+    val pager = rememberPagerState(pageCount = { spec.pageCount })
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(viewModel) { viewModel.exitFlow.collect(onExit) }
 
     // System back steps through the pages first; at the first page it leaves as usual.
-    BackHandler(enabled = spec.canGoBack(pager.currentPage)) {
+    BackHandler(enabled = spec.canGoBack(spec.pageAt(pager.currentPage))) {
         scope.launch { pager.animateScrollToPage(pager.currentPage - 1) }
     }
 
@@ -63,7 +64,7 @@ fun OnboardingScreen(onExit: (OnboardingExit) -> Unit, viewModel: OnboardingView
         pager = pager,
         onBack = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } },
         onNext = {
-            if (pager.currentPage < OnboardingPageCount - 1) scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
+            if (pager.currentPage < spec.pageCount - 1) scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
             else viewModel.finish()
         },
         onSkipOrClose = viewModel::finish,
@@ -85,28 +86,30 @@ fun OnboardingContent(
     // On the unfolded Fold (or a tablet) the pages stay phone-width, centered.
     Box(modifier.fillMaxSize().systemBarsPadding(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 480.dp).fillMaxSize()) {
-            TopBar(spec, page = pager.currentPage, onBack = onBack, onSkipOrClose = onSkipOrClose)
-            HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
-                OnboardingPage(page, spec.mode)
+            // The page shown, counted over all five (the pager itself starts at this mode's first).
+            val page = spec.pageAt(pager.currentPage)
+            TopBar(spec, page = page, onBack = onBack, onSkipOrClose = onSkipOrClose)
+            HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { index ->
+                OnboardingPage(spec.pageAt(index), spec.mode)
             }
             Column(
                 Modifier.fillMaxWidth().padding(Spacing.M),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.M),
             ) {
-                PageDots(current = pager.currentPage, first = spec.startPage)
+                PageDots(current = page, first = spec.startPage)
                 DoodleButton(
                     onClick = onNext,
                     modifier = Modifier.fillMaxWidth(),
                     hatchColor = MaterialTheme.colorScheme.primary,
-                    containerColor = if (pager.currentPage == OnboardingPageCount - 1) SnoozerTheme.colors.bell
+                    containerColor = if (page == OnboardingPageCount - 1) SnoozerTheme.colors.bell
                         else MaterialTheme.colorScheme.secondaryContainer,
                     // Dark ink on the yellow finish button in both themes; the theme's text color would be pale in dark mode.
-                    contentColor = if (pager.currentPage == OnboardingPageCount - 1) Color(0xFF2E2B26)
+                    contentColor = if (page == OnboardingPageCount - 1) Color(0xFF2E2B26)
                         else MaterialTheme.colorScheme.onSecondaryContainer,
                     seed = 400,
                 ) {
-                    Text(spec.buttonLabel(pager.currentPage))
+                    Text(spec.buttonLabel(page))
                 }
             }
         }
@@ -156,7 +159,7 @@ private fun PagePreview(page: Int, mode: OnboardingMode = OnboardingMode.FirstRu
     SnoozerTheme {
         OnboardingContent(
             spec = OnboardingSpec.of(mode),
-            pager = rememberPagerState(initialPage = page, pageCount = { OnboardingPageCount }),
+            pager = rememberPagerState(initialPage = page - OnboardingSpec.of(mode).startPage, pageCount = { OnboardingSpec.of(mode).pageCount }),
             onBack = {}, onNext = {}, onSkipOrClose = {},
         )
     }

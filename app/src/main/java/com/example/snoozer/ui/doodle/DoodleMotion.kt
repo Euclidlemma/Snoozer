@@ -29,11 +29,6 @@ import androidx.compose.ui.unit.dp
 // the phone's "Remove animations" setting is on (animator duration scale 0).
 
 /**
- * Whether decorative motion should play: false when the user turned animations off in
- * Android's accessibility or developer settings. Previews always animate-off so they show
- * the resting pose.
- */
-/**
  * The motion setting provided by an enclosing [ProvideMotionSetting], so a screen full of moving
  * parts shares one observer. Null when none is provided.
  */
@@ -45,6 +40,11 @@ fun ProvideMotionSetting(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalMotionEnabled provides observeMotionEnabled(), content = content)
 }
 
+/**
+ * Whether decorative motion should play: false when the user turned animations off in
+ * Android's accessibility or developer settings. Previews always animate-off so they show
+ * the resting pose. Uses the enclosing [ProvideMotionSetting] when there is one.
+ */
 @Composable
 fun rememberMotionEnabled(): Boolean = LocalMotionEnabled.current ?: observeMotionEnabled()
 

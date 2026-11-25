@@ -39,6 +39,12 @@ data class OnboardingSpec(
     /** Back goes to the previous page, but not before where this mode started. */
     fun canGoBack(page: Int): Boolean = page > startPage
 
+    /** How many pages this mode shows: help leaves out Welcome. */
+    val pageCount: Int get() = OnboardingPageCount - startPage
+
+    /** The page (0 = Welcome) at this mode's pager position [index]. */
+    fun pageAt(index: Int): Int = index + startPage
+
     companion object {
         fun of(mode: OnboardingMode) = when (mode) {
             OnboardingMode.FirstRun -> OnboardingSpec(mode, startPage = 0, showSkip = true)

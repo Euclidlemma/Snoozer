@@ -52,6 +52,18 @@ class OnboardingTest {
     }
 
     @Test
+    fun help_pagerHoldsOnlyItsOwnPages() {
+        // Help leaves Welcome out of the pager, so it can't be swiped back to.
+        val help = OnboardingSpec.of(OnboardingMode.Help)
+        assertEquals(4, help.pageCount)
+        assertEquals(1, help.pageAt(0))
+        assertEquals(4, help.pageAt(help.pageCount - 1))
+        val firstRun = OnboardingSpec.of(OnboardingMode.FirstRun)
+        assertEquals(5, firstRun.pageCount)
+        assertEquals(0, firstRun.pageAt(0))
+    }
+
+    @Test
     fun modeComesFromTheRoute() {
         assertEquals(OnboardingMode.FirstRun, viewModel(Routes.Onboarding.MODE_FIRST_RUN, FakeStore()).spec.mode)
         assertEquals(OnboardingMode.Help, viewModel(Routes.Onboarding.MODE_HELP, FakeStore()).spec.mode)

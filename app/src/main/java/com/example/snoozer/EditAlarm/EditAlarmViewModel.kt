@@ -69,7 +69,7 @@ class EditAlarmViewModel @Inject constructor(
     /** Null while the saved snoozer is loading. */
     val uiState: StateFlow<EditUiState?> = combine(form, original, permissions) { f, o, p ->
         if (f == null || o == null) null
-        else EditUi.describe(f, o, isNew, remindersOn = p.notifications, setupHasNotifications = p.notificationsApply)
+        else EditUi.describe(f, o, isNew, permissions = p)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {

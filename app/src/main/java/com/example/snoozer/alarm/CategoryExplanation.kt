@@ -35,30 +35,30 @@ val Category.explanation: CategoryExplanation
  * Home's Setup when [setupHasNotifications] (Android 13+), otherwise Android's settings.
  */
 fun Category.explain(remindersOn: Boolean, setupHasNotifications: Boolean = true): CategoryExplanation {
-        val levelLines = when (quietLevel) {
-            QuietLevel.Vibrate -> listOf(
-                ExplainLine(ExplainIcon.Vibrate, "Your phone vibrates instead of ringing."),
-                ExplainLine(ExplainIcon.Call, "Calls and messages still buzz."),
-            )
-            QuietLevel.Silent -> listOf(
-                ExplainLine(ExplainIcon.Silent, "Fully silent: no ring, no vibration."),
-                ExplainLine(ExplainIcon.Alarm, "Alarms still ring."),
-            )
-        }
-        val reminder = if (!remindersOn) {
-            // Setup only has a Notifications row on Android 13+; before that it's a system setting.
-            ExplainLine(ExplainIcon.Notify,
-                if (setupHasNotifications) "Heads-up is off: allow notifications in Setup to get one."
-                else "Heads-up is off: turn on Snoozer's notifications in Android settings to get one.")
-        } else if (hasQuietReminder) {
-            ExplainLine(ExplainIcon.Notify, "A quiet heads-up before it starts.")
-        } else {
-            ExplainLine(ExplainIcon.Notify,
-                "A heads-up ${AlarmTime.REMINDER_LEAD_MINUTES} minutes before it starts.")
-        }
-        val summary = when (quietLevel) {
-            QuietLevel.Vibrate -> "Vibrate. Calls still buzz."
-            QuietLevel.Silent -> "Fully silent. Only alarms ring."
-        }
-        return CategoryExplanation(this, "During ${label}", summary, levelLines + reminder)
+    val levelLines = when (quietLevel) {
+        QuietLevel.Vibrate -> listOf(
+            ExplainLine(ExplainIcon.Vibrate, "Your phone vibrates instead of ringing."),
+            ExplainLine(ExplainIcon.Call, "Calls and messages still buzz."),
+        )
+        QuietLevel.Silent -> listOf(
+            ExplainLine(ExplainIcon.Silent, "Fully silent: no ring, no vibration."),
+            ExplainLine(ExplainIcon.Alarm, "Alarms still ring."),
+        )
     }
+    val reminder = if (!remindersOn) {
+        // Setup only has a Notifications row on Android 13+; before that it's a system setting.
+        ExplainLine(ExplainIcon.Notify,
+            if (setupHasNotifications) "Heads-up is off: allow notifications in Setup to get one."
+            else "Heads-up is off: turn on Snoozer's notifications in Android settings to get one.")
+    } else if (hasQuietReminder) {
+        ExplainLine(ExplainIcon.Notify, "A quiet heads-up before it starts.")
+    } else {
+        ExplainLine(ExplainIcon.Notify,
+            "A heads-up ${AlarmTime.REMINDER_LEAD_MINUTES} minutes before it starts.")
+    }
+    val summary = when (quietLevel) {
+        QuietLevel.Vibrate -> "Vibrate. Calls still buzz."
+        QuietLevel.Silent -> "Fully silent. Only alarms ring."
+    }
+    return CategoryExplanation(this, "During ${label}", summary, levelLines + reminder)
+}
