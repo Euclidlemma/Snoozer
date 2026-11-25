@@ -52,11 +52,12 @@ fun DoodlePhone(
             .clip(shape)
             .doodleFill(screen, cornerRadius = corner, wobble = DoodleDefaults.WobbleLight, seed = seed)
             // The speaker slit at the top, so it reads as a phone at a glance.
+            // Drawn under the content, so a notice sliding in covers it instead of being struck through.
             .drawWithContent {
-                drawContent()
                 val y = 8.dp.toPx()
                 drawLine(ink, Offset(size.width * 0.4f, y), Offset(size.width * 0.6f, y),
                     strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                drawContent()
             },
         contentAlignment = Alignment.Center,
         content = content,

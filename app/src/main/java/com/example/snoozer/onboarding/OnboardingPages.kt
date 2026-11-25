@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -140,9 +141,10 @@ private fun ColumnScope.WelcomePage() {
 @Composable
 private fun ColumnScope.TwoKindsPage() {
     PageTitle("Two kinds of quiet")
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+    // Same height for both cards, even when one summary wraps to two lines.
+    Row(Modifier.height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
         Category.entries.forEach { category ->
-            KindCard(category, Modifier.weight(1f))
+            KindCard(category, Modifier.weight(1f).fillMaxHeight())
         }
     }
 }
@@ -224,7 +226,7 @@ private fun ColumnScope.OverlapPage() {
     ) {
         val w = maxWidth
         TimelineBar("Work 9–17", work.container, work.hatch, ink, w * WorkFrom, w * (WorkTo - WorkFrom), 14.dp, 300)
-        TimelineBar("Study 10–12", study.container, study.hatch, ink, w * StudyFrom, w * (StudyTo - StudyFrom), 64.dp, 301)
+        TimelineBar("Study", study.container, study.hatch, ink, w * StudyFrom, w * (StudyTo - StudyFrom), 64.dp, 301)
         // The "now" line, moved in layout (offset lambda) so it doesn't recompose each frame.
         Box(
             Modifier

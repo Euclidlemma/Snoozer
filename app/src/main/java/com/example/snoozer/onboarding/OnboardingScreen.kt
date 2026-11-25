@@ -98,6 +98,9 @@ fun OnboardingContent(
                     hatchColor = MaterialTheme.colorScheme.primary,
                     containerColor = if (pager.currentPage == OnboardingPageCount - 1) SnoozerTheme.colors.bell
                         else MaterialTheme.colorScheme.secondaryContainer,
+                    // Dark ink on the yellow finish button in both themes; the theme's text color would be pale in dark mode.
+                    contentColor = if (pager.currentPage == OnboardingPageCount - 1) Color(0xFF2E2B26)
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
                     seed = 400,
                 ) {
                     Text(spec.buttonLabel(pager.currentPage))
