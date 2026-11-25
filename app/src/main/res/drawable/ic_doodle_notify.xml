@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hand-drawn doodle icon: a bell with a small ring mark (a heads-up notice). Tinted at runtime. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M5.3,17 C6.6,16.3 6.9,14.6 7.1,12.2 C7.4,8.6 8.8,6.1 12,6 C15.2,6.1 16.6,8.6 16.9,12.2 C17.1,14.6 17.4,16.3 18.7,17 Z" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2"  android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M12,3.6 L12,5.8" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8"  android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M10.3,19.4 C10.7,20.7 13.3,20.7 13.7,19.4" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.8"  android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M19.2,5.2 C20.3,6.3 20.9,7.7 21,9.2" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.6"  android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M4.8,5.2 C3.7,6.3 3.1,7.7 3,9.2" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.6"  android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M12.5,6.6 C15,6.9 16.1,9 16.3,12" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1" android:strokeAlpha="0.45" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

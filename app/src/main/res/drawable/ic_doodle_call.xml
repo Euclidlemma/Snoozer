@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hand-drawn doodle icon: a phone handset (calls still come through). Tinted at runtime. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M6.4,3.8 C7.3,3.6 8.2,3.7 8.9,4.3 L10.4,7.4 C10.7,8.2 10.4,8.9 9.7,9.4 L8.7,10.1 C9.6,12.3 11.6,14.4 13.9,15.4 L14.6,14.4 C15.1,13.7 15.9,13.4 16.6,13.7 L19.7,15.2 C20.3,15.9 20.4,16.8 20.2,17.7 C19.6,19.5 18,20.4 16.2,20.1 C10.1,19.1 4.9,13.9 3.9,7.8 C3.6,6 4.6,4.4 6.4,3.8 Z" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2"  android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M14.6,4.6 C16.9,5.3 18.7,7.1 19.4,9.4" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.6" android:strokeAlpha="0.6" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

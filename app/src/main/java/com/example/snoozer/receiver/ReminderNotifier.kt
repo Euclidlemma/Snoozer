@@ -18,6 +18,7 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.ReminderText
 import com.example.snoozer.alarm.category
+import com.example.snoozer.alarm.hasQuietReminder
 
 /**
  * Posts the "starts in 5 minutes" reminders. One channel per category, so people can turn
@@ -68,7 +69,7 @@ object ReminderNotifier {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text.body))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(
-                if (alarm.category == Category.Study) NotificationCompat.PRIORITY_DEFAULT
+                if (!alarm.category.hasQuietReminder) NotificationCompat.PRIORITY_DEFAULT
                 else NotificationCompat.PRIORITY_LOW
             )
             .setContentIntent(open)
