@@ -1,12 +1,14 @@
 package com.example.snoozer.alarm
 
 import android.content.Context
+import android.util.Log
 import com.example.snoozer.receiver.RingerController
 import com.example.snoozer.scheduler.AlarmScheduler
 import com.example.snoozer.util.TimeSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.DayOfWeek
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,6 +75,42 @@ class AlarmActions @Inject constructor(
         }
     }
 
+    // Alarm broadcasts. They take the same lock as the edits above, so a mute or unmute that
+    // fires while the user is saving or deleting sees the finished change, never half of it.
+
+    /** A window's mute alarm fired. Mutes only if that window is still saved and switched on. */
+    suspend fun onMuteFired(alarmId: Int) = lock.withLock {
+        val alarm = repository.getAlarmById(alarmId)
+        if (alarm == null || !alarm.isEnabled) {
+            // A leftover alarm for a deleted or switched-off window: don't silence the phone.
+            Log.w(TAG, "Mute for missing or switched-off snoozer $alarmId ignored")
+            return@withLock
+        }
+        RingerController.mute(appContext)
+    }
+
+    /**
+     * A window's unmute alarm fired for the occurrence that started on [day]. Gives the ringer
+     * back unless another window is still running, then sets this window up for next week.
+     */
+    suspend fun onUnmuteFired(alarmId: Int, day: DayOfWeek) = lock.withLock {
+        val alarms = repository.getAllAlarmsDirect()
+        val now = timeSource.now()
+        // Don't unmute while another window is still running (e.g. 9-11 and 10-10:30).
+        // That window's own unmute will restore the ringer later.
+        val otherActive = alarms.any { it.id != alarmId && it.isEnabled && AlarmTime.isActiveAt(it, now) }
+        if (!otherActive) RingerController.restore(appContext)
+        // Read under the lock, so a window deleted a moment ago isn't brought back.
+        val alarm = alarms.firstOrNull { it.id == alarmId }
+        if (alarm != null) scheduler.scheduleAlarmWithDay(alarm, day)
+        else Log.w(TAG, "Unmute for missing snoozer $alarmId; not rescheduled")
+    }
+
+    /** Re-creates every window's alarms (after a reboot, an update or a clock change). */
+    suspend fun rescheduleAll() = lock.withLock {
+        repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
+    }
+
     /**
      * The scheduler only sets the *next* mute, so a window that has already started (say
      * 09:00-11:00 saved at 10:00) would first mute next week. Mute now instead; its unmute
@@ -96,5 +134,9 @@ class AlarmActions @Inject constructor(
             it.isEnabled && AlarmTime.isActiveAt(it, now)
         }
         if (!stillActive) RingerController.restore(appContext)
+    }
+
+    private companion object {
+        const val TAG = "AlarmActions"
     }
 }

@@ -1,6 +1,7 @@
 package com.example.snoozer.EditAlarm
 
 import android.app.TimePickerDialog
+import android.text.format.DateFormat
 import android.content.res.Configuration
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -30,10 +31,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -76,11 +79,11 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
-    // Saved, deleted or missing: say so and leave.
+    // Saved, deleted or missing: say so and leave. A failed write only shows its message.
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             event.message?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
-            navController.leaveEditScreen()
+            if (event.leave) navController.leaveEditScreen()
         }
     }
 
@@ -310,16 +313,18 @@ private fun WhenCard(state: EditUiState, onStartChange: (Int, Int) -> Unit, onEn
 /** A tappable time ("Start 09:00") that opens the system time picker. */
 @Composable
 private fun TimeField(label: String, time: String, onChange: (Int, Int) -> Unit, seed: Int, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
     val shape = remember(seed) { SketchyShape(wobble = DoodleDefaults.WobbleLight, seed = seed) }
+    // Saved across configuration changes (folding or unfolding, rotating, theme switch), so
+    // the picker opens again after the activity is recreated instead of vanishing.
+    var picking by rememberSaveable { mutableStateOf(false) }
+    if (picking) {
+        TimePicker(time = time, onPicked = onChange, onClose = { picking = false })
+    }
     Column(
         modifier = modifier
             .sketchyBorder(MaterialTheme.colorScheme.onSurface, width = 1.5.dp, wobble = DoodleDefaults.WobbleLight, seed = seed)
             .clip(shape)
-            .clickable(onClickLabel = "Change $label time", role = Role.Button) {
-                val (hour, minute) = time.split(":").map { it.toInt() }
-                TimePickerDialog(context, { _, h, m -> onChange(h, m) }, hour, minute, true).show()
-            }
+            .clickable(onClickLabel = "Change $label time", role = Role.Button) { picking = true }
             .padding(horizontal = Spacing.M, vertical = Spacing.S),
     ) {
         Text(label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -327,6 +332,35 @@ private fun TimeField(label: String, time: String, onChange: (Int, Int) -> Unit,
             Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(Spacing.S))
             Text(time, style = SnoozerTheme.type.headline)
+        }
+    }
+}
+
+/**
+ * The system time picker, owned by composition: it is shown while this is composed and
+ * dismissed when it leaves (including when the activity is torn down for a fold or rotation),
+ * so its window is never leaked. Uses the phone's 12/24-hour setting.
+ */
+@Composable
+private fun TimePicker(time: String, onPicked: (Int, Int) -> Unit, onClose: () -> Unit) {
+    val context = LocalContext.current
+    val currentOnPicked by rememberUpdatedState(onPicked)
+    val currentOnClose by rememberUpdatedState(onClose)
+    DisposableEffect(context) {
+        val (hour, minute) = time.split(":").map { it.toInt() }
+        val dialog = TimePickerDialog(
+            context,
+            { _, h, m -> currentOnPicked(h, m) },
+            hour, minute,
+            DateFormat.is24HourFormat(context),
+        )
+        // Set, Cancel, back and tapping outside all end here.
+        dialog.setOnDismissListener { currentOnClose() }
+        dialog.show()
+        onDispose {
+            // Torn down by the system, not by the user: keep `picking` so it reopens.
+            dialog.setOnDismissListener(null)
+            dialog.dismiss()
         }
     }
 }

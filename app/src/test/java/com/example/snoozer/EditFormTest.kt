@@ -90,6 +90,30 @@ class EditFormTest {
     }
 
     @Test
+    fun encode_roundTrips() {
+        val forms = listOf(
+            base,
+            EditForm(22, 30, 7, 5, listOf(MONDAY, WEDNESDAY, SUNDAY), Category.Study),
+            EditForm.new(null),   // no days at all
+        )
+        forms.forEach { assertEquals(it, EditForm.decode(it.encode())) }
+    }
+
+    @Test
+    fun decode_rejectsAnythingMalformed() {
+        listOf(
+            "",                       // empty
+            "9:0:10:30:1",            // a part missing
+            "9:0:10:30:1:Work:extra", // a part too many
+            "24:0:10:30:1:Work",      // hour out of range
+            "9:60:10:30:1:Work",      // minute out of range
+            "9:0:10:30:8:Work",       // no such day
+            "9:0:10:30:x:Work",       // not a number
+            "9:0:10:30:1:Play",       // unknown category
+        ).forEach { assertNull("should reject \"$it\"", EditForm.decode(it)) }
+    }
+
+    @Test
     fun newForm_preselectsTheDayItCameFrom() {
         assertEquals(listOf(WEDNESDAY), EditForm.new(WEDNESDAY).days)
         assertEquals(emptyList<Any>(), EditForm.new(null).days)

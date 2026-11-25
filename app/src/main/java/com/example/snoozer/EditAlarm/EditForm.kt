@@ -5,7 +5,6 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
-import java.io.Serializable
 import java.time.DayOfWeek
 
 /** Quick picks for the repeat days. */
@@ -16,8 +15,8 @@ enum class RepeatPreset(val label: String, val days: Set<DayOfWeek>) {
 }
 
 /**
- * What the user has typed into the edit screen so far. Serializable so the ViewModel can
- * keep it in SavedStateHandle and restore it after the process is killed in the background.
+ * What the user has typed into the edit screen so far. The ViewModel keeps it in
+ * SavedStateHandle as text ([encode] / [decode]) so it survives the process being killed.
  */
 data class EditForm(
     val startHour: Int,
@@ -27,7 +26,10 @@ data class EditForm(
     /** Monday first, no duplicates. */
     val days: List<DayOfWeek>,
     val category: Category,
-) : Serializable {
+) {
+    /** "8:0:9:0:1,3:Work": times, ISO day numbers, category label. Read back by [decode]. */
+    fun encode(): String =
+        "$startHour:$startMinute:$endHour:$endMinute:${days.joinToString(",") { it.value.toString() }}:${category.label}"
 
     fun withStart(hour: Int, minute: Int) = copy(startHour = hour, startMinute = minute)
     fun withEnd(hour: Int, minute: Int) = copy(endHour = hour, endMinute = minute)
@@ -55,9 +57,21 @@ data class EditForm(
         /** A new snoozer: 08:00-09:00, Work, on [day] if the user came from that day's page. */
         fun new(day: DayOfWeek?) = EditForm(8, 0, 9, 0, listOfNotNull(day), Category.Work)
 
-        // 2: category changed from String to Category. A form saved by the old version no longer
-        // matches, so the ViewModel starts a fresh form instead of restoring it.
-        private const val serialVersionUID = 2L
+        /**
+         * Reads text written by [encode]. Returns null for anything malformed or out of range
+         * (a different format, a bad hour, an unknown day), so the caller starts fresh.
+         */
+        fun decode(text: String): EditForm? {
+            val parts = text.split(":")
+            if (parts.size != 6) return null
+            val (sh, sm, eh, em) = parts.take(4).map { it.toIntOrNull() ?: return null }
+            if (sh !in 0..23 || eh !in 0..23 || sm !in 0..59 || em !in 0..59) return null
+            val days = if (parts[4].isEmpty()) emptyList() else parts[4].split(",").map { value ->
+                value.toIntOrNull()?.takeIf { it in 1..7 }?.let(DayOfWeek::of) ?: return null
+            }
+            val category = Category.entries.firstOrNull { it.label == parts[5] } ?: return null
+            return EditForm(sh, sm, eh, em, days.distinct().sorted(), category)
+        }
     }
 }
 

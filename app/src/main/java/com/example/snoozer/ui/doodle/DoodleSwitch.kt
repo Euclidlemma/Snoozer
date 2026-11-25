@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
 private val TrackWidth = 48.dp
@@ -64,7 +65,9 @@ fun DoodleSwitch(
             Box(
                 Modifier
                     .padding(start = ThumbInset)
-                    .offset(x = thumbOffset)
+                    // Lambda form: the animated value is read during layout, so the slide
+                    // doesn't recompose the thumb (and rebuild its pencil paths) every frame.
+                    .offset { IntOffset(thumbOffset.roundToPx(), 0) }
                     .size(ThumbSize)
                     .doodleFill(thumbFill, cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed + 1)
                     .sketchyBorder(colors.onSurface, width = 1.5.dp, cornerRadius = DoodleDefaults.Round,
