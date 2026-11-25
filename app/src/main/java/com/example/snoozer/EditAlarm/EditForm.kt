@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.CategoryExplanation
+import com.example.snoozer.alarm.explanation
 import com.example.snoozer.alarm.category
 import java.time.DayOfWeek
 
@@ -136,6 +138,8 @@ data class EditUiState(
     /** Why the form can't be saved yet, shown next to the Save button. */
     val error: String?,
     val hasChanges: Boolean,
+    /** What the chosen category does, for the "What happens" panel. Same source as onboarding. */
+    val explanation: CategoryExplanation,
 ) {
     val canSave: Boolean get() = error == null
 }
@@ -166,6 +170,7 @@ object EditUi {
             error = error,
             // A new snoozer always counts as changed, so backing out asks before discarding it.
             hasChanges = isNew || form != original,
+            explanation = form.category.explanation,
         )
     }
 }

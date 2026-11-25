@@ -135,6 +135,14 @@ class EditFormTest {
     }
 
     @Test
+    fun explanation_followsTheChosenCategory() {
+        assertEquals(Category.Work, EditUi.describe(base, base, isNew = false).explanation.category)
+        val study = base.copy(category = Category.Study)
+        assertEquals(Category.Study, EditUi.describe(study, base, isNew = false).explanation.category)
+        assertEquals("During Study", EditUi.describe(study, base, isNew = false).explanation.title)
+    }
+
+    @Test
     fun encode_roundTrips() {
         val forms = listOf(
             base,
