@@ -456,10 +456,24 @@ private fun EditContentPreview() {
     }
 }
 
+@Preview(name = "New Study snoozer (starting times)", widthDp = 360, heightDp = 760, showBackground = true,
+    backgroundColor = 0xFFFAF6EC)
+@Composable
+private fun NewStudySnoozerPreview() {
+    val form = EditForm.new(null, Category.Study)   // 19:00-21:00 on weekdays
+    SnoozerTheme {
+        EditContent(
+            state = EditUi.describe(form, form, isNew = true),
+            onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
+            onToggleDay = {}, onPreset = {}, onSave = {},
+        )
+    }
+}
+
 @Preview(name = "New, can't save yet", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
 @Composable
 private fun NewSnoozerPreview() {
-    val form = EditForm.new(null)
+    val form = EditForm.new(null).copy(days = emptyList())   // no day picked: Save explains why it's off
     SnoozerTheme {
         EditContent(
             state = EditUi.describe(form, form, isNew = true),

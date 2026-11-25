@@ -10,6 +10,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.DayOfWeek
 import java.time.DayOfWeek.FRIDAY
 import java.time.DayOfWeek.MONDAY
 import java.time.DayOfWeek.SATURDAY
@@ -90,11 +91,55 @@ class EditFormTest {
     }
 
     @Test
+    fun newForm_startsWithTheCategorysWindow() {
+        val work = EditForm.new(null)
+        assertEquals(listOf(9, 0, 17, 0), listOf(work.startHour, work.startMinute, work.endHour, work.endMinute))
+        val study = EditForm.new(null, Category.Study)
+        assertEquals(listOf(19, 0, 21, 0), listOf(study.startHour, study.startMinute, study.endHour, study.endMinute))
+    }
+
+    @Test
+    fun switchCategory_untouchedNewForm_followsTheNewCategory() {
+        val switched = EditForm.new(null).switchCategory(Category.Study, isNew = true, fromDay = null)
+        assertEquals(EditForm.new(null, Category.Study), switched)
+        // And back again.
+        assertEquals(EditForm.new(null), switched.switchCategory(Category.Work, isNew = true, fromDay = null))
+    }
+
+    @Test
+    fun switchCategory_keepsTimesTheUserChose() {
+        val edited = EditForm.new(null).withStart(8, 30)
+        val switched = edited.switchCategory(Category.Study, isNew = true, fromDay = null)
+        assertEquals(Category.Study, switched.category)
+        assertEquals(listOf(8, 30, 17, 0), listOf(switched.startHour, switched.startMinute, switched.endHour, switched.endMinute))
+    }
+
+    @Test
+    fun switchCategory_keepsDaysTheUserChose_andTheDayPageItCameFrom() {
+        // Days changed by hand stay; untouched times still follow.
+        val ownDays = EditForm.new(null).withPreset(RepeatPreset.Weekends)
+        val a = ownDays.switchCategory(Category.Study, isNew = true, fromDay = null)
+        assertEquals(listOf(SATURDAY, SUNDAY), a.days)
+        assertEquals(19, a.startHour)
+        // Opened from Wednesday's page: stays on Wednesday.
+        val b = EditForm.new(WEDNESDAY).switchCategory(Category.Study, isNew = true, fromDay = WEDNESDAY)
+        assertEquals(listOf(WEDNESDAY), b.days)
+        assertEquals(19, b.startHour)
+    }
+
+    @Test
+    fun switchCategory_savedSnoozerNeverMovesTimes() {
+        val saved = EditForm(9, 0, 17, 0, DayOfWeek.entries.take(5), Category.Work)   // same as Work's defaults
+        val switched = saved.switchCategory(Category.Study, isNew = false, fromDay = null)
+        assertEquals(saved.copy(category = Category.Study), switched)
+    }
+
+    @Test
     fun encode_roundTrips() {
         val forms = listOf(
             base,
             EditForm(22, 30, 7, 5, listOf(MONDAY, WEDNESDAY, SUNDAY), Category.Study),
-            EditForm.new(null),   // no days at all
+            EditForm.new(null).copy(days = emptyList()),   // no days at all
         )
         forms.forEach { assertEquals(it, EditForm.decode(it.encode())) }
     }
@@ -116,6 +161,6 @@ class EditFormTest {
     @Test
     fun newForm_preselectsTheDayItCameFrom() {
         assertEquals(listOf(WEDNESDAY), EditForm.new(WEDNESDAY).days)
-        assertEquals(emptyList<Any>(), EditForm.new(null).days)
+        assertEquals(DayOfWeek.entries.take(5), EditForm.new(null).days)   // the category's usual days
     }
 }
