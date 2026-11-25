@@ -4,6 +4,19 @@ import java.time.DayOfWeek
 
 sealed class Routes(val route: String) {
     data object Home : Routes("MainScreen")
+
+    /**
+     * The "how Snoozer works" pages. Two routes for the same screen: [Onboarding] is the
+     * one-time first run (the start screen on a fresh install), [HowItWorks] opens them for
+     * help. Each route's default [ARG_MODE] tells the screen which one it is.
+     */
+    data object Onboarding : Routes("onboarding") {
+        const val ARG_MODE = "mode"
+        const val MODE_FIRST_RUN = "firstRun"
+        const val MODE_HELP = "help"
+    }
+    data object HowItWorks : Routes("howItWorks")
+
     data object DayPicker : Routes("DayPicker")
 
     /** Edit an existing snoozer by id, or create one (optionally starting on a given day). */

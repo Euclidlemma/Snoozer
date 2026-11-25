@@ -37,6 +37,7 @@ class AlarmActionsTest {
         override suspend fun deleteAlarm(alarm: Alarm) { rows.value = rows.value.filter { it.id != alarm.id } }
         override suspend fun getAllAlarmsSuspend(): List<Alarm> = rows.value
         override suspend fun getAlarmById(alarmID: Int): Alarm? = rows.value.firstOrNull { it.id == alarmID }
+        override suspend fun count(): Int = rows.value.size
     }
 
     private class FakeScheduler : WindowScheduler {

@@ -24,4 +24,6 @@ class AlarmRepository(private val alarmDao: AlarmDao) {
     suspend fun getAlarmById(alarmID: Int): Alarm? {
         return alarmDao.getAlarmById(alarmID)
     }
+
+    suspend fun hasAny(): Boolean = alarmDao.count() > 0
 }
