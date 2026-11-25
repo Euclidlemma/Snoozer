@@ -5,8 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.example.snoozer.alarm.AlarmRepository
-import com.example.snoozer.scheduler.AlarmScheduler
+import com.example.snoozer.alarm.AlarmActions
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -18,8 +17,8 @@ import kotlinx.coroutines.launch
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface ReceiverEntryPoint {
-    fun alarmRepository(): AlarmRepository
-    fun alarmScheduler(): AlarmScheduler
+    /** The one shared instance (a singleton), so receivers and screens use the same lock. */
+    fun alarmActions(): AlarmActions
 }
 
 
@@ -32,18 +31,16 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in RESCHEDULE_ACTIONS) return
 
-        val entryPoint = EntryPointAccessors.fromApplication(
+        val actions = EntryPointAccessors.fromApplication(
             context.applicationContext,
             ReceiverEntryPoint::class.java
-        )
-        val repository = entryPoint.alarmRepository()
-        val scheduler = entryPoint.alarmScheduler()
+        ).alarmActions()
 
         // goAsync() keeps the process alive until the database read finishes.
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
+                actions.rescheduleAll()
             } catch (e: Exception) {
                 Log.e("BootReceiver", "Error rescheduling alarms after ${intent.action}", e)
             } finally {

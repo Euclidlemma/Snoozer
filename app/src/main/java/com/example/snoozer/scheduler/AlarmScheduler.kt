@@ -18,8 +18,13 @@ import javax.inject.Inject
 
 class AlarmScheduler @Inject constructor(@ApplicationContext private val context: Context) {
 
+    /**
+     * Schedules the mute and unmute for every selected day. Switched-off alarms are skipped
+     * here, so callers (boot, weekly reschedule, save) never revive one by accident.
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun scheduleAlarm(alarm: Alarm) {
+        if (!alarm.isEnabled) return
         for (day in alarm.daysOfWeek) {
             scheduleExactAlarm(alarm, day, true)  // Start time (mute)
             scheduleExactAlarm(alarm, day, false) // End time (unmute)
@@ -27,7 +32,8 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun scheduleAlarmWithDay(alarm:Alarm, day:DayOfWeek) {
+    fun scheduleAlarmWithDay(alarm: Alarm, day: DayOfWeek) {
+        if (!alarm.isEnabled) return
         scheduleExactAlarm(alarm, day, true)
         scheduleExactAlarm(alarm, day, false)
     }

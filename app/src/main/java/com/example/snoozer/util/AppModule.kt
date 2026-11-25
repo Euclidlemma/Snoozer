@@ -4,7 +4,6 @@ import android.content.Context
 import com.example.snoozer.alarm.AlarmDao
 import com.example.snoozer.alarm.AlarmDatabase
 import com.example.snoozer.alarm.AlarmRepository
-import com.example.snoozer.dayPickers.DayPickerViewModel
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,10 +29,5 @@ object AppModule {
     @Provides
     fun provideAlarmRepository(alarmDao: AlarmDao): AlarmRepository {
         return AlarmRepository(alarmDao)
-    }
-
-    @Provides
-    fun provideDayPicker(): DayPickerViewModel {
-        return DayPickerViewModel()
     }
 }

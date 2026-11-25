@@ -1,407 +1,461 @@
 package com.example.snoozer.EditAlarm
 
-import android.annotation.SuppressLint
 import android.app.TimePickerDialog
-import android.os.Build
+import android.text.format.DateFormat
+import android.content.res.Configuration
 import android.widget.Toast
-import androidx.annotation.RequiresApi
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
+
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.example.snoozer.alarm.AlarmViewModel
+import com.example.snoozer.Route.leaveEditScreen
+import com.example.snoozer.R
+import com.example.snoozer.alarm.Category
+import com.example.snoozer.ui.doodle.DoodleAlertDialog
+import com.example.snoozer.ui.doodle.DoodleButton
+import com.example.snoozer.ui.doodle.DoodleChip
+import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.DoodleIllustration
+import com.example.snoozer.ui.doodle.illustration
+import com.example.snoozer.ui.doodle.DoodleSection
+import com.example.snoozer.ui.doodle.SketchyShape
+import com.example.snoozer.ui.doodle.doodleFill
+import com.example.snoozer.ui.doodle.sketchyBorder
+import com.example.snoozer.ui.theme.SnoozerTheme
+import com.example.snoozer.ui.theme.Spacing
 import java.time.DayOfWeek
+import java.time.format.TextStyle
+import java.util.Locale
 
-
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun EditAlarmScreen(navController: NavController, alarmViewModel: AlarmViewModel) {
-    val selectedAlarm by alarmViewModel.selectedAlarm.observeAsState()
+fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
-    var selectedDays by rememberSaveable {
-        mutableStateOf(selectedAlarm?.daysOfWeek?.toList() ?: emptyList())
+    // Saved, deleted or missing: say so and leave. A failed write only shows its message.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow.collect { event ->
+            event.message?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+            if (event.leave) navController.leaveEditScreen()
+        }
     }
 
-    var showDialog by remember { mutableStateOf(false) }
-    var showDelete by remember { mutableStateOf(false) }
+    val current = state
+    val onBack = { if (current?.hasChanges == true) confirmLeave = true else navController.leaveEditScreen() }
+    // The system back gesture asks too, not just the on-screen button.
+    BackHandler(enabled = current?.hasChanges == true) { confirmLeave = true }
 
-    var startHour by rememberSaveable { mutableIntStateOf(selectedAlarm?.startHour ?: 8) }
-    var startMinute by rememberSaveable { mutableIntStateOf(selectedAlarm?.startMinute ?: 0) }
-    var endHour by rememberSaveable { mutableIntStateOf(selectedAlarm?.endHour ?: 9) }
-    var endMinute by rememberSaveable { mutableIntStateOf(selectedAlarm?.endMinute ?: 0) }
-    var work by rememberSaveable { mutableStateOf(selectedAlarm?.work ?: "Work") }
-
-    val currentContext = LocalContext.current
-
-    EditScreen(
-        onBackClick = { showDialog = true },
-        onSave = {
-            if (selectedDays.isEmpty()) {
-                Toast.makeText(currentContext, "Day must be selected", Toast.LENGTH_LONG).show()
-            } else if (startHour == endHour && startMinute == endMinute) {
-                // An end time earlier than the start is allowed: it means the window runs
-                // overnight into the next day (e.g. 22:00 ~ 07:00).
-                Toast.makeText(currentContext, "Start and end time can't be the same", Toast.LENGTH_LONG).show()
-            }
-            else {
-                if (selectedAlarm == null) alarmViewModel.insertAlarm(
-                    startHour,
-                    startMinute,
-                    endHour,
-                    endMinute,
-                    selectedDays,
-                    work
-                )
-                else alarmViewModel.updateAlarm(
-                    startHour,
-                    startMinute,
-                    endHour,
-                    endMinute,
-                    selectedDays,
-                    work
-                )
-                Toast.makeText(currentContext, "Snoozer Saved", Toast.LENGTH_SHORT).show()
-                // Leave the screen so a second tap can't insert a duplicate.
-                navController.popBackStack()
-            }
-        },
-        onDelete = { if (selectedAlarm != null) showDelete = true },
-        selectedDays = selectedDays,
-        onDaysChanged = { selectedDays = it },
-        startHour = startHour,
-        startMinute = startMinute,
-        endHour = endHour,
-        endMinute = endMinute,
-        onTimeChangedStart = { h, m ->
-            startHour = h
-            startMinute = m
-        },
-        onTimeChangedEnd = { h, m ->
-            endHour = h
-            endMinute = m
-        },
-        isEditing = selectedAlarm != null,
-        onOptionSelected = { chosenItem ->
-            work = chosenItem
-        },
-        selectedOption = work
-    )
-
-    // alert dialog pressing back button
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                        navController.popBackStack()
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            },
-            text = {
-                Text(text = "your change may not be saved. Do you want to proceed?")
-            }
-        )
-    }
-
-    if (showDelete) {
-        AlertDialog(
-            onDismissRequest = { showDelete = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDelete = false
-                        selectedAlarm?.let { alarmViewModel.deleteAlarm(it) }
-                        navController.popBackStack()
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDelete = false
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            },
-            text = {
-                Text(text = "are you sure you want to delete this snoozer?")
-            }
-        )
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun EditScreen(
-    onBackClick: () -> Unit, onSave: () -> Unit, onDelete: () -> Unit,
-    selectedDays: List<DayOfWeek>, onDaysChanged: (List<DayOfWeek>) -> Unit, startHour: Int, startMinute: Int, endHour: Int, endMinute: Int,
-    onTimeChangedStart: (Int, Int) -> Unit, onTimeChangedEnd: (Int, Int) -> Unit, isEditing : Boolean,
-    onOptionSelected :(String) -> Unit, selectedOption: String) {
-    Scaffold() { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            TopBar(
-                modifier = Modifier.align(Alignment.TopStart),
-                onBackClick = onBackClick
-            )
-
-            MiddleContent(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(top = 50.dp, bottom = 50.dp),
-                selectedDays = selectedDays,
-                onDaysChanged = onDaysChanged,
-                startHour = startHour,
-                startMinute = startMinute,
-                endHour = endHour,
-                endMinute = endMinute,
-                onTimeChangedStart = onTimeChangedStart,
-                onTimeChangedEnd = onTimeChangedEnd,
-                onOptionSelected = onOptionSelected,
-                selectedOption = selectedOption
-            )
-
-            BottomBar(
-                modifier = Modifier.align(Alignment.BottomCenter),
-                onSave = onSave,
-                onDelete = onDelete,
-                isEditing = isEditing
+    Scaffold { padding ->
+        if (current == null) {
+            Box(Modifier.fillMaxSize().padding(padding)) // loading the saved snoozer
+        } else {
+            EditContent(
+                state = current,
+                onBack = { onBack() },
+                onDelete = { confirmDelete = true },
+                onCategory = viewModel::onCategory,
+                onStartChange = viewModel::onStartChange,
+                onEndChange = viewModel::onEndChange,
+                onToggleDay = viewModel::onToggleDay,
+                onPreset = viewModel::onPreset,
+                onSave = viewModel::save,
+                modifier = Modifier.padding(padding),
             )
         }
     }
+
+    if (confirmLeave) {
+        DoodleAlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = "Leave without saving?",
+            text = "Your changes to this snoozer won't be saved.",
+            confirmLabel = "Leave",
+            onConfirm = {
+                confirmLeave = false
+                navController.leaveEditScreen()
+            },
+            dismissLabel = "Keep editing",
+        )
+    }
+
+    if (confirmDelete) {
+        DoodleAlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = "Delete this snoozer?",
+            text = "Its mute schedule will be removed. This can't be undone.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                confirmDelete = false
+                viewModel.delete() // the screen leaves once the delete has finished
+            },
+            dismissLabel = "Cancel",
+            destructive = true,
+        )
+    }
+}
+
+/** Stateless edit screen: top bar, the Work/Study toggle, When and Repeat cards, and Save. */
+@Composable
+fun EditContent(
+    state: EditUiState,
+    onBack: () -> Unit,
+    onDelete: () -> Unit,
+    onCategory: (Category) -> Unit,
+    onStartChange: (Int, Int) -> Unit,
+    onEndChange: (Int, Int) -> Unit,
+    onToggleDay: (DayOfWeek) -> Unit,
+    onPreset: (RepeatPreset) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Top bar, scrollable middle and save bar stacked in a column, so the middle can
+    // never slide under the Save button on small screens or with large font sizes.
+    Column(modifier.fillMaxSize()) {
+        EditTopBar(isNew = state.isNew, onBack = onBack, onDelete = onDelete)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.M, vertical = Spacing.S),
+            verticalArrangement = Arrangement.spacedBy(Spacing.M),
+        ) {
+            CategoryToggle(selected = state.category, onSelect = onCategory)
+            WhenCard(state = state, onStartChange = onStartChange, onEndChange = onEndChange)
+            RepeatCard(days = state.days, preset = state.preset, onToggleDay = onToggleDay, onPreset = onPreset)
+        }
+        SaveBar(isNew = state.isNew, error = state.error, onSave = onSave)
+    }
 }
 
 @Composable
-fun TopBar(modifier: Modifier = Modifier, onBackClick: () -> Unit) {
+private fun EditTopBar(isNew: Boolean, onBack: () -> Unit, onDelete: () -> Unit) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.M, vertical = Spacing.S),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.M),
     ) {
-        Button(
-            onClick = onBackClick,
-            modifier = Modifier.wrapContentSize(),
-            colors = ButtonDefaults.buttonColors(Color(0xFFD3D3D3))
-        ) {
+        DoodleButton(onClick = onBack, seed = 41, wobble = DoodleDefaults.WobbleLight) {
+            // Decorative: the "Back" label already names the action for screen readers.
+            Icon(painterResource(R.drawable.ic_doodle_back), contentDescription = null)
+            Spacer(Modifier.width(Spacing.XS))
             Text("Back")
         }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun MiddleContent(
-    modifier: Modifier = Modifier, selectedDays: List<DayOfWeek>,
-    onDaysChanged: (List<DayOfWeek>) -> Unit, startHour: Int, startMinute: Int,
-    endHour: Int, endMinute: Int, onTimeChangedStart: (Int, Int) -> Unit, onTimeChangedEnd: (Int, Int) -> Unit,
-    selectedOption: String,
-    onOptionSelected :(String) -> Unit) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Column {
-            Text("Select Days:", modifier = Modifier.padding(10.dp))
-            MultiDayPicker(
-                selectedDays = selectedDays,
-                onSelectionChanged = onDaysChanged
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(40.dp))
-
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
-            TimePickerSection(label = "Start Time", hour = startHour, minute = startMinute, onTimeChanged = onTimeChangedStart)
-
-            TimePickerSection(label = "End Time", hour = endHour, minute = endMinute, onTimeChanged = onTimeChangedEnd)
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(40.dp))
-
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
-            WorkStudyDropdown(selectedOption = selectedOption, onOptionSelected = onOptionSelected)
-        }
-    }
-}
-
-@Composable
-fun WorkStudyDropdown(selectedOption: String, onOptionSelected: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val options = listOf("Work", "Study")
-
-    Box {
-        Button(onClick = { expanded = true },
-            colors = ButtonDefaults.buttonColors(containerColor = if (selectedOption== "Work") Color(0xFF90D5FF) else Color(0xFFDAB1DA)))
-        {
-            Text(selectedOption)
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun MultiDayPicker(
-    selectedDays: List<DayOfWeek>,
-    onSelectionChanged: (List<DayOfWeek>) -> Unit
-) {
-    val allDays = DayOfWeek.entries.toTypedArray()
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        items(allDays) { day ->
-            val isSelected = day in selectedDays
-            FilterChip(
-                modifier = Modifier.padding(10.dp),
-                selected = isSelected,
-                onClick = {
-                    val updatedDays = selectedDays.toMutableList().apply {
-                        if (isSelected) remove(day) else add(day)
-                    }
-                    onSelectionChanged(updatedDays)
-                },
-                label = { Text(day.name.take(3)) }
-            )
-        }
-    }
-}
-
-@SuppressLint("DefaultLocale")
-@Composable
-fun TimePickerSection(
-    label: String,
-    hour: Int,
-    minute: Int,
-    onTimeChanged: (Int, Int) -> Unit
-) {
-    val context = LocalContext.current
-    val time = String.format("%02d:%02d", hour, minute)
-
-    Button(modifier = Modifier.padding(20.dp),
-        onClick = {
-        val picker = TimePickerDialog(
-            context,
-            { _, h, m -> onTimeChanged(h, m) },
-            hour,
-            minute,
-            true
+        Text(
+            text = if (isNew) "New snoozer" else "Edit snoozer",
+            style = SnoozerTheme.type.title,
+            modifier = Modifier.weight(1f).semantics { heading() },
         )
-        picker.show()
-    }) {
-        Text("$label: $time")
-    }
-}
-
-
-
-@Composable
-fun BottomBar(modifier: Modifier = Modifier, onSave: () -> Unit, onDelete: () -> Unit, isEditing: Boolean) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-    ) {
-        Button(
-            onClick = onSave,
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(Color(0xFFD3D3D3))
-        ) {
-            Text("Save")
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        if (isEditing) {
-            Button(
+        if (!isNew) {
+            // Quiet and out of the way: deleting is rare and asks for confirmation.
+            DoodleButton(
                 onClick = onDelete,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(Color.Red)
+                seed = 42,
+                wobble = DoodleDefaults.WobbleLight,
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.error,
+                borderColor = MaterialTheme.colorScheme.error,
             ) {
+                Icon(painterResource(R.drawable.ic_doodle_delete), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(Spacing.XS))
                 Text("Delete")
             }
         }
     }
 }
 
-
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview
+/**
+ * Work / Study as two side-by-side picture cards. The chosen one wears its category's pencil
+ * hatching, a firmer outline and a check mark; the other card's drawing is faded. The whole
+ * card is one radio option for screen readers ("Study, selected"); the drawing is decorative.
+ */
 @Composable
-fun ButtonPreview () {
-    EditScreen(
-        onBackClick = { },
-        onSave = {  },
-        onDelete = {  },
-        selectedDays = listOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
-        onDaysChanged = {},
-        startHour = 8,
-        startMinute = 10,
-        endHour = 10,
-        endMinute = 8,
-        onTimeChangedStart = { h, n -> h+n},
-        onTimeChangedEnd = { h, n -> h+n},
-        isEditing = false,
-        onOptionSelected = {},
-        selectedOption = "Work"
-    )
+private fun CategoryToggle(selected: Category, onSelect: (Category) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+    ) {
+        Category.entries.forEachIndexed { index, category ->
+            CategoryCard(
+                category = category,
+                isSelected = category == selected,
+                onSelect = { onSelect(category) },
+                seed = 80 + index,
+                // Same height for both cards, even if one label wraps at a large font size.
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryCard(
+    category: Category,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    seed: Int,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val colors = SnoozerTheme.colors.forCategory(category)
+    val shape = remember(seed) { SketchyShape(wobble = DoodleDefaults.WobbleLight, seed = seed) }
+    Column(
+        modifier = modifier
+            .doodleFill(
+                if (isSelected) colors.container else scheme.surface,
+                if (isSelected) colors.hatch else null,
+                wobble = DoodleDefaults.WobbleLight, seed = seed,
+            )
+            .sketchyBorder(
+                if (isSelected) scheme.onSurface else scheme.outline,
+                width = if (isSelected) 2.5.dp else 1.5.dp,
+                wobble = DoodleDefaults.WobbleLight, seed = seed,
+            )
+            .clip(shape)
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onSelect)
+            .padding(Spacing.S),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.XS),
+    ) {
+        DoodleIllustration(
+            image = category.illustration,
+            size = CategoryArtSize,
+            outline = if (isSelected) scheme.onSurface else null,
+            dimmed = !isSelected,
+            seed = seed + 10,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                category.label,
+                style = SnoozerTheme.type.label,
+                color = if (isSelected) colors.content else scheme.onSurfaceVariant,
+            )
+            if (isSelected) {
+                Spacer(Modifier.width(Spacing.XS))
+                // Decorative: the card already announces itself as selected.
+                Icon(
+                    painterResource(R.drawable.ic_doodle_check),
+                    contentDescription = null,
+                    tint = colors.content,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+private val CategoryArtSize = 120.dp
+
+/** Start and end side by side, with a live line saying how long the phone will be quiet. */
+@Composable
+private fun WhenCard(state: EditUiState, onStartChange: (Int, Int) -> Unit, onEndChange: (Int, Int) -> Unit) {
+    DoodleSection(title = "When", seed = 90) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+        ) {
+            TimeField("Start", state.start, onStartChange, seed = 91, modifier = Modifier.weight(1f))
+            Text("–", style = SnoozerTheme.type.headline)
+            TimeField("End", state.end, onEndChange, seed = 92, modifier = Modifier.weight(1f))
+        }
+        if (state.summary != null) {
+            Text(state.summary, style = SnoozerTheme.type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** A tappable time ("Start 09:00") that opens the system time picker. */
+@Composable
+private fun TimeField(label: String, time: String, onChange: (Int, Int) -> Unit, seed: Int, modifier: Modifier = Modifier) {
+    val shape = remember(seed) { SketchyShape(wobble = DoodleDefaults.WobbleLight, seed = seed) }
+    // Saved across configuration changes (folding or unfolding, rotating, theme switch), so
+    // the picker opens again after the activity is recreated instead of vanishing.
+    var picking by rememberSaveable { mutableStateOf(false) }
+    if (picking) {
+        TimePicker(time = time, onPicked = onChange, onClose = { picking = false })
+    }
+    Column(
+        modifier = modifier
+            .sketchyBorder(MaterialTheme.colorScheme.onSurface, width = 1.5.dp, wobble = DoodleDefaults.WobbleLight, seed = seed)
+            .clip(shape)
+            .clickable(onClickLabel = "Change $label time", role = Role.Button) { picking = true }
+            .padding(horizontal = Spacing.M, vertical = Spacing.S),
+    ) {
+        Text(label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(Spacing.S))
+            Text(time, style = SnoozerTheme.type.headline)
+        }
+    }
+}
+
+/**
+ * The system time picker, owned by composition: it is shown while this is composed and
+ * dismissed when it leaves (including when the activity is torn down for a fold or rotation),
+ * so its window is never leaked. Uses the phone's 12/24-hour setting.
+ */
+@Composable
+private fun TimePicker(time: String, onPicked: (Int, Int) -> Unit, onClose: () -> Unit) {
+    val context = LocalContext.current
+    val currentOnPicked by rememberUpdatedState(onPicked)
+    val currentOnClose by rememberUpdatedState(onClose)
+    DisposableEffect(context) {
+        val (hour, minute) = time.split(":").map { it.toInt() }
+        val dialog = TimePickerDialog(
+            context,
+            { _, h, m -> currentOnPicked(h, m) },
+            hour, minute,
+            DateFormat.is24HourFormat(context),
+        )
+        // Set, Cancel, back and tapping outside all end here.
+        dialog.setOnDismissListener { currentOnClose() }
+        dialog.show()
+        onDispose {
+            // Torn down by the system, not by the user: keep `picking` so it reopens.
+            dialog.setOnDismissListener(null)
+            dialog.dismiss()
+        }
+    }
+}
+
+/** The seven day chips plus quick presets. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RepeatCard(
+    days: List<DayOfWeek>,
+    preset: RepeatPreset?,
+    onToggleDay: (DayOfWeek) -> Unit,
+    onPreset: (RepeatPreset) -> Unit,
+) {
+    DoodleSection(title = "Repeat", seed = 93) {
+        // FlowRow wraps the chips onto two lines on narrow phones instead of scrolling sideways.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+            verticalArrangement = Arrangement.spacedBy(Spacing.S),
+        ) {
+            DayOfWeek.entries.forEach { day ->
+                DoodleChip(
+                    selected = day in days,
+                    onClick = { onToggleDay(day) },
+                    label = day.getDisplayName(TextStyle.SHORT, Locale.ENGLISH),
+                    seed = 60 + day.value,
+                    wobble = DoodleDefaults.WobbleLight,
+                )
+            }
+        }
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+            verticalArrangement = Arrangement.spacedBy(Spacing.S),
+        ) {
+            RepeatPreset.entries.forEachIndexed { index, p ->
+                DoodleChip(
+                    selected = p == preset,
+                    onClick = { onPreset(p) },
+                    label = p.label,
+                    seed = 70 + index,
+                    wobble = DoodleDefaults.WobbleLight,
+                )
+            }
+        }
+    }
+}
+
+/** Full-width Save, with the reason it's disabled written right above it. */
+@Composable
+private fun SaveBar(isNew: Boolean, error: String?, onSave: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(Spacing.M),
+        verticalArrangement = Arrangement.spacedBy(Spacing.S),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (error != null) {
+            Text(error, style = SnoozerTheme.type.body, color = MaterialTheme.colorScheme.error)
+        }
+        DoodleButton(
+            onClick = onSave,
+            enabled = error == null,
+            modifier = Modifier.fillMaxWidth(),
+            hatchColor = MaterialTheme.colorScheme.primary,
+            seed = 71,
+        ) {
+            Text(if (isNew) "Save snoozer" else "Save changes")
+        }
+    }
+}
+
+@Preview(name = "Edit - light", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Edit - dark", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFF2A2D2F,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun EditContentPreview() {
+    val original = EditForm(22, 0, 7, 0, RepeatPreset.Weekdays.days.sorted(), Category.Study)
+    SnoozerTheme {
+        EditContent(
+            state = EditUi.describe(original, original, isNew = false),
+            onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
+            onToggleDay = {}, onPreset = {}, onSave = {},
+        )
+    }
+}
+
+@Preview(name = "New, can't save yet", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Composable
+private fun NewSnoozerPreview() {
+    val form = EditForm.new(null)
+    SnoozerTheme {
+        EditContent(
+            state = EditUi.describe(form, form, isNew = true),
+            onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
+            onToggleDay = {}, onPreset = {}, onSave = {},
+        )
+    }
 }

@@ -1,214 +1,201 @@
 package com.example.snoozer.dayPickers
 
-import android.annotation.SuppressLint
-import android.os.Build
-import androidx.annotation.RequiresApi
+import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.R
+import com.example.snoozer.Route.Routes
+import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
-import com.example.snoozer.alarm.AlarmViewModel
-import com.example.snoozer.ui.theme.*
+import com.example.snoozer.alarm.Category
+import com.example.snoozer.ui.doodle.DoodleDivider
+import com.example.snoozer.ui.doodle.DoodleFab
+import com.example.snoozer.ui.theme.SnoozerTheme
+import com.example.snoozer.ui.theme.Spacing
+import com.example.snoozer.util.openDndSettings
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDateTime
 
-
-@RequiresApi(Build.VERSION_CODES.O)
+/** The week screen. State comes from [DayPickerViewModel]. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DayPickerMain(navController: NavController,
-                  dayPickerViewModel: DayPickerViewModel = hiltViewModel(),
-                  alarmViewModel: AlarmViewModel) {
-    SnoozerTheme {
-        val tabIndex by dayPickerViewModel.tabIndex.observeAsState(0)
-        val tabs = dayPickerViewModel.tabs
-        val pagerState = rememberPagerState(
-            initialPage = tabIndex,
-            pageCount = { tabs.size }
-        )
-        val coroutineScope = rememberCoroutineScope()
+fun DayPickerMain(
+    navController: NavController,
+    viewModel: DayPickerViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pagerState = rememberPagerState(initialPage = viewModel.initialPage, pageCount = { 7 })
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
 
+    // Do Not Disturb access can be revoked in Settings while the app is in the background.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
 
-        Scaffold(
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        alarmViewModel.setSelectedAlarm(null) // Creating new alarm
-                        navController.navigate("editAlarm")
-                    }
-                ) {
-                    Text(text = "+", fontWeight = FontWeight.Bold, fontSize = 25.sp)
-                }
-            }
-        ) { paddingValues ->
-            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                // TabRow
-                TabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    tabs.forEachIndexed { index, titleResId ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                                dayPickerViewModel.updateTabIndex(index)
-                            },
-                            text = {
-                                Text(text = stringResource(id = titleResId))
-                            }
-                        )
-                    }
-                }
-
-                // Pager content: each page shows alarms for one day
-                HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
-                    val alarms by alarmViewModel.getAlarmsForDay(page + 1)
-                        .observeAsState(emptyList())
-
-                    DayAlarmPage(alarms = alarms,
-                        onAlarmClick = { alarm ->
-                            alarmViewModel.setSelectedAlarm(alarm)
-                            navController.navigate("editAlarm")
-                        }
-                    )
-                }
-            }
-        }
-
-        // Keep tab index in sync with pager
-        LaunchedEffect(pagerState.currentPage) {
-            dayPickerViewModel.updateTabIndex(pagerState.currentPage)
-        }
+    // A new snoozer starts on the day being viewed.
+    val createOnCurrentDay = {
+        navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.create(DayOfWeek.of(pagerState.currentPage + 1)))
     }
-}
 
-@SuppressLint("NewApi")
-@Composable
-fun DayAlarmPage(alarms: List<Alarm>, onAlarmClick: (Alarm) -> Unit) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(alarms) { alarm ->
-                AlarmCard(alarm = alarm, onClick = { onAlarmClick(alarm) })
+    Scaffold(
+        floatingActionButton = {
+            DoodleFab(onClick = createOnCurrentDay, contentDescription = "Add snoozer", seed = 31) {
+                // Decorative: the FAB's own description ("Add snoozer") is what gets announced.
+                Icon(painterResource(R.drawable.ic_doodle_add), contentDescription = null, modifier = Modifier.size(32.dp))
             }
         }
-}
-
-@SuppressLint("DefaultLocale")
-@Composable
-fun AlarmCard(alarm: Alarm, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(20.dp),
-        colors = CardDefaults.cardColors(containerColor = if (alarm.work == "Work") Color(0xFF90D5FF) else Color(0xFFDAB1DA)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp)
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(vertical = 16.dp)
-                .fillMaxWidth()
-                .wrapContentSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Absolute.Left
-        ) {
-            Image(
-                painter = painterResource(if (alarm.work == "Work") R.drawable.work else R.drawable.study),
-                contentDescription = "Alarm Icon",
-                modifier = Modifier.size(100.dp, 100.dp)
+    ) { padding ->
+        // Null only until the first database read; showing nothing avoids a flash of empty days.
+        val current = state
+        if (current == null) {
+            Box(Modifier.fillMaxSize().padding(padding))
+        } else {
+            WeekContent(
+                state = current,
+                pagerState = pagerState,
+                onCardClick = { id -> navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.edit(id)) },
+                onToggle = viewModel::onToggle,
+                onAdd = createOnCurrentDay,
+                onAllowAccess = context::openDndSettings,
+                modifier = Modifier.padding(padding),
             )
-            Column(verticalArrangement = Arrangement.Center) {
-                val formattedStartTime = String.format("%02d:%02d", alarm.startHour, alarm.startMinute)
-                val formattedEndTime = String.format("%02d:%02d", alarm.endHour, alarm.endMinute)
-                Text(
-                    text = formattedStartTime,
-                    style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(70.dp)
-                        .padding(start = 20.dp),
-                    textAlign = TextAlign.Center,
-                    fontSize = 50.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black
-                )
-                Text(
-                    text = "~ $formattedEndTime",
-                    style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(70.dp)
-                        .padding(start = 20.dp),
-                    textAlign = TextAlign.Center,
-                    fontSize = 50.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black
+        }
+    }
+}
+
+/** Stateless body of the week screen: status card, week strip, and one timeline page per day. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun WeekContent(
+    state: WeekUiState,
+    pagerState: PagerState,
+    onCardClick: (Int) -> Unit,
+    onToggle: (Int, Boolean) -> Unit,
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier,
+    onAllowAccess: () -> Unit = {},
+) {
+    val scope = rememberCoroutineScope()
+    Column(modifier.fillMaxSize()) {
+        StatusCard(
+            state.status,
+            onAllowAccess = onAllowAccess,
+            modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
+        )
+        Spacer(Modifier.height(Spacing.S))
+        WeekStrip(
+            days = state.days,
+            selected = pagerState.currentPage,
+            onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
+        )
+        DoodleDivider(modifier = Modifier.padding(horizontal = Spacing.M), seed = 21)
+        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+            DayPage(day = state.days[page], onCardClick = onCardClick, onToggle = onToggle, onAdd = onAdd)
+        }
+    }
+}
+
+@Composable
+private fun DayPage(day: DayUi, onCardClick: (Int) -> Unit, onToggle: (Int, Boolean) -> Unit, onAdd: () -> Unit) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        // Bottom padding keeps the last card clear of the floating + button.
+        contentPadding = PaddingValues(start = Spacing.M, end = Spacing.M, top = Spacing.S, bottom = 104.dp),
+    ) {
+        item(key = "header") { DayHeader(day, Modifier.padding(bottom = Spacing.M)) }
+        if (day.cards.isEmpty()) {
+            item(key = "empty") { EmptyDay(dayName = day.name, onAdd = onAdd) }
+        } else {
+            itemsIndexed(day.cards, key = { _, card -> card.id }) { index, card ->
+                TimelineItem(
+                    card = card,
+                    isFirst = index == 0,
+                    isLast = index == day.cards.lastIndex,
+                    onClick = { onCardClick(card.id) },
+                    onToggle = { onToggle(card.id, it) },
                 )
             }
         }
     }
 }
 
+// Previews: Wednesday 2026-11-18 at 09:20, one window active, one off, a few empty days.
+private val PreviewNow: LocalDateTime = LocalDateTime.of(2026, 11, 18, 9, 20)
+private val PreviewAlarms = listOf(
+    Alarm(1, 9, 0, 10, 30, DayOfWeek.entries.take(5), work = "Work"),
+    Alarm(2, 13, 0, 14, 0, listOf(DayOfWeek.WEDNESDAY), work = "Study", isEnabled = false),
+    Alarm(3, 22, 0, 7, 0, listOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), work = "Study"),
+)
 
-@Preview
+@OptIn(ExperimentalFoundationApi::class)
+@Preview(name = "Week - light", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Week - dark", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFF2A2D2F,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun AlarmCard_preview(){
-    AlarmCard(alarm = Alarm(startHour = 10, startMinute = 1, endHour = 10, endMinute = 1, daysOfWeek = DayOfWeek.entries, work = "Work"), onClick = {})
+private fun WeekContentPreview() {
+    SnoozerTheme {
+        WeekContent(
+            state = WeekUi.build(PreviewAlarms, PreviewNow),
+            pagerState = rememberPagerState(initialPage = 2, pageCount = { 7 }),
+            onCardClick = {}, onToggle = { _, _ -> }, onAdd = {},
+        )
+    }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview
+@OptIn(ExperimentalFoundationApi::class)
+@Preview(name = "Empty day", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
 @Composable
-fun DayAlarmPage_preview() {
-    DayAlarmPage(alarms = listOf(
-        Alarm(0,  9, 0, 10, 0, listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), work = "Work"),
-        Alarm(1,  10, 0, 11, 0, listOf(DayOfWeek.WEDNESDAY, DayOfWeek.TUESDAY), work = "Study")
+private fun EmptyWeekPreview() {
+    SnoozerTheme {
+        WeekContent(
+            state = WeekUi.build(emptyList(), PreviewNow),
+            pagerState = rememberPagerState(initialPage = 2, pageCount = { 7 }),
+            onCardClick = {}, onToggle = { _, _ -> }, onAdd = {},
+        )
+    }
+}
 
-    ), onAlarmClick = {})
+// Every state of the status card: the category drawing shows only when there's a window.
+@Preview(name = "Status card - all states", widthDp = 360, showBackground = true, backgroundColor = 0xFFFAF6EC)
+@Preview(name = "Status card - all states, dark", widthDp = 360, showBackground = true, backgroundColor = 0xFF2A2D2F,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun StatusCardStatesPreview() {
+    SnoozerTheme {
+        Column(Modifier.padding(Spacing.M), verticalArrangement = Arrangement.spacedBy(Spacing.M)) {
+            StatusCard(StatusUi.QuietNow(until = "10:30", category = Category.Study, left = "1h 10m left"))
+            StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, startsIn = "in 3h 40m"))
+            StatusCard(StatusUi.NothingScheduled)
+            StatusCard(StatusUi.NoAccess)
+        }
+    }
 }

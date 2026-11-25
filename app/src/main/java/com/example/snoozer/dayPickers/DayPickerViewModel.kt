@@ -1,36 +1,50 @@
 package com.example.snoozer.dayPickers
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.snoozer.R
+import androidx.lifecycle.viewModelScope
+import com.example.snoozer.alarm.AlarmActions
+import com.example.snoozer.alarm.AlarmRepository
+import com.example.snoozer.util.PermissionChecker
+import com.example.snoozer.util.TimeSource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class DayPickerViewModel @Inject constructor() : ViewModel() {
-    private val _tabIndex: MutableLiveData<Int> = MutableLiveData(0)
+class DayPickerViewModel @Inject constructor(
+    repository: AlarmRepository,
+    private val actions: AlarmActions,
+    timeSource: TimeSource,
+    private val permissionChecker: PermissionChecker,
+) : ViewModel() {
 
-    val tabIndex: LiveData<Int> = _tabIndex
+    /** The page to open on: today (0 = Monday). The pager owns the selection after that. */
+    val initialPage: Int = timeSource.now().dayOfWeek.value - 1
 
-    val tabs = listOf(
-        R.string.Monday,
-        R.string.Tuesday,
-        R.string.Wednesday,
-        R.string.Thursday,
-        R.string.Friday,
-        R.string.Saturday,
-        R.string.Sunday
-    )
+    // Do Not Disturb access can be revoked in Settings at any time; the screen re-checks on resume.
+    private val canMute = MutableStateFlow(permissionChecker.check().dnd)
 
-    fun updateTabIndexBasedOnSwipe(isSwipeToTheLeft: Boolean) {
-        _tabIndex.value = when (isSwipeToTheLeft) {
-            true -> Math.floorMod(_tabIndex.value!!.plus(1), tabs.size)
-            false -> Math.floorMod(_tabIndex.value!!.minus(1), tabs.size)
-        }
+    /**
+     * Rebuilt whenever the alarms change and at every minute, so "in 2h 15m" stays current.
+     * Null until the first database read, so the screen doesn't flash "A free day" on open.
+     * The clock only ticks while the screen collects this (it stops 5s after it leaves).
+     */
+    val uiState: StateFlow<WeekUiState?> =
+        combine(repository.observeAlarms(), timeSource.minuteTicks, canMute) { alarms, now, dnd ->
+            WeekUi.build(alarms, now, canMute = dnd)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun refreshPermissions() {
+        canMute.value = permissionChecker.check().dnd
     }
 
-    fun updateTabIndex(i: Int) {
-        _tabIndex.value = i
+    /** AlarmActions reads the saved row itself, so quick repeated taps never act on stale data. */
+    fun onToggle(id: Int, enabled: Boolean) {
+        viewModelScope.launch { actions.setEnabled(id, enabled) }
     }
 }

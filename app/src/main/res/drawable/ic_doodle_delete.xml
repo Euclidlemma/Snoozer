@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hand-drawn doodle icon: an uneven pencil stroke plus a faint second pass.
+     Drawn in black and tinted at runtime (Icon tint), so it follows light/dark mode.
+     To swap in artist-drawn art, replace this file keeping the same name. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M4.5,6.6 C9.5,6.2 14.6,6.9 19.6,6.4" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M9.4,6.3 C9.3,4.9 9.7,4.1 10.6,4.1 C11.6,4 12.6,4.2 13.6,4.1 C14.4,4.1 14.8,4.9 14.7,6.4" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M6.3,6.8 C6.6,11 6.9,15.2 7.4,19.2 C7.5,20 8.1,20.3 8.8,20.3 C11,20.4 13.1,20.2 15.3,20.3 C16,20.3 16.5,19.9 16.6,19.2 C17,15.1 17.5,11 17.8,6.9" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M10.1,10 C10.2,12.6 10.3,14.6 10.4,17.1" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M13.9,10.1 C13.8,12.5 13.7,14.7 13.6,17.2" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M5,7.1 C9.8,6.7 14.4,7.3 19.2,6.9" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeAlpha="0.45" android:strokeWidth="1.1" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>
