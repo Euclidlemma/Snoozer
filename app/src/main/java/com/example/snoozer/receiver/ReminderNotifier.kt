@@ -27,20 +27,34 @@ object ReminderNotifier {
     private const val CHANNEL_STUDY = "study_reminders"
     private const val CHANNEL_WORK = "work_reminders"
 
-    /** Whether a reminder can be shown: notifications allowed (Android 13+ asks) and not turned off. */
+    /**
+     * Whether a reminder would be seen: notifications allowed (Android 13+ asks), not turned off
+     * for the app, and at least one of the two reminder channels still on. A channel that
+     * doesn't exist yet (nothing posted so far) counts as on, its default.
+     */
     fun canNotify(context: Context): Boolean {
         val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
-        return granted && NotificationManagerCompat.from(context).areNotificationsEnabled()
+        if (!granted || !NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return listOf(CHANNEL_STUDY, CHANNEL_WORK).any { id ->
+            val channel = manager.getNotificationChannel(id)
+            channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
+        }
+    }
+
+    /** Removes a shown reminder for this window (deleted, switched off, edited or started). */
+    fun cancel(context: Context, alarmId: Int) {
+        NotificationManagerCompat.from(context).cancel(alarmId)
     }
 
     // canNotify() is checked first; the permission lint can't see that.
     @SuppressLint("MissingPermission")
-    fun show(context: Context, alarm: Alarm) {
+    fun show(context: Context, alarm: Alarm, minutesUntilStart: Int) {
         if (!canNotify(context)) return
         ensureChannels(context)
-        val text = ReminderText.of(alarm)
+        val text = ReminderText.of(alarm, minutesUntilStart)
         val open = PendingIntent.getActivity(
             context,
             0,
@@ -59,6 +73,9 @@ object ReminderNotifier {
             )
             .setContentIntent(open)
             .setAutoCancel(true)
+            // Gone by the time quiet time starts (the mute alarm also clears it), so a stale
+            // "starts in 5 minutes" never lingers in the shade.
+            .setTimeoutAfter(minutesUntilStart * 60_000L)
             .build()
         // One notice per window: a newer reminder for the same window replaces the old one.
         NotificationManagerCompat.from(context).notify(alarm.id, notification)

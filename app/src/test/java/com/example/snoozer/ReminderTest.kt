@@ -6,10 +6,14 @@ import com.example.snoozer.alarm.ReminderText
 import com.example.snoozer.alarm.ReminderTime
 import com.example.snoozer.util.NotificationAsk
 import com.example.snoozer.util.notificationAsk
+import com.example.snoozer.util.refusedForGood
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek.MONDAY
 import java.time.DayOfWeek.SUNDAY
+import java.time.LocalDateTime
 
 class ReminderTest {
 
@@ -47,15 +51,41 @@ class ReminderTest {
         )
     }
 
+
     @Test
-    fun notificationAsk_asksWhileADialogCanAppear() {
-        // First time: ask.
-        assertEquals(NotificationAsk.Ask, notificationAsk(permissionGranted = false, askedBefore = false, showRationale = false))
-        // Refused once: Android still shows the dialog again.
-        assertEquals(NotificationAsk.Ask, notificationAsk(permissionGranted = false, askedBefore = true, showRationale = true))
-        // Refused for good: only Settings can allow it now.
-        assertEquals(NotificationAsk.OpenSettings, notificationAsk(permissionGranted = false, askedBefore = true, showRationale = false))
+    fun notificationAsk_settingsOnlyWhenTheDialogCanNoLongerHelp() {
+        assertEquals(NotificationAsk.Ask, notificationAsk(permissionGranted = false, refusedForGood = false))
+        assertEquals(NotificationAsk.OpenSettings, notificationAsk(permissionGranted = false, refusedForGood = true))
         // Allowed but switched off in Settings: back to Settings.
-        assertEquals(NotificationAsk.OpenSettings, notificationAsk(permissionGranted = true, askedBefore = true, showRationale = false))
+        assertEquals(NotificationAsk.OpenSettings, notificationAsk(permissionGranted = true, refusedForGood = false))
+    }
+
+    @Test
+    fun refusedForGood_onlyAfterTheSecondNo() {
+        // First "Don't allow": the rationale flag turns on, so Android will ask again.
+        assertFalse(refusedForGood(granted = false, rationaleBefore = false, rationaleAfter = true))
+        // Dialog closed without choosing: the flag doesn't change.
+        assertFalse(refusedForGood(granted = false, rationaleBefore = false, rationaleAfter = false))
+        assertFalse(refusedForGood(granted = false, rationaleBefore = true, rationaleAfter = true))
+        // Second "Don't allow": the flag turns off again; only Settings can allow it now.
+        assertTrue(refusedForGood(granted = false, rationaleBefore = true, rationaleAfter = false))
+        assertFalse(refusedForGood(granted = true, rationaleBefore = true, rationaleAfter = false))
+    }
+
+    @Test
+    fun minutesUntilStart_nextOccurrenceOfThatStartDay() {
+        val a = alarm(9, 0, 10, 0)
+        assertEquals(5, AlarmTime.minutesUntilStart(a, MONDAY, LocalDateTime.of(2026, 11, 16, 8, 55)))   // Monday
+        // Just after midnight, reminded the evening before.
+        val b = alarm(0, 2, 1, 0)
+        assertEquals(5, AlarmTime.minutesUntilStart(b, MONDAY, LocalDateTime.of(2026, 11, 15, 23, 57)))  // Sunday
+        // Already started: the next one is a week away.
+        assertEquals(7 * 24 * 60 - 2, AlarmTime.minutesUntilStart(a, MONDAY, LocalDateTime.of(2026, 11, 16, 9, 2)))
+    }
+
+    @Test
+    fun reminderText_usesTheMinutesLeft() {
+        assertEquals("Study starts in 4 minutes", ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), 4).title)
+        assertEquals("Study starts in 1 minute", ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), 1).title)
     }
 }

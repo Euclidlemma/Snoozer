@@ -29,7 +29,14 @@ sealed interface StatusUi {
      * The phone is quiet now, at [level]. [category] is a running window that sets that level
      * (with overlaps, the quietest one wins), so the card never says "Work · Silent".
      */
-    data class QuietNow(val until: String, val category: Category, val level: QuietLevel, val left: String) : StatusUi
+    data class QuietNow(
+        val until: String,
+        val category: Category,
+        val level: QuietLevel,
+        val left: String,
+        /** "then vibrate until 17:00" when this level ends before the quiet time does. */
+        val then: String? = null,
+    ) : StatusUi
     /** Not quiet; the next window starts at [time] on [day] ("today", "tomorrow", "Wed"). */
     data class Next(val time: String, val day: String, val category: Category, val level: QuietLevel, val startsIn: String) : StatusUi
     data object NothingScheduled : StatusUi
@@ -112,12 +119,21 @@ object WeekUi {
                 val level = AlarmTime.quietLevelAt(alarms, now) ?: s.alarm.category.quietLevel
                 val category = if (s.alarm.category.quietLevel == level) s.alarm.category
                     else alarms.first { it.isEnabled && AlarmTime.isActiveAt(it, now) && it.category.quietLevel == level }.category
+                // How long *this* level lasts: the run of windows at this level, which can end
+                // before the whole quiet run does (Study inside Work: silent until 12:00, then
+                // vibrate until 17:00). The card shows the level's end and mentions the rest.
+                val levelRun = AlarmTime.quietStatus(alarms.filter { it.category.quietLevel == level }, now)
+                val levelEnd = (levelRun as? QuietStatus.QuietUntil)?.until?.takeIf { it.isBefore(s.until) }
+                val end = levelEnd ?: s.until
                 StatusUi.QuietNow(
-                    until = AlarmTime.formatTime(s.until.hour, s.until.minute) +
-                        if (s.until.toLocalDate() != now.toLocalDate()) " ${relativeDay(s.until, now)}" else "",
+                    until = timeOn(end, now),
                     category = category,
                     level = level,
-                    left = "${relativeSpan(AlarmTime.minutesBetween(now, s.until))} left",
+                    left = "${relativeSpan(AlarmTime.minutesBetween(now, end))} left",
+                    then = levelEnd?.let {
+                        val next = AlarmTime.quietLevelAt(alarms, it)?.label?.lowercase() ?: "quiet"
+                        "then $next until ${timeOn(s.until, now)}"
+                    },
                 )
             }
             is QuietStatus.NextQuiet -> StatusUi.Next(
@@ -212,6 +228,10 @@ object WeekUi {
     }
 
     private fun count(n: Int) = if (n == 1) "1 snoozer" else "$n snoozers"
+
+    /** "17:00", or "07:00 tomorrow" / "07:00 Wed" when it isn't today. */
+    private fun timeOn(t: LocalDateTime, now: LocalDateTime): String =
+        AlarmTime.formatTime(t.hour, t.minute) + if (t.toLocalDate() != now.toLocalDate()) " ${relativeDay(t, now)}" else ""
 
     /** "today", "tomorrow", or a short weekday name for anything later. */
     private fun relativeDay(target: LocalDateTime, now: LocalDateTime): String {

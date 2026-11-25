@@ -38,6 +38,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions {
+        // Plain JVM unit tests (e.g. AlarmActionsTest) reach android.util.Log through the code
+        // under test; let such stub calls return defaults instead of throwing.
+        unitTests.isReturnDefaultValues = true
+    }
     buildFeatures {
         compose = true
     }

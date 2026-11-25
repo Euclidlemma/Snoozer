@@ -9,6 +9,8 @@ import android.os.Build
 import android.util.Log
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.alarm.WindowScheduler
+import com.example.snoozer.receiver.ReminderNotifier
 import com.example.snoozer.receiver.AlarmReceiver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
@@ -20,7 +22,7 @@ import javax.inject.Inject
  * start, the mute at the start and the unmute at the end. Each is a separate PendingIntent
  * (request code from id, day and kind), so they can be replaced or cancelled one by one.
  */
-class AlarmScheduler @Inject constructor(@ApplicationContext private val context: Context) {
+class AlarmScheduler @Inject constructor(@ApplicationContext private val context: Context) : WindowScheduler {
 
     /** The three alarms a window's day gets. The name is the receiver's "action" extra. */
     enum class Kind { REMIND, MUTE, UNMUTE }
@@ -29,18 +31,22 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
      * Schedules the reminder, mute and unmute for every selected day. Switched-off alarms are
      * skipped here, so callers (boot, weekly reschedule, save) never revive one by accident.
      */
-    fun scheduleAlarm(alarm: Alarm) {
+    override fun scheduleAlarm(alarm: Alarm) {
         if (!alarm.isEnabled) return
         alarm.daysOfWeek.forEach { scheduleAlarmWithDay(alarm, it) }
     }
 
     /** Schedules the next reminder, mute and unmute of the window starting on [day]. */
-    fun scheduleAlarmWithDay(alarm: Alarm, day: DayOfWeek) {
+    override fun scheduleAlarmWithDay(alarm: Alarm, day: DayOfWeek) {
         if (!alarm.isEnabled) return
-        Kind.entries.forEach { schedule(alarm, day, it) }
+        // No reminder when nobody would see it: notifications off, or both channels off.
+        // AlarmActions.rescheduleAll() adds them once notifications are allowed.
+        if (ReminderNotifier.canNotify(context)) schedule(alarm, day, Kind.REMIND) else cancel(alarm, day, Kind.REMIND)
+        schedule(alarm, day, Kind.MUTE)
+        schedule(alarm, day, Kind.UNMUTE)
     }
 
-    fun cancelAlarm(alarm: Alarm) {
+    override fun cancelAlarm(alarm: Alarm) {
         for (day in alarm.daysOfWeek) {
             Kind.entries.forEach { cancel(alarm, day, it) }
         }
@@ -64,6 +70,19 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
         // Calling setExact* without it throws SecurityException, so fall back to an inexact
         // alarm instead of crashing. BootReceiver reschedules exactly once it is granted.
         val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+        if (kind == Kind.REMIND) {
+            // Reminders never use the "allow while idle" alarms. Android rations those per app
+            // while the phone is idle (inexact ones about once every 9 minutes), and a 08:55
+            // reminder would then hold back the 09:00 mute. In deep idle a reminder may come
+            // late instead; AlarmActions drops late ones.
+            try {
+                if (canExact) alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+                else alarmManager.set(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+            } catch (e: SecurityException) {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+            }
+            return
+        }
         try {
             if (canExact) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)

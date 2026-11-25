@@ -36,7 +36,7 @@ class AlarmReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 when (action) {
-                    "REMIND" -> actions.onReminderFired(alarmId)
+                    "REMIND" -> actions.onReminderFired(alarmId, day)
                     "MUTE" -> actions.onMuteFired(alarmId)
                     else -> actions.onUnmuteFired(alarmId, day)
                 }

@@ -53,6 +53,18 @@ object AlarmTime {
         else Math.floorMod(minute, MINUTES_PER_DAY).let { ReminderTime(startDay.minus(1), it / 60, it % 60) }
     }
 
+    /**
+     * Minutes from [now] until the next start of the occurrence that starts on [startDay]
+     * (today's if it's still ahead, otherwise next week's).
+     */
+    fun minutesUntilStart(alarm: Alarm, startDay: DayOfWeek, now: LocalDateTime): Int {
+        var start = now.toLocalDate()
+            .with(TemporalAdjusters.nextOrSame(startDay))
+            .atTime(alarm.startHour, alarm.startMinute)
+        if (!start.isAfter(now)) start = start.plusWeeks(1)
+        return minutesBetween(now, start)
+    }
+
     /** Whether [now] falls inside any of this alarm's weekly mute windows. */
     fun isActiveAt(alarm: Alarm, now: LocalDateTime): Boolean {
         val start = startMinuteOfDay(alarm)
@@ -176,13 +188,14 @@ data class ReminderTime(val day: DayOfWeek, val hour: Int, val minute: Int)
 /** The reminder notification's words for [alarm]: a title and one line under it. */
 data class ReminderText(val title: String, val body: String) {
     companion object {
-        fun of(alarm: Alarm): ReminderText {
+        fun of(alarm: Alarm, minutesUntilStart: Int = AlarmTime.REMINDER_LEAD_MINUTES): ReminderText {
+            val inMinutes = if (minutesUntilStart == 1) "1 minute" else "$minutesUntilStart minutes"
             val start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute)
             val end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute)
             val endsTomorrow = if (AlarmTime.isOvernight(alarm)) " tomorrow" else ""
             return when (alarm.category) {
                 Category.Study -> ReminderText(
-                    "Study starts in ${AlarmTime.REMINDER_LEAD_MINUTES} minutes",
+                    "Study starts in $inMinutes",
                     "Your phone goes fully silent at $start until $end$endsTomorrow.",
                 )
                 Category.Work -> ReminderText(

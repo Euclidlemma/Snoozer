@@ -36,14 +36,17 @@ fun Context.openNotificationSettings() = openSettings(
 enum class NotificationAsk { Ask, OpenSettings }
 
 /**
- * Android shows the notification permission dialog at most twice; after a second "Don't allow"
- * (or "Don't ask again") a request returns at once with no dialog. So ask while a dialog can
- * still appear, and send the user to Settings otherwise. Also Settings when the permission is
- * granted but notifications were switched off there.
+ * Ask with Android's dialog unless only Settings can help: the permission was refused for
+ * good ([refusedForGood]), or it is granted but notifications were switched off in Settings.
  */
-fun notificationAsk(permissionGranted: Boolean, askedBefore: Boolean, showRationale: Boolean): NotificationAsk =
-    when {
-        permissionGranted -> NotificationAsk.OpenSettings
-        !askedBefore || showRationale -> NotificationAsk.Ask
-        else -> NotificationAsk.OpenSettings
-    }
+fun notificationAsk(permissionGranted: Boolean, refusedForGood: Boolean): NotificationAsk =
+    if (permissionGranted || refusedForGood) NotificationAsk.OpenSettings else NotificationAsk.Ask
+
+/**
+ * Whether a "no" from the dialog was final. Android shows the dialog until the second refusal;
+ * after the first, the rationale flag turns on, and after the second it turns off again. Closing
+ * the dialog without choosing (back, tapping outside) also reports "no" but leaves the flag as
+ * it was, so it isn't mistaken for a final refusal.
+ */
+fun refusedForGood(granted: Boolean, rationaleBefore: Boolean, rationaleAfter: Boolean): Boolean =
+    !granted && rationaleBefore && !rationaleAfter

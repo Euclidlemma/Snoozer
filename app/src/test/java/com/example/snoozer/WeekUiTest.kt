@@ -108,11 +108,16 @@ class WeekUiTest {
         val during = WeekUi.status(listOf(work, study), at(16, 11, 0)) as StatusUi.QuietNow
         assertEquals(Category.Study, during.category)
         assertEquals(QuietLevel.Silent, during.level)
-        assertEquals("17:00", during.until)
-        // After Study ends, it's Work on vibrate.
+        // Silent only until Study ends; the rest of the quiet time is mentioned separately.
+        assertEquals("12:00", during.until)
+        assertEquals("1h left", during.left)
+        assertEquals("then vibrate until 17:00", during.then)
+        // After Study ends, it's Work on vibrate until the end, with nothing after it.
         val after = WeekUi.status(listOf(work, study), at(16, 13, 0)) as StatusUi.QuietNow
         assertEquals(Category.Work, after.category)
         assertEquals(QuietLevel.Vibrate, after.level)
+        assertEquals("17:00", after.until)
+        assertNull(after.then)
     }
 
     @Test

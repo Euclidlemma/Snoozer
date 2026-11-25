@@ -96,7 +96,7 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: (
                     is StatusUi.QuietNow -> {
                         Text("Quiet now · ${status.category.label} · ${status.level.label}", style = type.caption)
                         Text("until ${status.until}", style = type.headline)
-                        Text(status.left, style = type.caption)
+                        Text(listOfNotNull(status.left, status.then).joinToString(" · "), style = type.caption)
                     }
                     is StatusUi.Next -> {
                         Text("Next quiet time", style = type.caption)

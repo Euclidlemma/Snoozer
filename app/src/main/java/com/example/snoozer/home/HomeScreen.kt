@@ -27,6 +27,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,6 +68,7 @@ import com.example.snoozer.util.openDndSettings
 import com.example.snoozer.util.openExactAlarmSettings
 import com.example.snoozer.util.openNotificationSettings
 import com.example.snoozer.util.notificationAsk
+import com.example.snoozer.util.refusedForGood
 import com.example.snoozer.util.NotificationAsk
 
 @Composable
@@ -77,7 +82,14 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 
     // The notification permission is a normal runtime dialog (Android 13+), asked only when the
     // user taps Allow. Saying no changes nothing else; the row just stays unticked.
-    val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+    val prefs = remember(context) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+    // Android's "show rationale" flag just before the dialog opened; with the flag after it, it
+    // tells a final refusal apart from a first "no" or a dialog closed without choosing.
+    var rationaleBefore by rememberSaveable { mutableStateOf(false) }
+    val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val rationaleAfter = context.findActivity()
+            ?.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) == true
+        prefs.edit().putBoolean(KEY_REFUSED_NOTIFICATIONS, refusedForGood(granted, rationaleBefore, rationaleAfter)).apply()
         viewModel.refreshPermissions()
     }
 
@@ -90,15 +102,13 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         onAllowNotifications = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val permission = Manifest.permission.POST_NOTIFICATIONS
-                val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 val action = notificationAsk(
                     permissionGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED,
-                    askedBefore = prefs.getBoolean(KEY_ASKED_NOTIFICATIONS, false),
-                    showRationale = context.findActivity()?.shouldShowRequestPermissionRationale(permission) == true,
+                    refusedForGood = prefs.getBoolean(KEY_REFUSED_NOTIFICATIONS, false),
                 )
                 when (action) {
                     NotificationAsk.Ask -> {
-                        prefs.edit().putBoolean(KEY_ASKED_NOTIFICATIONS, true).apply()
+                        rationaleBefore = context.findActivity()?.shouldShowRequestPermissionRationale(permission) == true
                         askNotifications.launch(permission)
                     }
                     NotificationAsk.OpenSettings -> context.openNotificationSettings()
@@ -117,7 +127,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 }
 
 private const val PREFS = "permission_asks"
-private const val KEY_ASKED_NOTIFICATIONS = "asked_notifications"
+private const val KEY_REFUSED_NOTIFICATIONS = "refused_notifications"
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
