@@ -42,6 +42,9 @@ object AlarmTime {
     /** How long before a window starts its reminder fires. */
     const val REMINDER_LEAD_MINUTES = 5
 
+    /** The earliest a reminder may come when it can only be inexact: its delivery window opens then. */
+    const val REMINDER_EARLIEST_MINUTES = 10
+
     /**
      * When the reminder for the occurrence starting on [startDay] fires: [REMINDER_LEAD_MINUTES]
      * before the start, on the day before when the start is just after midnight (00:02 on

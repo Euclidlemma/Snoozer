@@ -121,6 +121,16 @@ class WeekUiTest {
     }
 
     @Test
+    fun status_quieterWindowLaterInTheRun_isMentioned() {
+        val work = alarm(1, 9, 0, 17, 0, MONDAY)
+        val study = alarm(2, 14, 0, 15, 0, MONDAY, work = "Study")
+        val s = WeekUi.status(listOf(work, study), at(16, 11, 0)) as StatusUi.QuietNow
+        assertEquals(QuietLevel.Vibrate, s.level)
+        assertEquals("17:00", s.until)
+        assertEquals("silent from 14:00", s.then)
+    }
+
+    @Test
     fun card_carriesItsCategorysLevel() {
         val study = alarm(1, 10, 0, 12, 0, MONDAY, work = "Study")
         assertEquals(QuietLevel.Silent, WeekUi.build(listOf(study), at(16, 8, 0)).days[0].cards.single().level)

@@ -36,3 +36,8 @@ interface Reminders {
     /** Removes a shown reminder for this window, if there is one. */
     fun cancel(alarmId: Int)
 }
+
+/** Diagnostics, so AlarmActions doesn't call android.util.Log directly (not available in unit tests). */
+fun interface Logger {
+    fun warn(message: String)
+}

@@ -10,7 +10,6 @@ import android.util.Log
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.WindowScheduler
-import com.example.snoozer.receiver.ReminderNotifier
 import com.example.snoozer.receiver.AlarmReceiver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
@@ -39,11 +38,10 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
     /** Schedules the next reminder, mute and unmute of the window starting on [day]. */
     override fun scheduleAlarmWithDay(alarm: Alarm, day: DayOfWeek) {
         if (!alarm.isEnabled) return
-        // No reminder when nobody would see it: notifications off, or both channels off.
-        // AlarmActions.rescheduleAll() adds them once notifications are allowed.
-        if (ReminderNotifier.canNotify(context)) schedule(alarm, day, Kind.REMIND) else cancel(alarm, day, Kind.REMIND)
-        schedule(alarm, day, Kind.MUTE)
-        schedule(alarm, day, Kind.UNMUTE)
+        // The reminder is always set, even with notifications off: they can be turned on in
+        // Settings at any time without the app noticing. It costs the mutes nothing (see
+        // below), and AlarmActions.onReminderFired only shows it if it can be seen.
+        Kind.entries.forEach { schedule(alarm, day, it) }
     }
 
     override fun cancelAlarm(alarm: Alarm) {
@@ -69,17 +67,28 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
         // On Android 12+ the user can deny or revoke exact alarms (denied by default on 14+).
         // Calling setExact* without it throws SecurityException, so fall back to an inexact
         // alarm instead of crashing. BootReceiver reschedules exactly once it is granted.
+        // An inexact alarm may arrive up to about an hour late on Android 12+ (longer under
+        // Doze or battery saver); there is no idle-safe way to bound that without the
+        // permission, which is why Setup recommends it and says so.
         val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
         if (kind == Kind.REMIND) {
             // Reminders never use the "allow while idle" alarms. Android rations those per app
             // while the phone is idle (inexact ones about once every 9 minutes), and a 08:55
             // reminder would then hold back the 09:00 mute. In deep idle a reminder may come
             // late instead; AlarmActions drops late ones.
+            //
+            // Without exact alarms, a plain inexact alarm may come up to an hour late (Android
+            // 12+), which would drop nearly every reminder. A delivery window keeps it before
+            // the start: it opens 10 minutes before (Android's shortest window is 10 minutes)
+            // and closes at the start, and the notice then says how many minutes are left.
+            val earlyMillis = triggerMillis -
+                (AlarmTime.REMINDER_EARLIEST_MINUTES - AlarmTime.REMINDER_LEAD_MINUTES) * 60_000L
+            val windowMillis = AlarmTime.REMINDER_EARLIEST_MINUTES * 60_000L
             try {
                 if (canExact) alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
-                else alarmManager.set(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+                else alarmManager.setWindow(AlarmManager.RTC_WAKEUP, earlyMillis, windowMillis, pendingIntent)
             } catch (e: SecurityException) {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
+                alarmManager.setWindow(AlarmManager.RTC_WAKEUP, earlyMillis, windowMillis, pendingIntent)
             }
             return
         }

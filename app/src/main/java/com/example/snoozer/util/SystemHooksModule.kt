@@ -2,7 +2,9 @@ package com.example.snoozer.util
 
 import android.app.NotificationManager
 import android.content.Context
+import android.util.Log
 import com.example.snoozer.alarm.Alarm
+import com.example.snoozer.alarm.Logger
 import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.Reminders
 import com.example.snoozer.alarm.Ringer
@@ -30,10 +32,17 @@ class SystemReminders @Inject constructor(@ApplicationContext private val contex
     override fun cancel(alarmId: Int) = ReminderNotifier.cancel(context, alarmId)
 }
 
+class AndroidLogger @Inject constructor() : Logger {
+    override fun warn(message: String) {
+        Log.w("AlarmActions", message)
+    }
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SystemHooksModule {
     @Binds abstract fun bindScheduler(impl: AlarmScheduler): WindowScheduler
     @Binds abstract fun bindRinger(impl: SystemRinger): Ringer
     @Binds abstract fun bindReminders(impl: SystemReminders): Reminders
+    @Binds abstract fun bindLogger(impl: AndroidLogger): Logger
 }

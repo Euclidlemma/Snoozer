@@ -166,7 +166,7 @@ fun HomeContent(
                 if (state.permissions.exactAlarmsApplies) {
                     PermissionRow(
                         title = "Exact alarms",
-                        description = "Recommended. Without it, muting can start a few minutes late.",
+                        description = "Recommended. Without it, muting can start up to an hour late.",
                         granted = state.permissions.exactAlarms,
                         onAllow = onAllowExactAlarms,
                         seed = 124,

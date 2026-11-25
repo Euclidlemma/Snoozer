@@ -4,6 +4,7 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmActions
 import com.example.snoozer.alarm.AlarmDao
 import com.example.snoozer.alarm.AlarmRepository
+import com.example.snoozer.alarm.Logger
 import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.Reminders
 import com.example.snoozer.alarm.Ringer
@@ -73,7 +74,8 @@ class AlarmActionsTest {
     private val reminders = FakeReminders()
     // 2026-11-16 is a Monday.
     private val time = FixedTime(LocalDateTime.of(2026, 11, 16, 11, 0))
-    private val actions = AlarmActions(AlarmRepository(dao), scheduler, ringer, reminders, time)
+    private val warnings = mutableListOf<String>()
+    private val actions = AlarmActions(AlarmRepository(dao), scheduler, ringer, reminders, time, Logger { warnings += it })
 
     private fun at(hour: Int, minute: Int = 0) = LocalDateTime.of(2026, 11, 16, hour, minute)
     private fun alarm(id: Int, sh: Int, eh: Int, category: String, enabled: Boolean = true) =
@@ -157,6 +159,15 @@ class AlarmActionsTest {
         time.at = at(10, 55)
         actions.onReminderFired(1, MONDAY)
         assertEquals(listOf(1 to 5), reminders.shown)
+    }
+
+    @Test
+    fun reminder_earlyInexactDelivery_saysTheRealMinutes() = runBlocking {
+        // Without exact alarms the reminder may come anywhere in 10:50-11:00.
+        saved(alarm(1, 11, 12, "Study"))
+        time.at = at(10, 50)
+        actions.onReminderFired(1, MONDAY)
+        assertEquals(listOf(1 to 10), reminders.shown)
     }
 
     @Test

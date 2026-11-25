@@ -1,6 +1,5 @@
 package com.example.snoozer.alarm
 
-import android.util.Log
 import com.example.snoozer.util.TimeSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,6 +23,7 @@ class AlarmActions @Inject constructor(
     private val ringer: Ringer,
     private val reminders: Reminders,
     private val timeSource: TimeSource,
+    private val logger: Logger,
 ) {
     private val lock = Mutex()
 
@@ -99,8 +99,8 @@ class AlarmActions @Inject constructor(
         if (alarm == null || !alarm.isEnabled) return@withLock
         if (!reminders.canShow() || !ringer.canChange()) return@withLock
         val minutes = AlarmTime.minutesUntilStart(alarm, startDay, timeSource.now())
-        if (minutes !in 1..AlarmTime.REMINDER_LEAD_MINUTES + 1) {
-            Log.w(TAG, "Reminder for $alarmId arrived $minutes min before its start; dropped")
+        if (minutes !in 1..AlarmTime.REMINDER_EARLIEST_MINUTES + 1) {
+            logger.warn("Reminder for $alarmId arrived $minutes min before its start; dropped")
             return@withLock
         }
         reminders.show(alarm, minutes)
@@ -111,7 +111,7 @@ class AlarmActions @Inject constructor(
         val alarm = repository.getAlarmById(alarmId)
         if (alarm == null || !alarm.isEnabled) {
             // A leftover alarm for a deleted or switched-off window: don't silence the phone.
-            Log.w(TAG, "Mute for missing or switched-off snoozer $alarmId ignored")
+            logger.warn("Mute for missing or switched-off snoozer $alarmId ignored")
             return@withLock
         }
         reminders.cancel(alarmId) // "starts in 5 minutes" is out of date once it has started
@@ -129,12 +129,11 @@ class AlarmActions @Inject constructor(
         // Read under the lock, so a window deleted a moment ago isn't brought back.
         val alarm = repository.getAlarmById(alarmId)
         if (alarm != null) scheduler.scheduleAlarmWithDay(alarm, day)
-        else Log.w(TAG, "Unmute for missing snoozer $alarmId; not rescheduled")
+        else logger.warn("Unmute for missing snoozer $alarmId; not rescheduled")
     }
 
     /**
-     * Re-creates every window's alarms (after a reboot, an update or a clock change, or when
-     * reminders become possible because notifications were just allowed).
+     * Re-creates every window's alarms (after a reboot, an update or a clock change).
      */
     suspend fun rescheduleAll() = lock.withLock {
         repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
@@ -151,9 +150,5 @@ class AlarmActions @Inject constructor(
     private suspend fun applyQuiet(excludingId: Int? = null) {
         val level = AlarmTime.quietLevelAt(repository.getAllAlarmsDirect(), timeSource.now(), excludingId)
         if (level == null) ringer.restore() else ringer.quiet(level)
-    }
-
-    private companion object {
-        const val TAG = "AlarmActions"
     }
 }

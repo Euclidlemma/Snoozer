@@ -125,14 +125,23 @@ object WeekUi {
                 val levelRun = AlarmTime.quietStatus(alarms.filter { it.category.quietLevel == level }, now)
                 val levelEnd = (levelRun as? QuietStatus.QuietUntil)?.until?.takeIf { it.isBefore(s.until) }
                 val end = levelEnd ?: s.until
+                // A quieter window starting before that (Work 09-17 with Study 14-15, at 11:00):
+                // the phone will go quieter mid-run, so say when ("silent from 14:00").
+                val quieter = AlarmTime.quietStatus(alarms.filter { it.category.quietLevel > level }, now)
+                val quieterStart = (quieter as? QuietStatus.NextQuiet)?.takeIf { it.at.isBefore(end) }
                 StatusUi.QuietNow(
                     until = timeOn(end, now),
                     category = category,
                     level = level,
                     left = "${relativeSpan(AlarmTime.minutesBetween(now, end))} left",
-                    then = levelEnd?.let {
-                        val next = AlarmTime.quietLevelAt(alarms, it)?.label?.lowercase() ?: "quiet"
-                        "then $next until ${timeOn(s.until, now)}"
+                    then = when {
+                        quieterStart != null ->
+                            "${quieterStart.alarm.category.quietLevel.label.lowercase()} from ${timeOn(quieterStart.at, now)}"
+                        levelEnd != null -> {
+                            val next = AlarmTime.quietLevelAt(alarms, levelEnd)?.label?.lowercase() ?: "quiet"
+                            "then $next until ${timeOn(s.until, now)}"
+                        }
+                        else -> null
                     },
                 )
             }
