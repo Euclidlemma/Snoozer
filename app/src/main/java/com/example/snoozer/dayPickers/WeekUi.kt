@@ -19,6 +19,8 @@ data class WeekUiState(
     val status: StatusUi,
     /** Monday first, matching the pager pages. */
     val days: List<DayUi>,
+    /** "This week · Work 32h · Study 6h", or null when no switched-on window is planned. */
+    val weeklyTotals: String?,
 )
 
 @Immutable
@@ -78,7 +80,28 @@ object WeekUi {
     fun build(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): WeekUiState = WeekUiState(
         status = status(alarms, now, canMute),
         days = DayOfWeek.entries.map { day(it, alarms, now, canMute) },
+        weeklyTotals = weeklyTotalsLine(weeklyMinutes(alarms)),
     )
+
+    /**
+     * Planned quiet minutes per category over a week, from switched-on windows only. Each
+     * window counts toward the day it starts (an overnight one too), and overlaps within a
+     * category on the same day count once. Categories with nothing planned are left out.
+     */
+    fun weeklyMinutes(alarms: List<Alarm>): Map<Category, Int> {
+        val enabled = alarms.filter { it.isEnabled }
+        return Category.entries.associateWith { category ->
+            val ofCategory = enabled.filter { it.category == category }
+            DayOfWeek.entries.sumOf { day -> quietMinutes(ofCategory.filter { day in it.daysOfWeek }) }
+        }.filterValues { it > 0 }
+    }
+
+    /** "This week · Work 32h · Study 6h", in [Category] order; null when [minutes] is empty. */
+    fun weeklyTotalsLine(minutes: Map<Category, Int>): String? {
+        if (minutes.isEmpty()) return null
+        val parts = Category.entries.mapNotNull { c -> minutes[c]?.let { "${c.label} ${AlarmTime.formatDuration(it)}" } }
+        return "This week · " + parts.joinToString(" · ")
+    }
 
     fun status(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): StatusUi =
         if (!canMute) StatusUi.NoAccess

@@ -17,7 +17,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -112,6 +114,14 @@ fun WeekContent(
             onAllowAccess = onAllowAccess,
             modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
         )
+        if (state.weeklyTotals != null) {
+            Text(
+                state.weeklyTotals,
+                style = SnoozerTheme.type.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
+            )
+        }
         Spacer(Modifier.height(Spacing.S))
         WeekStrip(
             days = state.days,
