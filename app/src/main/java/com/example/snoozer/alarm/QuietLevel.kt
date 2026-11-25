@@ -9,9 +9,9 @@ import android.media.AudioManager
  * [ringerMode] is the AudioManager mode it sets. These are compile-time constants (vibrate
  * is 1, silent is 0), so this file stays usable in plain unit tests.
  */
-enum class QuietLevel(val label: String, val ringerMode: Int) {
-    Vibrate("Vibrate", AudioManager.RINGER_MODE_VIBRATE),
-    Silent("Silent", AudioManager.RINGER_MODE_SILENT);
+enum class QuietLevel(val label: String, val description: String, val ringerMode: Int) {
+    Vibrate("Vibrate", "Phone on vibrate", AudioManager.RINGER_MODE_VIBRATE),
+    Silent("Silent", "Phone fully silent", AudioManager.RINGER_MODE_SILENT);
 
     /**
      * The ringer mode to set, given the mode the user had before Snoozer stepped in. Never

@@ -5,6 +5,8 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
+import com.example.snoozer.alarm.quietLevel
+import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.QuietStatus
 import java.time.DayOfWeek
 import java.time.LocalDateTime
@@ -21,10 +23,13 @@ data class WeekUiState(
 
 @Immutable
 sealed interface StatusUi {
-    /** The phone is muted now. */
-    data class QuietNow(val until: String, val category: Category, val left: String) : StatusUi
-    /** Not muted; the next window starts at [time] on [day] ("today", "tomorrow", "Wed"). */
-    data class Next(val time: String, val day: String, val category: Category, val startsIn: String) : StatusUi
+    /**
+     * The phone is quiet now, at [level]. [category] is a running window that sets that level
+     * (with overlaps, the quietest one wins), so the card never says "Work · Silent".
+     */
+    data class QuietNow(val until: String, val category: Category, val level: QuietLevel, val left: String) : StatusUi
+    /** Not quiet; the next window starts at [time] on [day] ("today", "tomorrow", "Wed"). */
+    data class Next(val time: String, val day: String, val category: Category, val level: QuietLevel, val startsIn: String) : StatusUi
     data object NothingScheduled : StatusUi
     /** Do Not Disturb access is off, so no window can mute the phone, whatever the schedule says. */
     data object NoAccess : StatusUi
@@ -47,6 +52,8 @@ data class DayUi(
 data class AlarmCardUi(
     val id: Int,
     val category: Category,
+    /** How quiet this window makes the phone (from its category). */
+    val level: QuietLevel,
     val start: String,
     val end: String,
     val endsNextDay: Boolean,
@@ -76,16 +83,25 @@ object WeekUi {
     fun status(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): StatusUi =
         if (!canMute) StatusUi.NoAccess
         else when (val s = AlarmTime.quietStatus(alarms, now)) {
-            is QuietStatus.QuietUntil -> StatusUi.QuietNow(
-                until = AlarmTime.formatTime(s.until.hour, s.until.minute) +
-                    if (s.until.toLocalDate() != now.toLocalDate()) " ${relativeDay(s.until, now)}" else "",
-                category = s.alarm.category,
-                left = "${relativeSpan(AlarmTime.minutesBetween(now, s.until))} left",
-            )
+            is QuietStatus.QuietUntil -> {
+                // The level the phone is at now: the quietest running window's, as AlarmActions
+                // applies it. Show a category that sets that level, so the two always match.
+                val level = AlarmTime.quietLevelAt(alarms, now) ?: s.alarm.category.quietLevel
+                val category = if (s.alarm.category.quietLevel == level) s.alarm.category
+                    else alarms.first { it.isEnabled && AlarmTime.isActiveAt(it, now) && it.category.quietLevel == level }.category
+                StatusUi.QuietNow(
+                    until = AlarmTime.formatTime(s.until.hour, s.until.minute) +
+                        if (s.until.toLocalDate() != now.toLocalDate()) " ${relativeDay(s.until, now)}" else "",
+                    category = category,
+                    level = level,
+                    left = "${relativeSpan(AlarmTime.minutesBetween(now, s.until))} left",
+                )
+            }
             is QuietStatus.NextQuiet -> StatusUi.Next(
                 time = AlarmTime.formatTime(s.at.hour, s.at.minute),
                 day = relativeDay(s.at, now),
                 category = s.alarm.category,
+                level = s.alarm.category.quietLevel,
                 startsIn = "in ${relativeSpan(AlarmTime.minutesBetween(now, s.at))}",
             )
             QuietStatus.NothingScheduled -> StatusUi.NothingScheduled
@@ -115,6 +131,7 @@ object WeekUi {
     private fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
         id = alarm.id,
         category = alarm.category,
+        level = alarm.category.quietLevel,
         start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute),
         end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute),
         endsNextDay = AlarmTime.isOvernight(alarm),

@@ -48,6 +48,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,6 +57,7 @@ import androidx.navigation.NavController
 import com.example.snoozer.Route.leaveEditScreen
 import com.example.snoozer.R
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleChip
@@ -287,6 +289,13 @@ private fun CategoryCard(
                 )
             }
         }
+        // What choosing this category does, so the choice isn't only a color.
+        Text(
+            category.quietLevel.description,
+            style = SnoozerTheme.type.caption,
+            color = if (isSelected) colors.content else scheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

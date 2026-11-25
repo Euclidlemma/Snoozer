@@ -37,6 +37,7 @@ import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
 import com.example.snoozer.ui.theme.SnoozerTheme
@@ -192,8 +193,8 @@ private fun EmptyWeekPreview() {
 private fun StatusCardStatesPreview() {
     SnoozerTheme {
         Column(Modifier.padding(Spacing.M), verticalArrangement = Arrangement.spacedBy(Spacing.M)) {
-            StatusCard(StatusUi.QuietNow(until = "10:30", category = Category.Study, left = "1h 10m left"))
-            StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, startsIn = "in 3h 40m"))
+            StatusCard(StatusUi.QuietNow(until = "10:30", category = Category.Study, level = QuietLevel.Silent, left = "1h 10m left"))
+            StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, level = QuietLevel.Vibrate, startsIn = "in 3h 40m"))
             StatusCard(StatusUi.NothingScheduled)
             StatusCard(StatusUi.NoAccess)
         }
