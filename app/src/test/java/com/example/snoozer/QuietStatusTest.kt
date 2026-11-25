@@ -10,6 +10,7 @@ import java.time.DayOfWeek.MONDAY
 import java.time.DayOfWeek.SUNDAY
 import java.time.DayOfWeek.TUESDAY
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 class QuietStatusTest {
 
@@ -83,6 +84,24 @@ class QuietStatusTest {
         val later = alarm(4, 13, 0, 14, 0, MONDAY)         // gap before it, so not merged
         assertEquals(QuietStatus.QuietUntil(at(16, 12, 0), touching),
             AlarmTime.quietStatus(listOf(first, inside, touching, later), at(16, 10, 15)))
+    }
+
+    @Test
+    fun minutesBetween_countsRealMinutesWhenClocksChange() {
+        val toronto = ZoneId.of("America/Toronto")
+        // 2026-03-08: clocks jump 02:00 -> 03:00, so 01:00 to 04:00 is only 2 real hours.
+        assertEquals(120, AlarmTime.minutesBetween(LocalDateTime.of(2026, 3, 8, 1, 0), LocalDateTime.of(2026, 3, 8, 4, 0), toronto))
+        // 2026-11-01: clocks fall back 02:00 -> 01:00, so the same span is 4 real hours.
+        assertEquals(240, AlarmTime.minutesBetween(LocalDateTime.of(2026, 11, 1, 1, 0), LocalDateTime.of(2026, 11, 1, 4, 0), toronto))
+        // An ordinary day is unchanged.
+        assertEquals(180, AlarmTime.minutesBetween(LocalDateTime.of(2026, 3, 9, 1, 0), LocalDateTime.of(2026, 3, 9, 4, 0), toronto))
+    }
+
+    @Test
+    fun quietUntil_isTheWallClockEndTime() {
+        // An overnight window ends at its own end time the next morning, as the unmute fires.
+        val night = alarm(1, 22, 0, 7, 0, SUNDAY)
+        assertEquals(QuietStatus.QuietUntil(at(16, 7, 0), night), AlarmTime.quietStatus(listOf(night), at(16, 6, 0)))
     }
 
     @Test

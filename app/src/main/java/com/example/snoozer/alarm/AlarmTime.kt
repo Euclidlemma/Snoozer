@@ -3,6 +3,7 @@ package com.example.snoozer.alarm
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
@@ -71,9 +72,13 @@ object AlarmTime {
         }
     }
 
-    /** Whole minutes from [from] (seconds dropped) to [to], for "in 2h 15m" style labels. */
-    fun minutesBetween(from: LocalDateTime, to: LocalDateTime): Int =
-        ChronoUnit.MINUTES.between(from.withSecond(0).withNano(0), to).toInt()
+    /**
+     * Real minutes from [from] (seconds dropped) to [to], for "in 2h 15m" style labels. Both are
+     * read as wall-clock times in [zone], so a night the clocks change counts the hour that's
+     * skipped or repeated (01:00 to 04:00 on spring-forward night is 2h, not 3h).
+     */
+    fun minutesBetween(from: LocalDateTime, to: LocalDateTime, zone: ZoneId = ZoneId.systemDefault()): Int =
+        ChronoUnit.MINUTES.between(from.withSecond(0).withNano(0).atZone(zone), to.atZone(zone)).toInt()
 
     /**
      * Whether the phone is quiet right now and until when, or when it goes quiet next.
@@ -113,8 +118,13 @@ object AlarmTime {
                 (-1L..7L).map { today.plusDays(it) }
                     .filter { it.dayOfWeek in alarm.daysOfWeek }
                     .map { date ->
+                        // Both ends are wall-clock times, exactly when the scheduler fires the
+                        // mute and unmute. Adding the duration to the start instead would land
+                        // an hour off on a night the clocks change.
                         val start = date.atTime(LocalTime.of(alarm.startHour, alarm.startMinute))
-                        Window(start, start.plusMinutes(durationMinutes(alarm).toLong()), alarm)
+                        val endDate = if (isOvernight(alarm)) date.plusDays(1) else date
+                        val end = endDate.atTime(LocalTime.of(alarm.endHour, alarm.endMinute))
+                        Window(start, end, alarm)
                     }
             }
     }

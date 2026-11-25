@@ -21,7 +21,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -221,6 +224,10 @@ fun TimelineItem(
 ) {
     val type = SnoozerTheme.type
     val categoryColors = SnoozerTheme.colors.forCategory(card.category)
+    // The switch shows what was tapped right away instead of waiting for the database to
+    // send the new value back. Otherwise a quick off-then-on double tap computes both taps
+    // from the old value and asks for "off" twice. Resets whenever the saved value changes.
+    var checked by remember(card.enabled) { mutableStateOf(card.enabled) }
     Row(modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         TimelineRail(active = card.activeNow, drawTop = !isFirst, drawBottom = !isLast)
         DoodleCard(
@@ -239,8 +246,11 @@ fun TimelineItem(
                     if (card.activeNow) Tag("quiet now", seed = card.id * 3 + 1, highlighted = true)
                     Spacer(Modifier.weight(1f))
                     DoodleSwitch(
-                        checked = card.enabled,
-                        onCheckedChange = onToggle,
+                        checked = checked,
+                        onCheckedChange = {
+                            checked = it
+                            onToggle(it)
+                        },
                         contentDescription = "${card.category.label}, ${card.start} to ${card.end}",
                         seed = card.id * 5,
                     )

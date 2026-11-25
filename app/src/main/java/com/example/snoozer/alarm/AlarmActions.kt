@@ -36,11 +36,16 @@ class AlarmActions @Inject constructor(
 
     /** Replaces [old] with [new] (same id), moving its scheduled alarms to the new times. */
     suspend fun update(old: Alarm, new: Alarm) = lock.withLock {
+        // Read before anything changes: was this window already muting the phone?
+        val wasRunning = old.isEnabled && AlarmTime.isActiveAt(old, timeSource.now())
         repository.updateAlarm(new)
         scheduler.cancelAlarm(old)
         scheduler.scheduleAlarm(new)
         releaseRingerIfIdle(old)
-        muteIfActive(new)
+        // Mute only when the edit makes the window cover now (say its start moved earlier).
+        // If it was already running, the phone is muted, or the user unmuted it on purpose
+        // mid-window; editing the category or end time shouldn't silence it again.
+        if (!wasRunning) muteIfActive(new)
     }
 
     suspend fun delete(alarm: Alarm) = lock.withLock {
