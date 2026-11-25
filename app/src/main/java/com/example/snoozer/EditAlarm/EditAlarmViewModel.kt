@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.alarm.AlarmActions
 import com.example.snoozer.alarm.AlarmRepository
+import com.example.snoozer.alarm.Category
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -34,8 +35,15 @@ class EditAlarmViewModel @Inject constructor(
     private val isNew = alarmId == null
 
     // Kept in SavedStateHandle so a half-filled form survives the process being killed.
-    private val form = MutableStateFlow(savedStateHandle.get<EditForm>(KEY_FORM))
-    private val original = MutableStateFlow(savedStateHandle.get<EditForm>(KEY_ORIGINAL))
+    // Restored as a pair: if either can't be read (e.g. saved by an older version of the
+    // form), both start over and load() fills them fresh.
+    private val restored: Pair<EditForm, EditForm>? = runCatching {
+        val f = savedStateHandle.get<EditForm>(KEY_FORM)
+        val o = savedStateHandle.get<EditForm>(KEY_ORIGINAL)
+        if (f != null && o != null) f to o else null
+    }.getOrNull()
+    private val form = MutableStateFlow(restored?.first)
+    private val original = MutableStateFlow(restored?.second)
 
     private val events = Channel<EditEvent>(Channel.BUFFERED)
     val eventFlow: Flow<EditEvent> = events.receiveAsFlow()
@@ -82,7 +90,7 @@ class EditAlarmViewModel @Inject constructor(
     fun onEndChange(hour: Int, minute: Int) = edit { it.withEnd(hour, minute) }
     fun onToggleDay(day: DayOfWeek) = edit { it.toggleDay(day) }
     fun onPreset(preset: RepeatPreset) = edit { it.withPreset(preset) }
-    fun onCategory(category: String) = edit { it.copy(category = category) }
+    fun onCategory(category: Category) = edit { it.copy(category = category) }
 
     fun save() {
         val current = form.value ?: return

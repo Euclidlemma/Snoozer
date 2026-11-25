@@ -4,6 +4,7 @@ import com.example.snoozer.EditAlarm.EditForm
 import com.example.snoozer.EditAlarm.EditUi
 import com.example.snoozer.EditAlarm.RepeatPreset
 import com.example.snoozer.alarm.Alarm
+import com.example.snoozer.alarm.Category
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -17,7 +18,7 @@ import java.time.DayOfWeek.WEDNESDAY
 
 class EditFormTest {
 
-    private val base = EditForm(9, 0, 10, 30, listOf(MONDAY), "Work")
+    private val base = EditForm(9, 0, 10, 30, listOf(MONDAY), Category.Work)
 
     @Test
     fun toggleDay_keepsMondayFirstOrder() {
@@ -67,6 +68,25 @@ class EditFormTest {
         assertFalse(updated.isEnabled)
         assertEquals(listOf(MONDAY), updated.daysOfWeek)
         assertEquals("Work", updated.work)
+    }
+
+    @Test
+    fun category_readFromAndWrittenAsTheStoredText() {
+        val saved = Alarm(id = 3, startHour = 9, startMinute = 0, endHour = 10, endMinute = 0,
+            daysOfWeek = listOf(MONDAY), work = "Study")
+        val form = EditForm.from(saved)
+        assertEquals(Category.Study, form.category)
+        // The database keeps the same text as before the enum existed.
+        assertEquals("Study", form.applyTo(saved).work)
+        assertEquals("Work", form.copy(category = Category.Work).toNewAlarm().work)
+        assertEquals(Category.Work, EditForm.new(null).category)
+    }
+
+    @Test
+    fun changingCategory_countsAsAChange() {
+        val edited = base.copy(category = Category.Study)
+        assertTrue(EditUi.describe(edited, base, isNew = false).hasChanges)
+        assertEquals(Category.Study, EditUi.describe(edited, base, isNew = false).category)
     }
 
     @Test

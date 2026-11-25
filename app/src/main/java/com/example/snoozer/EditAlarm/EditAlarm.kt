@@ -7,6 +7,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,7 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,10 +52,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.Route.leaveEditScreen
 import com.example.snoozer.R
+import com.example.snoozer.alarm.Category
 import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleChip
 import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.DoodleIllustration
+import com.example.snoozer.ui.doodle.illustration
 import com.example.snoozer.ui.doodle.DoodleSection
 import com.example.snoozer.ui.doodle.SketchyShape
 import com.example.snoozer.ui.doodle.doodleFill
@@ -139,7 +144,7 @@ fun EditContent(
     state: EditUiState,
     onBack: () -> Unit,
     onDelete: () -> Unit,
-    onCategory: (String) -> Unit,
+    onCategory: (Category) -> Unit,
     onStartChange: (Int, Int) -> Unit,
     onEndChange: (Int, Int) -> Unit,
     onToggleDay: (DayOfWeek) -> Unit,
@@ -202,46 +207,87 @@ private fun EditTopBar(isNew: Boolean, onBack: () -> Unit, onDelete: () -> Unit)
     }
 }
 
-/** Work / Study as two side-by-side choices; the chosen one wears its category's pencil fill. */
+/**
+ * Work / Study as two side-by-side picture cards. The chosen one wears its category's pencil
+ * hatching, a firmer outline and a check mark; the other card's drawing is faded. The whole
+ * card is one radio option for screen readers ("Study, selected"); the drawing is decorative.
+ */
 @Composable
-private fun CategoryToggle(selected: String, onSelect: (String) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
+private fun CategoryToggle(selected: Category, onSelect: (Category) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.S),
     ) {
-        listOf(EditForm.WORK, EditForm.STUDY).forEachIndexed { index, category ->
-            val isSelected = category == selected
-            val colors = SnoozerTheme.colors.forCategory(category)
-            val seed = 80 + index
-            val shape = remember(seed) { SketchyShape(wobble = DoodleDefaults.WobbleLight, seed = seed) }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .doodleFill(
-                        if (isSelected) colors.container else Color.Transparent,
-                        if (isSelected) colors.hatch else null,
-                        wobble = DoodleDefaults.WobbleLight, seed = seed,
-                    )
-                    .sketchyBorder(
-                        if (isSelected) scheme.onSurface else scheme.outline,
-                        width = if (isSelected) 2.dp else 1.5.dp,
-                        wobble = DoodleDefaults.WobbleLight, seed = seed,
-                    )
-                    .clip(shape)
-                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(category) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    category,
-                    style = SnoozerTheme.type.label,
-                    color = if (isSelected) colors.content else scheme.onSurfaceVariant,
+        Category.entries.forEachIndexed { index, category ->
+            CategoryCard(
+                category = category,
+                isSelected = category == selected,
+                onSelect = { onSelect(category) },
+                seed = 80 + index,
+                // Same height for both cards, even if one label wraps at a large font size.
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryCard(
+    category: Category,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    seed: Int,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val colors = SnoozerTheme.colors.forCategory(category)
+    val shape = remember(seed) { SketchyShape(wobble = DoodleDefaults.WobbleLight, seed = seed) }
+    Column(
+        modifier = modifier
+            .doodleFill(
+                if (isSelected) colors.container else scheme.surface,
+                if (isSelected) colors.hatch else null,
+                wobble = DoodleDefaults.WobbleLight, seed = seed,
+            )
+            .sketchyBorder(
+                if (isSelected) scheme.onSurface else scheme.outline,
+                width = if (isSelected) 2.5.dp else 1.5.dp,
+                wobble = DoodleDefaults.WobbleLight, seed = seed,
+            )
+            .clip(shape)
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onSelect)
+            .padding(Spacing.S),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.XS),
+    ) {
+        DoodleIllustration(
+            image = category.illustration,
+            size = CategoryArtSize,
+            outline = if (isSelected) scheme.onSurface else null,
+            dimmed = !isSelected,
+            seed = seed + 10,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                category.label,
+                style = SnoozerTheme.type.label,
+                color = if (isSelected) colors.content else scheme.onSurfaceVariant,
+            )
+            if (isSelected) {
+                Spacer(Modifier.width(Spacing.XS))
+                // Decorative: the card already announces itself as selected.
+                Icon(
+                    painterResource(R.drawable.ic_doodle_check),
+                    contentDescription = null,
+                    tint = colors.content,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
     }
 }
+
+private val CategoryArtSize = 120.dp
 
 /** Start and end side by side, with a live line saying how long the phone will be quiet. */
 @Composable
@@ -357,7 +403,7 @@ private fun SaveBar(isNew: Boolean, error: String?, onSave: () -> Unit) {
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun EditContentPreview() {
-    val original = EditForm(22, 0, 7, 0, RepeatPreset.Weekdays.days.sorted(), EditForm.STUDY)
+    val original = EditForm(22, 0, 7, 0, RepeatPreset.Weekdays.days.sorted(), Category.Study)
     SnoozerTheme {
         EditContent(
             state = EditUi.describe(original, original, isNew = false),

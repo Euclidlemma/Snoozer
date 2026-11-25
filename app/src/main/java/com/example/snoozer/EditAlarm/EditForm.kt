@@ -3,6 +3,8 @@ package com.example.snoozer.EditAlarm
 import androidx.compose.runtime.Immutable
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.category
 import java.io.Serializable
 import java.time.DayOfWeek
 
@@ -24,7 +26,7 @@ data class EditForm(
     val endMinute: Int,
     /** Monday first, no duplicates. */
     val days: List<DayOfWeek>,
-    val category: String,
+    val category: Category,
 ) : Serializable {
 
     fun withStart(hour: Int, minute: Int) = copy(startHour = hour, startMinute = minute)
@@ -37,26 +39,25 @@ data class EditForm(
     fun applyTo(base: Alarm) = base.copy(
         startHour = startHour, startMinute = startMinute,
         endHour = endHour, endMinute = endMinute,
-        daysOfWeek = days, work = category,
+        daysOfWeek = days, work = category.label,
     )
 
     fun toNewAlarm() = applyTo(
-        Alarm(startHour = 0, startMinute = 0, endHour = 0, endMinute = 0, daysOfWeek = emptyList(), work = category)
+        Alarm(startHour = 0, startMinute = 0, endHour = 0, endMinute = 0, daysOfWeek = emptyList(), work = category.label)
     )
 
     companion object {
-        const val WORK = "Work"
-        const val STUDY = "Study"
-
         fun from(alarm: Alarm) = EditForm(
             alarm.startHour, alarm.startMinute, alarm.endHour, alarm.endMinute,
-            alarm.daysOfWeek.distinct().sorted(), alarm.work,
+            alarm.daysOfWeek.distinct().sorted(), alarm.category,
         )
 
         /** A new snoozer: 08:00-09:00, Work, on [day] if the user came from that day's page. */
-        fun new(day: DayOfWeek?) = EditForm(8, 0, 9, 0, listOfNotNull(day), WORK)
+        fun new(day: DayOfWeek?) = EditForm(8, 0, 9, 0, listOfNotNull(day), Category.Work)
 
-        private const val serialVersionUID = 1L
+        // 2: category changed from String to Category. A form saved by the old version no longer
+        // matches, so the ViewModel starts a fresh form instead of restoring it.
+        private const val serialVersionUID = 2L
     }
 }
 
@@ -64,7 +65,7 @@ data class EditForm(
 @Immutable
 data class EditUiState(
     val isNew: Boolean,
-    val category: String,
+    val category: Category,
     val start: String,
     val end: String,
     val days: List<DayOfWeek>,
