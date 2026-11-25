@@ -3,14 +3,17 @@
      except per-device state that would be wrong after a restore:
      - onboarding.xml: whether onboarding was seen. A reinstall should show it again.
      - ringer_state.xml: the ringer mode Snoozer saved before muting, which belongs to the old
-       phone's moment in time, not to the new install. -->
+       phone's moment in time, not to the new install.
+     - schedule_state.xml: "alarms are set up". Left out so a restore re-creates them. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="onboarding.xml" />
         <exclude domain="sharedpref" path="ringer_state.xml" />
+        <exclude domain="sharedpref" path="schedule_state.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="onboarding.xml" />
         <exclude domain="sharedpref" path="ringer_state.xml" />
+        <exclude domain="sharedpref" path="schedule_state.xml" />
     </device-transfer>
 </data-extraction-rules>

@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleDefaults
+import com.example.snoozer.ui.doodle.ProvideMotionSetting
 import com.example.snoozer.ui.doodle.doodleFill
 import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
@@ -79,6 +80,8 @@ fun OnboardingContent(
     onSkipOrClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One observer of "Remove animations" for every moving part on the pages.
+    ProvideMotionSetting {
     // On the unfolded Fold (or a tablet) the pages stay phone-width, centered.
     Box(modifier.fillMaxSize().systemBarsPadding(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 480.dp).fillMaxSize()) {
@@ -107,6 +110,7 @@ fun OnboardingContent(
                 }
             }
         }
+    }
     }
 }
 

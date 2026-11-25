@@ -13,6 +13,8 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,8 +33,23 @@ import androidx.compose.ui.unit.dp
  * Android's accessibility or developer settings. Previews always animate-off so they show
  * the resting pose.
  */
+/**
+ * The motion setting provided by an enclosing [ProvideMotionSetting], so a screen full of moving
+ * parts shares one observer. Null when none is provided.
+ */
+val LocalMotionEnabled = compositionLocalOf<Boolean?> { null }
+
+/** Observes the motion setting once for everything inside [content]. */
 @Composable
-fun rememberMotionEnabled(): Boolean {
+fun ProvideMotionSetting(content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalMotionEnabled provides observeMotionEnabled(), content = content)
+}
+
+@Composable
+fun rememberMotionEnabled(): Boolean = LocalMotionEnabled.current ?: observeMotionEnabled()
+
+@Composable
+private fun observeMotionEnabled(): Boolean {
     if (LocalInspectionMode.current) return false
     val resolver = LocalContext.current.contentResolver
     fun read() = Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f

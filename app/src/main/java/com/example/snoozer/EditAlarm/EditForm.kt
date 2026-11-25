@@ -145,7 +145,13 @@ data class EditUiState(
 }
 
 object EditUi {
-    fun describe(form: EditForm, original: EditForm, isNew: Boolean, remindersOn: Boolean = true): EditUiState {
+    fun describe(
+        form: EditForm,
+        original: EditForm,
+        isNew: Boolean,
+        remindersOn: Boolean = true,
+        setupHasNotifications: Boolean = true,
+    ): EditUiState {
         val probe = form.toNewAlarm()
         val minutes = AlarmTime.durationMinutes(probe)
         val end = AlarmTime.formatTime(form.endHour, form.endMinute)
@@ -170,7 +176,7 @@ object EditUi {
             error = error,
             // A new snoozer always counts as changed, so backing out asks before discarding it.
             hasChanges = isNew || form != original,
-            explanation = form.category.explain(remindersOn),
+            explanation = form.category.explain(remindersOn, setupHasNotifications),
         )
     }
 }

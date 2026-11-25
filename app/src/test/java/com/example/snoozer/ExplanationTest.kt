@@ -58,13 +58,13 @@ class ExplanationTest {
     @Test
     fun firstLaunch_showsOnceForNewPeopleOnly() {
         // Fresh install: show it.
-        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, freshInstall = true, usedBefore = false))
+        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, started = false, freshInstall = true, usedBefore = false))
         // Data cleared (database gone) after updates: new to us again, show it.
-        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, freshInstall = false, usedBefore = false))
+        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, started = false, freshInstall = false, usedBefore = false))
         // Existing user updating to this version: mark it seen, don't show.
-        assertEquals(FirstLaunch.MarkSeenQuietly, firstLaunch(seen = false, freshInstall = false, usedBefore = true))
+        assertEquals(FirstLaunch.MarkSeenQuietly, firstLaunch(seen = false, started = false, freshInstall = false, usedBefore = true))
         // Seen before: never again on launch (only from "?").
-        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, freshInstall = true, usedBefore = false))
-        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, freshInstall = false, usedBefore = true))
+        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, started = false, freshInstall = true, usedBefore = false))
+        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, started = false, freshInstall = false, usedBefore = true))
     }
 }

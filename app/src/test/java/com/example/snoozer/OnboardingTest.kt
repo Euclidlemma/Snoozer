@@ -22,6 +22,8 @@ class OnboardingTest {
         override fun markSeen() { seen = true }
         override fun isFreshInstall() = true
         override fun hasUsedBefore() = false
+        override fun hasStarted() = false
+        override fun markStarted() {}
     }
 
     private fun viewModel(mode: String?, store: OnboardingStore) =

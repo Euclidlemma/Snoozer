@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Backup rules for Android 11 and older (12+ uses data_extraction_rules.xml).
-     Same exclusions: the onboarding flag and the saved pre-mute ringer mode. -->
+     Same exclusions: the onboarding flag, the saved pre-mute ringer mode and the
+     "alarms are set up" stamp. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="onboarding.xml" />
     <exclude domain="sharedpref" path="ringer_state.xml" />
+    <exclude domain="sharedpref" path="schedule_state.xml" />
 </full-backup-content>

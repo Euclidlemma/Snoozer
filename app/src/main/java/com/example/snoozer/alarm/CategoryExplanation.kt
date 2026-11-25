@@ -31,9 +31,10 @@ val Category.explanation: CategoryExplanation
 
 /**
  * What this category does. With [remindersOn] false (notifications off), the reminder line says
- * so instead of promising a heads-up that will never arrive.
+ * so instead of promising a heads-up that will never arrive, and says where to turn them on:
+ * Home's Setup when [setupHasNotifications] (Android 13+), otherwise Android's settings.
  */
-fun Category.explain(remindersOn: Boolean): CategoryExplanation {
+fun Category.explain(remindersOn: Boolean, setupHasNotifications: Boolean = true): CategoryExplanation {
         val levelLines = when (quietLevel) {
             QuietLevel.Vibrate -> listOf(
                 ExplainLine(ExplainIcon.Vibrate, "Your phone vibrates instead of ringing."),
@@ -45,7 +46,10 @@ fun Category.explain(remindersOn: Boolean): CategoryExplanation {
             )
         }
         val reminder = if (!remindersOn) {
-            ExplainLine(ExplainIcon.Notify, "Heads-up is off: allow notifications in Setup to get one.")
+            // Setup only has a Notifications row on Android 13+; before that it's a system setting.
+            ExplainLine(ExplainIcon.Notify,
+                if (setupHasNotifications) "Heads-up is off: allow notifications in Setup to get one."
+                else "Heads-up is off: turn on Snoozer's notifications in Android settings to get one.")
         } else if (hasQuietReminder) {
             ExplainLine(ExplainIcon.Notify, "A quiet heads-up before it starts.")
         } else {

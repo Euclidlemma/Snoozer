@@ -26,18 +26,44 @@ enum class FirstLaunch {
  * Onboarding shows once, for people new to Snoozer. That's a fresh install, or an app that was
  * never used (for example after clearing the app's data). Someone updating from an older version
  * who has used the app knows it, so it's marked seen without showing.
+ * Once onboarding has been shown ([started]), it keeps showing until it's finished: the app
+ * creates its database as soon as it runs, so "used before" alone would skip a half-done
+ * onboarding after a relaunch.
  * After that, it only opens from the "?" button and the edit screen's link.
  */
-fun firstLaunch(seen: Boolean, freshInstall: Boolean, usedBefore: Boolean): FirstLaunch = when {
+fun firstLaunch(seen: Boolean, started: Boolean, freshInstall: Boolean, usedBefore: Boolean): FirstLaunch = when {
     seen -> FirstLaunch.GoHome
-    freshInstall || !usedBefore -> FirstLaunch.ShowOnboarding
+    started || freshInstall || !usedBefore -> FirstLaunch.ShowOnboarding
     else -> FirstLaunch.MarkSeenQuietly
 }
 
-/** Whether onboarding was seen, and whether this is a fresh install. Faked in tests. */
+/**
+ * Picks the start screen and records the choice: onboarding shown now counts as started, and an
+ * existing user is marked seen. Kept apart from MainActivity so it can be tested with a fake store.
+ * The checks are cheap (preferences, package info, a file check): nothing waits on the database.
+ */
+fun decideFirstLaunch(store: OnboardingStore): FirstLaunch {
+    val seen = store.hasSeen()
+    val started = !seen && store.hasStarted()
+    val fresh = !seen && !started && store.isFreshInstall()
+    val usedBefore = !seen && !started && !fresh && store.hasUsedBefore()
+    val decision = firstLaunch(seen, started, fresh, usedBefore)
+    when (decision) {
+        FirstLaunch.ShowOnboarding -> store.markStarted()
+        FirstLaunch.MarkSeenQuietly -> store.markSeen()
+        FirstLaunch.GoHome -> Unit
+    }
+    return decision
+}
+
+/** Whether onboarding was seen or started, and what the install looks like. Faked in tests. */
 interface OnboardingStore {
     fun hasSeen(): Boolean
     fun markSeen()
+
+    /** Onboarding was shown at least once but not finished yet. */
+    fun hasStarted(): Boolean
+    fun markStarted()
 
     /** True until the app is updated for the first time after being installed. */
     fun isFreshInstall(): Boolean
@@ -63,6 +89,12 @@ class SharedPrefsOnboardingStore @Inject constructor(
         prefs.edit().putBoolean(KEY_SEEN, true).apply()
     }
 
+    override fun hasStarted(): Boolean = prefs.getBoolean(KEY_STARTED, false)
+
+    override fun markStarted() {
+        prefs.edit().putBoolean(KEY_STARTED, true).apply()
+    }
+
     override fun hasUsedBefore(): Boolean = context.getDatabasePath(DATABASE_NAME).exists()
 
     override fun isFreshInstall(): Boolean {
@@ -79,6 +111,7 @@ class SharedPrefsOnboardingStore @Inject constructor(
     private companion object {
         const val PREFS = "onboarding" // onboarding.xml, excluded from backup
         const val KEY_SEEN = "seen"
+        const val KEY_STARTED = "started"
         const val DATABASE_NAME = "alarm_database" // as in AlarmDatabase
     }
 }

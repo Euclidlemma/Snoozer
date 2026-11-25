@@ -39,10 +39,10 @@ class EditAlarmViewModel @Inject constructor(
 
     // Whether reminders can be shown, so the "What happens" panel doesn't promise a heads-up
     // that won't come. Re-read when the screen resumes (e.g. back from Settings).
-    private val remindersOn = MutableStateFlow(permissionChecker.check().notifications)
+    private val permissions = MutableStateFlow(permissionChecker.check())
 
     fun refreshPermissions() {
-        remindersOn.value = permissionChecker.check().notifications
+        permissions.value = permissionChecker.check()
     }
 
     /** The snoozer being edited, or null when creating one. Comes from the route. */
@@ -67,8 +67,9 @@ class EditAlarmViewModel @Inject constructor(
     private var busy = false
 
     /** Null while the saved snoozer is loading. */
-    val uiState: StateFlow<EditUiState?> = combine(form, original, remindersOn) { f, o, reminders ->
-        if (f == null || o == null) null else EditUi.describe(f, o, isNew, reminders)
+    val uiState: StateFlow<EditUiState?> = combine(form, original, permissions) { f, o, p ->
+        if (f == null || o == null) null
+        else EditUi.describe(f, o, isNew, remindersOn = p.notifications, setupHasNotifications = p.notificationsApply)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {

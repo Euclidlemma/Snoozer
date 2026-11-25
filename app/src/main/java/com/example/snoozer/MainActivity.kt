@@ -21,8 +21,9 @@ import com.example.snoozer.alarm.AlarmActions
 import com.example.snoozer.onboarding.FirstLaunch
 import com.example.snoozer.onboarding.OnboardingScreen
 import com.example.snoozer.onboarding.OnboardingStore
-import com.example.snoozer.onboarding.firstLaunch
+import com.example.snoozer.onboarding.decideFirstLaunch
 import com.example.snoozer.ui.theme.SnoozerTheme
+import com.example.snoozer.util.ScheduleStamp
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -34,18 +35,21 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var onboarding: OnboardingStore
     @Inject lateinit var actions: AlarmActions
+    @Inject lateinit var scheduleStamp: ScheduleStamp
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Picked once, before anything is drawn, so Home never flashes ahead of onboarding.
         val startRoute = startRoute()
-        // Each time the app is opened (not on rotation), make sure every saved snoozer has its
-        // system alarms. Snoozers restored from a backup arrive without any (Android doesn't
-        // send a broadcast for that), and this also heals anything the system dropped. Safe to
-        // repeat: the same request codes replace the same alarms. Off the main thread.
-        if (savedInstanceState == null) {
-            lifecycleScope.launch(Dispatchers.IO) { actions.rescheduleAll() }
+        // Snoozers restored from a backup arrive without their system alarms (Android sends no
+        // broadcast for a restore). The stamp is missing then, so re-create them all, once, off
+        // the main thread. Normal opens skip it.
+        if (savedInstanceState == null && scheduleStamp.needsFullReschedule()) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                actions.rescheduleAll()
+                scheduleStamp.markDone()
+            }
         }
         setContent {
             val navController = rememberNavController()
@@ -111,24 +115,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Onboarding on a fresh install (or with no snoozers at all), Home otherwise. An existing
-     * user updating to this version is marked as having seen it, without showing it.
-     * "Used before" is whether the snoozer database file exists: a cheap file check, so the start
-     * screen never waits on opening the database. It exists once the app has been used, and is
-     * gone after the app's data is cleared.
-     */
-    private fun startRoute(): String {
-        val seen = onboarding.hasSeen()
-        val fresh = !seen && onboarding.isFreshInstall()
-        val usedBefore = !seen && !fresh && onboarding.hasUsedBefore()
-        return when (firstLaunch(seen, fresh, usedBefore)) {
-            FirstLaunch.ShowOnboarding -> Routes.Onboarding.route
-            FirstLaunch.MarkSeenQuietly -> {
-                onboarding.markSeen()
-                Routes.Home.route
-            }
-            FirstLaunch.GoHome -> Routes.Home.route
-        }
+    /** Onboarding for new people (and until a started one is finished), Home otherwise. See [decideFirstLaunch]. */
+    private fun startRoute(): String = when (decideFirstLaunch(onboarding)) {
+        FirstLaunch.ShowOnboarding -> Routes.Onboarding.route
+        FirstLaunch.MarkSeenQuietly, FirstLaunch.GoHome -> Routes.Home.route
     }
 }
