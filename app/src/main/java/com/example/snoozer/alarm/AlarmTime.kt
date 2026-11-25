@@ -81,6 +81,18 @@ object AlarmTime {
         ChronoUnit.MINUTES.between(from.withSecond(0).withNano(0).atZone(zone), to.atZone(zone)).toInt()
 
     /**
+     * How quiet the phone should be at [now]: the quietest level among the enabled windows
+     * running then, or null when none is. [excludingId] leaves out one window, e.g. the one
+     * whose unmute is firing right now.
+     */
+    fun quietLevelAt(alarms: List<Alarm>, now: LocalDateTime, excludingId: Int? = null): QuietLevel? =
+        QuietLevel.quietest(
+            alarms
+                .filter { it.id != excludingId && it.isEnabled && isActiveAt(it, now) }
+                .map { it.category.quietLevel }
+        )
+
+    /**
      * Whether the phone is quiet right now and until when, or when it goes quiet next.
      * Only enabled windows count. Overlapping and back-to-back windows are merged, matching
      * the receiver, which doesn't unmute while another window is still running.
