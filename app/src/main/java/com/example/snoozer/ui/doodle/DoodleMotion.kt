@@ -1,5 +1,8 @@
 package com.example.snoozer.ui.doodle
 
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -10,6 +13,8 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -30,9 +35,22 @@ import androidx.compose.ui.unit.dp
 fun rememberMotionEnabled(): Boolean {
     if (LocalInspectionMode.current) return false
     val resolver = LocalContext.current.contentResolver
-    return remember(resolver) {
-        Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
+    fun read() = Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
+    val enabled = remember(resolver) { mutableStateOf(read()) }
+    // Follow the setting while the screen is up: turning on "Remove animations" from quick
+    // settings stops the motion right away, not only after leaving and coming back.
+    DisposableEffect(resolver) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                enabled.value = read()
+            }
+        }
+        resolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer,
+        )
+        onDispose { resolver.unregisterContentObserver(observer) }
     }
+    return enabled.value
 }
 
 /** A phone buzzing on a table: still for most of the loop, then a short shake. */

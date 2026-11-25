@@ -5,7 +5,7 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.CategoryExplanation
-import com.example.snoozer.alarm.explanation
+import com.example.snoozer.alarm.explain
 import com.example.snoozer.alarm.category
 import java.time.DayOfWeek
 
@@ -145,7 +145,7 @@ data class EditUiState(
 }
 
 object EditUi {
-    fun describe(form: EditForm, original: EditForm, isNew: Boolean): EditUiState {
+    fun describe(form: EditForm, original: EditForm, isNew: Boolean, remindersOn: Boolean = true): EditUiState {
         val probe = form.toNewAlarm()
         val minutes = AlarmTime.durationMinutes(probe)
         val end = AlarmTime.formatTime(form.endHour, form.endMinute)
@@ -170,7 +170,7 @@ object EditUi {
             error = error,
             // A new snoozer always counts as changed, so backing out asks before discarding it.
             hasChanges = isNew || form != original,
-            explanation = form.category.explanation,
+            explanation = form.category.explain(remindersOn),
         )
     }
 }

@@ -84,7 +84,7 @@ fun OnboardingContent(
         Column(Modifier.widthIn(max = 480.dp).fillMaxSize()) {
             TopBar(spec, page = pager.currentPage, onBack = onBack, onSkipOrClose = onSkipOrClose)
             HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
-                OnboardingPage(page)
+                OnboardingPage(page, spec.mode)
             }
             Column(
                 Modifier.fillMaxWidth().padding(Spacing.M),

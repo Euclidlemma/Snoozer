@@ -3,6 +3,7 @@ package com.example.snoozer
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.ExplainIcon
 import com.example.snoozer.alarm.QuietLevel
+import com.example.snoozer.alarm.explain
 import com.example.snoozer.alarm.explanation
 import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.onboarding.FirstLaunch
@@ -45,15 +46,25 @@ class ExplanationTest {
     }
 
     @Test
+    fun notificationsOff_theReminderLineSaysSo() {
+        Category.entries.forEach { c ->
+            val line = c.explain(remindersOn = false).lines.last()
+            assertEquals("Heads-up is off: allow notifications in Setup to get one.", line.text)
+        }
+        // The rest is unchanged.
+        assertEquals(Category.Study.explanation.lines.dropLast(1), Category.Study.explain(false).lines.dropLast(1))
+    }
+
+    @Test
     fun firstLaunch_showsOnceForNewPeopleOnly() {
         // Fresh install: show it.
-        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, freshInstall = true, hasSnoozers = false))
-        // Data cleared (no snoozers) after updates: new to us again, show it.
-        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, freshInstall = false, hasSnoozers = false))
+        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, freshInstall = true, usedBefore = false))
+        // Data cleared (database gone) after updates: new to us again, show it.
+        assertEquals(FirstLaunch.ShowOnboarding, firstLaunch(seen = false, freshInstall = false, usedBefore = false))
         // Existing user updating to this version: mark it seen, don't show.
-        assertEquals(FirstLaunch.MarkSeenQuietly, firstLaunch(seen = false, freshInstall = false, hasSnoozers = true))
+        assertEquals(FirstLaunch.MarkSeenQuietly, firstLaunch(seen = false, freshInstall = false, usedBefore = true))
         // Seen before: never again on launch (only from "?").
-        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, freshInstall = true, hasSnoozers = false))
-        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, freshInstall = false, hasSnoozers = true))
+        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, freshInstall = true, usedBefore = false))
+        assertEquals(FirstLaunch.GoHome, firstLaunch(seen = true, freshInstall = false, usedBefore = true))
     }
 }

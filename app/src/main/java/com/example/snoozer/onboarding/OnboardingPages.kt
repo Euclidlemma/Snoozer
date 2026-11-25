@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.example.snoozer.R
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.ExplainIcon
+import com.example.snoozer.alarm.ReminderText
 import com.example.snoozer.alarm.explanation
 import com.example.snoozer.ui.doodle.DoodleDefaults
 import com.example.snoozer.ui.doodle.DoodleIllustration
@@ -68,7 +69,7 @@ import com.example.snoozer.ui.theme.Spacing
 const val OnboardingPageCount = 5
 
 @Composable
-fun OnboardingPage(page: Int, modifier: Modifier = Modifier) {
+fun OnboardingPage(page: Int, mode: OnboardingMode = OnboardingMode.FirstRun, modifier: Modifier = Modifier) {
     // Each page scrolls on its own, so large fonts or the folded screen never clip it.
     Column(
         modifier = modifier
@@ -82,7 +83,7 @@ fun OnboardingPage(page: Int, modifier: Modifier = Modifier) {
             1 -> TwoKindsPage()
             2 -> OverlapPage()
             3 -> HeadsUpPage()
-            else -> WhereThingsArePage()
+            else -> WhereThingsArePage(mode)
         }
     }
 }
@@ -216,7 +217,7 @@ private fun ColumnScope.OverlapPage() {
         remember { androidx.compose.runtime.mutableFloatStateOf(0.3f) } // resting pose: inside Study
     }
     // Recomposes only when the label changes, not every frame.
-    val ringer by remember { derivedStateOf { ringerAt(now.value) } }
+    val ringer by remember(now) { derivedStateOf { ringerAt(now.value) } }
     val work = SnoozerTheme.colors.forCategory(Category.Work)
     val study = SnoozerTheme.colors.forCategory(Category.Study)
     val ink = MaterialTheme.colorScheme.onSurface
@@ -313,9 +314,11 @@ private fun ColumnScope.HeadsUpPage() {
                 .doodleFill(Color.White, cornerRadius = 10.dp, wobble = 0.dp)
                 .padding(8.dp),
         ) {
+            // Built by the same code as the real notice, so the sample can't drift from it.
+            val sample = ReminderText.of(SampleStudy)
             Text("Snoozer · now", style = SnoozerTheme.type.caption, color = Graphite)
-            Text("Study starts in 5 minutes", style = SnoozerTheme.type.label, color = Graphite)
-            Text("Your phone goes fully silent at 19:00 until 21:00.", style = SnoozerTheme.type.caption, color = Graphite)
+            Text(sample.title, style = SnoozerTheme.type.label, color = Graphite)
+            Text(sample.body, style = SnoozerTheme.type.caption, color = Graphite)
         }
     }
     Category.entries.reversed().forEach { category ->
@@ -330,7 +333,7 @@ private fun ColumnScope.HeadsUpPage() {
 // ---- 5 · Where things are --------------------------------------------------------------
 
 @Composable
-private fun ColumnScope.WhereThingsArePage() {
+private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
     PageTitle("Plan your first quiet time")
     // A dimmed sketch of the week screen with a pulsing ring around "+".
     Box(
@@ -365,7 +368,15 @@ private fun ColumnScope.WhereThingsArePage() {
             }
         }
     }
-    PageNote("Tap + on the week screen to plan your first quiet time. Start with Work or Study; you can change it anytime.")
+    // First run ends on Home's Setup, not the week screen, so say how to get to the "+".
+    PageNote(
+        if (mode == OnboardingMode.FirstRun) {
+            "Once Setup is done, tap \"Open my week\", then + to plan your first quiet time. " +
+                "Start with Work or Study; you can change it anytime."
+        } else {
+            "Tap + on the week screen to plan your first quiet time. Start with Work or Study; you can change it anytime."
+        }
+    )
     Spacer(Modifier.height(Spacing.S))
 }
 
@@ -381,3 +392,9 @@ private fun MiniCard(fill: Color, tag: String, time: String, seed: Int) {
         Text(time, style = SnoozerTheme.type.title)
     }
 }
+
+// The sample reminder on the heads-up page: a Study window 19:00-21:00.
+private val SampleStudy = com.example.snoozer.alarm.Alarm(
+    startHour = 19, startMinute = 0, endHour = 21, endMinute = 0,
+    daysOfWeek = listOf(java.time.DayOfWeek.MONDAY), work = Category.Study.label,
+)

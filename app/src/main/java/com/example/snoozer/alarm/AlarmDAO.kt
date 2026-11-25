@@ -25,7 +25,4 @@ interface AlarmDao {
     @Query("SELECT * FROM alarms WHERE id = :alarmID")
     suspend fun getAlarmById(alarmID: Int): Alarm?
 
-    @Query("SELECT COUNT(*) FROM alarms")
-    suspend fun count(): Int
-
 }

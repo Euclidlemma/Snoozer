@@ -25,8 +25,15 @@ data class CategoryExplanation(
 val Category.hasQuietReminder: Boolean
     get() = this == Category.Work
 
+/** What this category does, assuming reminders can be shown. */
 val Category.explanation: CategoryExplanation
-    get() {
+    get() = explain(remindersOn = true)
+
+/**
+ * What this category does. With [remindersOn] false (notifications off), the reminder line says
+ * so instead of promising a heads-up that will never arrive.
+ */
+fun Category.explain(remindersOn: Boolean): CategoryExplanation {
         val levelLines = when (quietLevel) {
             QuietLevel.Vibrate -> listOf(
                 ExplainLine(ExplainIcon.Vibrate, "Your phone vibrates instead of ringing."),
@@ -37,7 +44,9 @@ val Category.explanation: CategoryExplanation
                 ExplainLine(ExplainIcon.Alarm, "Alarms still ring."),
             )
         }
-        val reminder = if (hasQuietReminder) {
+        val reminder = if (!remindersOn) {
+            ExplainLine(ExplainIcon.Notify, "Heads-up is off: allow notifications in Setup to get one.")
+        } else if (hasQuietReminder) {
             ExplainLine(ExplainIcon.Notify, "A quiet heads-up before it starts.")
         } else {
             ExplainLine(ExplainIcon.Notify,

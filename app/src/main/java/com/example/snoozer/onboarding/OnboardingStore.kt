@@ -23,14 +23,14 @@ enum class FirstLaunch {
 }
 
 /**
- * Onboarding shows once, for people new to Snoozer. That's a fresh install, or an install with
- * no snoozers at all (for example after clearing the app's data). Someone updating from an
- * older version who already has snoozers knows the app, so it's marked seen without showing.
+ * Onboarding shows once, for people new to Snoozer. That's a fresh install, or an app that was
+ * never used (for example after clearing the app's data). Someone updating from an older version
+ * who has used the app knows it, so it's marked seen without showing.
  * After that, it only opens from the "?" button and the edit screen's link.
  */
-fun firstLaunch(seen: Boolean, freshInstall: Boolean, hasSnoozers: Boolean): FirstLaunch = when {
+fun firstLaunch(seen: Boolean, freshInstall: Boolean, usedBefore: Boolean): FirstLaunch = when {
     seen -> FirstLaunch.GoHome
-    freshInstall || !hasSnoozers -> FirstLaunch.ShowOnboarding
+    freshInstall || !usedBefore -> FirstLaunch.ShowOnboarding
     else -> FirstLaunch.MarkSeenQuietly
 }
 
@@ -41,6 +41,9 @@ interface OnboardingStore {
 
     /** True until the app is updated for the first time after being installed. */
     fun isFreshInstall(): Boolean
+
+    /** Whether the app has been used here before (its snoozer database exists). */
+    fun hasUsedBefore(): Boolean
 }
 
 /**
@@ -54,11 +57,13 @@ class SharedPrefsOnboardingStore @Inject constructor(
 
     override fun hasSeen(): Boolean = prefs.getBoolean(KEY_SEEN, false)
 
-    // commit(), not apply(): the start screen is picked from this right after, possibly in a
-    // new process, so the write must have landed.
+    // apply(): written in the background. Later reads in this process see it at once, and the
+    // next launch is long after the write has landed.
     override fun markSeen() {
-        prefs.edit().putBoolean(KEY_SEEN, true).commit()
+        prefs.edit().putBoolean(KEY_SEEN, true).apply()
     }
+
+    override fun hasUsedBefore(): Boolean = context.getDatabasePath(DATABASE_NAME).exists()
 
     override fun isFreshInstall(): Boolean {
         val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -74,6 +79,7 @@ class SharedPrefsOnboardingStore @Inject constructor(
     private companion object {
         const val PREFS = "onboarding" // onboarding.xml, excluded from backup
         const val KEY_SEEN = "seen"
+        const val DATABASE_NAME = "alarm_database" // as in AlarmDatabase
     }
 }
 
