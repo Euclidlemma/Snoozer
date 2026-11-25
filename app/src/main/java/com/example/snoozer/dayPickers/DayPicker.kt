@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -249,7 +250,8 @@ private fun HelpButton(onClick: () -> Unit) {
                     wobble = DoodleDefaults.WobbleLight, seed = 500),
             contentAlignment = Alignment.Center,
         ) {
-            Text("?", style = SnoozerTheme.type.title, color = ink)
+            // Hidden from screen readers: the button already says what it does.
+            Text("?", style = SnoozerTheme.type.title, color = ink, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }
