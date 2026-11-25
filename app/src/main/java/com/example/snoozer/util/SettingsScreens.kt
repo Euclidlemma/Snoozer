@@ -26,3 +26,24 @@ private fun Context.openSettings(intent: Intent) {
         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
     }
 }
+
+/** Opens Snoozer's notification settings, where a permanently refused permission can be allowed. */
+fun Context.openNotificationSettings() = openSettings(
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+)
+
+/** What tapping Allow on the notifications row should do. */
+enum class NotificationAsk { Ask, OpenSettings }
+
+/**
+ * Android shows the notification permission dialog at most twice; after a second "Don't allow"
+ * (or "Don't ask again") a request returns at once with no dialog. So ask while a dialog can
+ * still appear, and send the user to Settings otherwise. Also Settings when the permission is
+ * granted but notifications were switched off there.
+ */
+fun notificationAsk(permissionGranted: Boolean, askedBefore: Boolean, showRationale: Boolean): NotificationAsk =
+    when {
+        permissionGranted -> NotificationAsk.OpenSettings
+        !askedBefore || showRationale -> NotificationAsk.Ask
+        else -> NotificationAsk.OpenSettings
+    }

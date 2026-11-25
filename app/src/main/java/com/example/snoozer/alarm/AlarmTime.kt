@@ -39,6 +39,20 @@ object AlarmTime {
         return trigger
     }
 
+    /** How long before a window starts its reminder fires. */
+    const val REMINDER_LEAD_MINUTES = 5
+
+    /**
+     * When the reminder for the occurrence starting on [startDay] fires: [REMINDER_LEAD_MINUTES]
+     * before the start, on the day before when the start is just after midnight (00:02 on
+     * Monday reminds at 23:57 on Sunday).
+     */
+    fun reminderTime(alarm: Alarm, startDay: DayOfWeek): ReminderTime {
+        val minute = startMinuteOfDay(alarm) - REMINDER_LEAD_MINUTES
+        return if (minute >= 0) ReminderTime(startDay, minute / 60, minute % 60)
+        else Math.floorMod(minute, MINUTES_PER_DAY).let { ReminderTime(startDay.minus(1), it / 60, it % 60) }
+    }
+
     /** Whether [now] falls inside any of this alarm's weekly mute windows. */
     fun isActiveAt(alarm: Alarm, now: LocalDateTime): Boolean {
         val start = startMinuteOfDay(alarm)
@@ -154,4 +168,28 @@ sealed interface QuietStatus {
 
     /** No enabled windows at all. */
     data object NothingScheduled : QuietStatus
+}
+
+/** A reminder's weekly slot: [day] at [hour]:[minute]. */
+data class ReminderTime(val day: DayOfWeek, val hour: Int, val minute: Int)
+
+/** The reminder notification's words for [alarm]: a title and one line under it. */
+data class ReminderText(val title: String, val body: String) {
+    companion object {
+        fun of(alarm: Alarm): ReminderText {
+            val start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute)
+            val end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute)
+            val endsTomorrow = if (AlarmTime.isOvernight(alarm)) " tomorrow" else ""
+            return when (alarm.category) {
+                Category.Study -> ReminderText(
+                    "Study starts in ${AlarmTime.REMINDER_LEAD_MINUTES} minutes",
+                    "Your phone goes fully silent at $start until $end$endsTomorrow.",
+                )
+                Category.Work -> ReminderText(
+                    "Work starts at $start",
+                    "Your phone goes on vibrate until $end$endsTomorrow.",
+                )
+            }
+        }
+    }
 }

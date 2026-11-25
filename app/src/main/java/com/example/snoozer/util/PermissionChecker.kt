@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import com.example.snoozer.receiver.ReminderNotifier
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -19,6 +20,10 @@ data class Permissions(
     val exactAlarms: Boolean,
     /** Exact alarms only need granting on Android 12+; older versions always allow them. */
     val exactAlarmsApplies: Boolean,
+    /** Notifications: optional, only for the reminders. Allowed and not turned off. */
+    val notifications: Boolean = true,
+    /** Notifications only need granting on Android 13+; older versions allow them by default. */
+    val notificationsApply: Boolean = false,
 )
 
 /** Reads permission state; an interface so ViewModels can be tested with fixed answers. */
@@ -30,15 +35,17 @@ class SystemPermissionChecker @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : PermissionChecker {
     override fun check(): Permissions {
-        val notifications = context.getSystemService(NotificationManager::class.java)
+        val policy = context.getSystemService(NotificationManager::class.java)
         val needsExactGrant = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         val exact = if (needsExactGrant) {
             context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
         } else true
         return Permissions(
-            dnd = notifications.isNotificationPolicyAccessGranted,
+            dnd = policy.isNotificationPolicyAccessGranted,
             exactAlarms = exact,
             exactAlarmsApplies = needsExactGrant,
+            notifications = ReminderNotifier.canNotify(context),
+            notificationsApply = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
         )
     }
 }

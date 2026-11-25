@@ -1,7 +1,9 @@
 package com.example.snoozer.alarm
 
+import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
+import com.example.snoozer.receiver.ReminderNotifier
 import com.example.snoozer.receiver.RingerController
 import com.example.snoozer.scheduler.AlarmScheduler
 import com.example.snoozer.util.TimeSource
@@ -78,6 +80,20 @@ class AlarmActions @Inject constructor(
 
     // Alarm broadcasts. They take the same lock as the edits above, so a mute or unmute that
     // fires while the user is saving or deleting sees the finished change, never half of it.
+
+    /**
+     * A window's reminder fired. Shown only if the window is still saved and on, notifications
+     * are allowed, and Snoozer can actually quiet the phone (otherwise "your phone goes
+     * silent" would be wrong). The next week's reminder is set when this occurrence's unmute
+     * reschedules the window.
+     */
+    suspend fun onReminderFired(alarmId: Int) = lock.withLock {
+        val alarm = repository.getAlarmById(alarmId)
+        if (alarm == null || !alarm.isEnabled) return@withLock
+        val policy = appContext.getSystemService(NotificationManager::class.java)
+        if (!policy.isNotificationPolicyAccessGranted) return@withLock
+        ReminderNotifier.show(appContext, alarm)
+    }
 
     /** A window's mute alarm fired. Quiets the phone only if that window is still saved and on. */
     suspend fun onMuteFired(alarmId: Int) = lock.withLock {
