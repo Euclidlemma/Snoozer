@@ -66,24 +66,3 @@ val BellDark = ChalkYellow
 val IllustrationBackingLight = Color(0xFFFFFFFF)
 val IllustrationBackingDark = Color(0xFFF2F0EA)
 
-// Decorative bars on the home screen, left to right, in colored-pencil tones
-val RainbowLight = listOf(
-    Color(0xFFD9534F), // red
-    Color(0xFFF0A35E), // orange
-    Color(0xFF8CC7D9), // sky
-    Color(0xFFE6D58F), // sand
-    Color(0xFFB39DDB), // lilac
-    Color(0xFF8BC17A), // leaf
-    Color(0xFF6F6AC0), // slate blue
-)
-
-// Same hues, toned down so they don't glare on the dark board
-val RainbowDark = listOf(
-    Color(0xFFB33A3A),
-    Color(0xFFD9904D),
-    Color(0xFF7FBFBF),
-    Color(0xFFCFC48A),
-    Color(0xFF9A86CC),
-    Color(0xFF4DB34D),
-    Color(0xFF6F62C9),
-)

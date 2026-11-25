@@ -74,7 +74,6 @@ data class SnoozerColors(
     val study: CategoryColors,
     val bell: Color,
     val illustrationBacking: Color,
-    val rainbow: List<Color>,
     /** Faint ruled lines on the paper background (notebook look). */
     val paperLine: Color,
     /** Highlighter-marker stroke, e.g. under the selected day. */
@@ -94,7 +93,6 @@ private val LightSnoozerColors = SnoozerColors(
     study = CategoryColors(StudyContainerLight, OnStudyContainerLight, StudyHatchLight),
     bell = BellLight,
     illustrationBacking = IllustrationBackingLight,
-    rainbow = RainbowLight,
     paperLine = PaperLineLight,
     highlighter = PencilYellow,
 )
@@ -104,7 +102,6 @@ private val DarkSnoozerColors = SnoozerColors(
     study = CategoryColors(StudyContainerDark, OnStudyContainerDark, StudyHatchDark),
     bell = BellDark,
     illustrationBacking = IllustrationBackingDark,
-    rainbow = RainbowDark,
     paperLine = PaperLineDark,
     highlighter = ChalkYellow,
 )
