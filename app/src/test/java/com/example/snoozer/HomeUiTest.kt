@@ -27,6 +27,17 @@ class HomeUiTest {
     }
 
     @Test
+    fun statusLine_overlap_saysWhatComesAfter() {
+        // Study inside Work: silent until 12:00, but still quiet (vibrate) until 17:00.
+        val work = Alarm(id = 1, startHour = 9, startMinute = 0, endHour = 17, endMinute = 0,
+            daysOfWeek = listOf(MONDAY), work = "Work")
+        val study = Alarm(id = 2, startHour = 10, startMinute = 0, endHour = 12, endMinute = 0,
+            daysOfWeek = listOf(MONDAY), work = "Study")
+        assertEquals("Quiet now, until 12:00, then vibrate until 17:00",
+            HomeUi.build(listOf(work, study), at(11, 0), all).statusLine)
+    }
+
+    @Test
     fun statusLine_withoutDndAccess_saysPaused() {
         assertEquals("Paused: Snoozer can't mute without Do Not Disturb access",
             HomeUi.build(listOf(a), at(9, 15), all.copy(dnd = false)).statusLine)

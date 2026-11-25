@@ -5,6 +5,8 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
+import com.example.snoozer.alarm.quietLevel
+import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.QuietStatus
 import java.time.DayOfWeek
 import java.time.LocalDateTime
@@ -17,14 +19,26 @@ data class WeekUiState(
     val status: StatusUi,
     /** Monday first, matching the pager pages. */
     val days: List<DayUi>,
+    /** "This week · Work 32h · Study 6h", or null when no switched-on window is planned. */
+    val weeklyTotals: String?,
 )
 
 @Immutable
 sealed interface StatusUi {
-    /** The phone is muted now. */
-    data class QuietNow(val until: String, val category: Category, val left: String) : StatusUi
-    /** Not muted; the next window starts at [time] on [day] ("today", "tomorrow", "Wed"). */
-    data class Next(val time: String, val day: String, val category: Category, val startsIn: String) : StatusUi
+    /**
+     * The phone is quiet now, at [level]. [category] is a running window that sets that level
+     * (with overlaps, the quietest one wins), so the card never says "Work · Silent".
+     */
+    data class QuietNow(
+        val until: String,
+        val category: Category,
+        val level: QuietLevel,
+        val left: String,
+        /** "then vibrate until 17:00" when this level ends before the quiet time does. */
+        val then: String? = null,
+    ) : StatusUi
+    /** Not quiet; the next window starts at [time] on [day] ("today", "tomorrow", "Wed"). */
+    data class Next(val time: String, val day: String, val category: Category, val level: QuietLevel, val startsIn: String) : StatusUi
     data object NothingScheduled : StatusUi
     /** Do Not Disturb access is off, so no window can mute the phone, whatever the schedule says. */
     data object NoAccess : StatusUi
@@ -47,6 +61,8 @@ data class DayUi(
 data class AlarmCardUi(
     val id: Int,
     val category: Category,
+    /** How quiet this window makes the phone (from its category). */
+    val level: QuietLevel,
     val start: String,
     val end: String,
     val endsNextDay: Boolean,
@@ -71,21 +87,69 @@ object WeekUi {
     fun build(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): WeekUiState = WeekUiState(
         status = status(alarms, now, canMute),
         days = DayOfWeek.entries.map { day(it, alarms, now, canMute) },
+        weeklyTotals = weeklyTotalsLine(weeklyMinutes(alarms)),
     )
+
+    /**
+     * Planned quiet minutes per category over a week, from switched-on windows only. Each
+     * window counts toward the day it starts (an overnight one too), and overlaps within a
+     * category on the same day count once. Categories with nothing planned are left out.
+     */
+    fun weeklyMinutes(alarms: List<Alarm>): Map<Category, Int> {
+        val enabled = alarms.filter { it.isEnabled }
+        return Category.entries.associateWith { category ->
+            val ofCategory = enabled.filter { it.category == category }
+            DayOfWeek.entries.sumOf { day -> quietMinutes(ofCategory.filter { day in it.daysOfWeek }) }
+        }.filterValues { it > 0 }
+    }
+
+    /** "This week · Work 32h · Study 6h", in [Category] order; null when [minutes] is empty. */
+    fun weeklyTotalsLine(minutes: Map<Category, Int>): String? {
+        if (minutes.isEmpty()) return null
+        val parts = Category.entries.mapNotNull { c -> minutes[c]?.let { "${c.label} ${AlarmTime.formatDuration(it)}" } }
+        return "This week · " + parts.joinToString(" · ")
+    }
 
     fun status(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): StatusUi =
         if (!canMute) StatusUi.NoAccess
         else when (val s = AlarmTime.quietStatus(alarms, now)) {
-            is QuietStatus.QuietUntil -> StatusUi.QuietNow(
-                until = AlarmTime.formatTime(s.until.hour, s.until.minute) +
-                    if (s.until.toLocalDate() != now.toLocalDate()) " ${relativeDay(s.until, now)}" else "",
-                category = s.alarm.category,
-                left = "${relativeSpan(AlarmTime.minutesBetween(now, s.until))} left",
-            )
+            is QuietStatus.QuietUntil -> {
+                // The level the phone is at now: the quietest running window's, as AlarmActions
+                // applies it. Show a category that sets that level, so the two always match.
+                val level = AlarmTime.quietLevelAt(alarms, now) ?: s.alarm.category.quietLevel
+                val category = if (s.alarm.category.quietLevel == level) s.alarm.category
+                    else alarms.first { it.isEnabled && AlarmTime.isActiveAt(it, now) && it.category.quietLevel == level }.category
+                // How long *this* level lasts: the run of windows at this level, which can end
+                // before the whole quiet run does (Study inside Work: silent until 12:00, then
+                // vibrate until 17:00). The card shows the level's end and mentions the rest.
+                val levelRun = AlarmTime.quietStatus(alarms.filter { it.category.quietLevel == level }, now)
+                val levelEnd = (levelRun as? QuietStatus.QuietUntil)?.until?.takeIf { it.isBefore(s.until) }
+                val end = levelEnd ?: s.until
+                // A quieter window starting before that (Work 09-17 with Study 14-15, at 11:00):
+                // the phone will go quieter mid-run, so say when ("silent from 14:00").
+                val quieter = AlarmTime.quietStatus(alarms.filter { it.category.quietLevel > level }, now)
+                val quieterStart = (quieter as? QuietStatus.NextQuiet)?.takeIf { it.at.isBefore(end) }
+                StatusUi.QuietNow(
+                    until = timeOn(end, now),
+                    category = category,
+                    level = level,
+                    left = "${relativeSpan(AlarmTime.minutesBetween(now, end))} left",
+                    then = when {
+                        quieterStart != null ->
+                            "${quieterStart.alarm.category.quietLevel.label.lowercase()} from ${timeOn(quieterStart.at, now)}"
+                        levelEnd != null -> {
+                            val next = AlarmTime.quietLevelAt(alarms, levelEnd)?.label?.lowercase() ?: "quiet"
+                            "then $next until ${timeOn(s.until, now)}"
+                        }
+                        else -> null
+                    },
+                )
+            }
             is QuietStatus.NextQuiet -> StatusUi.Next(
                 time = AlarmTime.formatTime(s.at.hour, s.at.minute),
                 day = relativeDay(s.at, now),
                 category = s.alarm.category,
+                level = s.alarm.category.quietLevel,
                 startsIn = "in ${relativeSpan(AlarmTime.minutesBetween(now, s.at))}",
             )
             QuietStatus.NothingScheduled -> StatusUi.NothingScheduled
@@ -115,6 +179,7 @@ object WeekUi {
     private fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
         id = alarm.id,
         category = alarm.category,
+        level = alarm.category.quietLevel,
         start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute),
         end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute),
         endsNextDay = AlarmTime.isOvernight(alarm),
@@ -172,6 +237,10 @@ object WeekUi {
     }
 
     private fun count(n: Int) = if (n == 1) "1 snoozer" else "$n snoozers"
+
+    /** "17:00", or "07:00 tomorrow" / "07:00 Wed" when it isn't today. */
+    private fun timeOn(t: LocalDateTime, now: LocalDateTime): String =
+        AlarmTime.formatTime(t.hour, t.minute) + if (t.toLocalDate() != now.toLocalDate()) " ${relativeDay(t, now)}" else ""
 
     /** "today", "tomorrow", or a short weekday name for anything later. */
     private fun relativeDay(target: LocalDateTime, now: LocalDateTime): String {

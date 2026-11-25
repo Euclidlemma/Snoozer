@@ -21,7 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val dayValue = intent.getIntExtra("dayOfWeek", -1)
         Log.d("AlarmReceiver", "Alarm triggered: action=$action id=$alarmId day=$dayValue")
         if (dayValue !in 1..7 || alarmId == -1) return
-        if (action != "MUTE" && action != "UNMUTE") return
+        if (action != "REMIND" && action != "MUTE" && action != "UNMUTE") return
         // The start day of the window, even for an overnight window's unmute.
         val day = DayOfWeek.of(dayValue)
 
@@ -35,7 +35,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (action == "MUTE") actions.onMuteFired(alarmId) else actions.onUnmuteFired(alarmId, day)
+                when (action) {
+                    "REMIND" -> actions.onReminderFired(alarmId, day)
+                    "MUTE" -> actions.onMuteFired(alarmId)
+                    else -> actions.onUnmuteFired(alarmId, day)
+                }
             } catch (e: Exception) {
                 Log.e("AlarmReceiver", "Error handling $action for $alarmId", e)
             } finally {

@@ -39,6 +39,35 @@ object AlarmTime {
         return trigger
     }
 
+    /** How long before a window starts its reminder fires. */
+    const val REMINDER_LEAD_MINUTES = 5
+
+    /** The earliest a reminder may come when it can only be inexact: its delivery window opens then. */
+    const val REMINDER_EARLIEST_MINUTES = 10
+
+    /**
+     * When the reminder for the occurrence starting on [startDay] fires: [REMINDER_LEAD_MINUTES]
+     * before the start, on the day before when the start is just after midnight (00:02 on
+     * Monday reminds at 23:57 on Sunday).
+     */
+    fun reminderTime(alarm: Alarm, startDay: DayOfWeek): ReminderTime {
+        val minute = startMinuteOfDay(alarm) - REMINDER_LEAD_MINUTES
+        return if (minute >= 0) ReminderTime(startDay, minute / 60, minute % 60)
+        else Math.floorMod(minute, MINUTES_PER_DAY).let { ReminderTime(startDay.minus(1), it / 60, it % 60) }
+    }
+
+    /**
+     * Minutes from [now] until the next start of the occurrence that starts on [startDay]
+     * (today's if it's still ahead, otherwise next week's).
+     */
+    fun minutesUntilStart(alarm: Alarm, startDay: DayOfWeek, now: LocalDateTime): Int {
+        var start = now.toLocalDate()
+            .with(TemporalAdjusters.nextOrSame(startDay))
+            .atTime(alarm.startHour, alarm.startMinute)
+        if (!start.isAfter(now)) start = start.plusWeeks(1)
+        return minutesBetween(now, start)
+    }
+
     /** Whether [now] falls inside any of this alarm's weekly mute windows. */
     fun isActiveAt(alarm: Alarm, now: LocalDateTime): Boolean {
         val start = startMinuteOfDay(alarm)
@@ -79,6 +108,18 @@ object AlarmTime {
      */
     fun minutesBetween(from: LocalDateTime, to: LocalDateTime, zone: ZoneId = ZoneId.systemDefault()): Int =
         ChronoUnit.MINUTES.between(from.withSecond(0).withNano(0).atZone(zone), to.atZone(zone)).toInt()
+
+    /**
+     * How quiet the phone should be at [now]: the quietest level among the enabled windows
+     * running then, or null when none is. [excludingId] leaves out one window, e.g. the one
+     * whose unmute is firing right now.
+     */
+    fun quietLevelAt(alarms: List<Alarm>, now: LocalDateTime, excludingId: Int? = null): QuietLevel? =
+        QuietLevel.quietest(
+            alarms
+                .filter { it.id != excludingId && it.isEnabled && isActiveAt(it, now) }
+                .map { it.category.quietLevel }
+        )
 
     /**
      * Whether the phone is quiet right now and until when, or when it goes quiet next.
@@ -142,4 +183,29 @@ sealed interface QuietStatus {
 
     /** No enabled windows at all. */
     data object NothingScheduled : QuietStatus
+}
+
+/** A reminder's weekly slot: [day] at [hour]:[minute]. */
+data class ReminderTime(val day: DayOfWeek, val hour: Int, val minute: Int)
+
+/** The reminder notification's words for [alarm]: a title and one line under it. */
+data class ReminderText(val title: String, val body: String) {
+    companion object {
+        fun of(alarm: Alarm, minutesUntilStart: Int = AlarmTime.REMINDER_LEAD_MINUTES): ReminderText {
+            val inMinutes = if (minutesUntilStart == 1) "1 minute" else "$minutesUntilStart minutes"
+            val start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute)
+            val end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute)
+            val endsTomorrow = if (AlarmTime.isOvernight(alarm)) " tomorrow" else ""
+            return when (alarm.category) {
+                Category.Study -> ReminderText(
+                    "Study starts in $inMinutes",
+                    "Your phone goes fully silent at $start until $end$endsTomorrow.",
+                )
+                Category.Work -> ReminderText(
+                    "Work starts at $start",
+                    "Your phone goes on vibrate until $end$endsTomorrow.",
+                )
+            }
+        }
+    }
 }

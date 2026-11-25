@@ -94,14 +94,14 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: (
             Column {
                 when (status) {
                     is StatusUi.QuietNow -> {
-                        Text("Quiet now · ${status.category.label}", style = type.caption)
+                        Text("Quiet now · ${status.category.label} · ${status.level.label}", style = type.caption)
                         Text("until ${status.until}", style = type.headline)
-                        Text(status.left, style = type.caption)
+                        Text(listOfNotNull(status.left, status.then).joinToString(" · "), style = type.caption)
                     }
                     is StatusUi.Next -> {
                         Text("Next quiet time", style = type.caption)
                         Text("${status.time} ${status.day}", style = type.headline)
-                        Text("${status.category.label} · ${status.startsIn}", style = type.caption)
+                        Text("${status.category.label} · ${status.level.label} · ${status.startsIn}", style = type.caption)
                     }
                     StatusUi.NothingScheduled -> {
                         Text("No quiet times yet", style = type.title)
@@ -242,7 +242,7 @@ fun TimelineItem(
         ) {
             Column(Modifier.padding(start = Spacing.M, end = Spacing.S, top = Spacing.S, bottom = Spacing.M)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
-                    Tag(card.category.label, seed = card.id * 3)
+                    Tag("${card.category.label} · ${card.level.label}", seed = card.id * 3)
                     if (card.activeNow) Tag("quiet now", seed = card.id * 3 + 1, highlighted = true)
                     Spacer(Modifier.weight(1f))
                     DoodleSwitch(

@@ -48,6 +48,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,6 +57,7 @@ import androidx.navigation.NavController
 import com.example.snoozer.Route.leaveEditScreen
 import com.example.snoozer.R
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleChip
@@ -287,6 +289,13 @@ private fun CategoryCard(
                 )
             }
         }
+        // What choosing this category does, so the choice isn't only a color.
+        Text(
+            category.quietLevel.description,
+            style = SnoozerTheme.type.caption,
+            color = if (isSelected) colors.content else scheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -447,10 +456,24 @@ private fun EditContentPreview() {
     }
 }
 
+@Preview(name = "New Study snoozer (starting times)", widthDp = 360, heightDp = 760, showBackground = true,
+    backgroundColor = 0xFFFAF6EC)
+@Composable
+private fun NewStudySnoozerPreview() {
+    val form = EditForm.new(null, Category.Study)   // 19:00-21:00 on weekdays
+    SnoozerTheme {
+        EditContent(
+            state = EditUi.describe(form, form, isNew = true),
+            onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
+            onToggleDay = {}, onPreset = {}, onSave = {},
+        )
+    }
+}
+
 @Preview(name = "New, can't save yet", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
 @Composable
 private fun NewSnoozerPreview() {
-    val form = EditForm.new(null)
+    val form = EditForm.new(null).copy(days = emptyList())   // no day picked: Save explains why it's off
     SnoozerTheme {
         EditContent(
             state = EditUi.describe(form, form, isNew = true),

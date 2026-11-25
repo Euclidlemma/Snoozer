@@ -26,3 +26,27 @@ private fun Context.openSettings(intent: Intent) {
         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
     }
 }
+
+/** Opens Snoozer's notification settings, where a permanently refused permission can be allowed. */
+fun Context.openNotificationSettings() = openSettings(
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+)
+
+/** What tapping Allow on the notifications row should do. */
+enum class NotificationAsk { Ask, OpenSettings }
+
+/**
+ * Ask with Android's dialog unless only Settings can help: the permission was refused for
+ * good ([refusedForGood]), or it is granted but notifications were switched off in Settings.
+ */
+fun notificationAsk(permissionGranted: Boolean, refusedForGood: Boolean): NotificationAsk =
+    if (permissionGranted || refusedForGood) NotificationAsk.OpenSettings else NotificationAsk.Ask
+
+/**
+ * Whether a "no" from the dialog was final. Android shows the dialog until the second refusal;
+ * after the first, the rationale flag turns on, and after the second it turns off again. Closing
+ * the dialog without choosing (back, tapping outside) also reports "no" but leaves the flag as
+ * it was, so it isn't mistaken for a final refusal.
+ */
+fun refusedForGood(granted: Boolean, rationaleBefore: Boolean, rationaleAfter: Boolean): Boolean =
+    !granted && rationaleBefore && !rationaleAfter

@@ -17,7 +17,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +39,7 @@ import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
 import com.example.snoozer.ui.theme.SnoozerTheme
@@ -111,6 +114,14 @@ fun WeekContent(
             onAllowAccess = onAllowAccess,
             modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
         )
+        if (state.weeklyTotals != null) {
+            Text(
+                state.weeklyTotals,
+                style = SnoozerTheme.type.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
+            )
+        }
         Spacer(Modifier.height(Spacing.S))
         WeekStrip(
             days = state.days,
@@ -192,8 +203,8 @@ private fun EmptyWeekPreview() {
 private fun StatusCardStatesPreview() {
     SnoozerTheme {
         Column(Modifier.padding(Spacing.M), verticalArrangement = Arrangement.spacedBy(Spacing.M)) {
-            StatusCard(StatusUi.QuietNow(until = "10:30", category = Category.Study, left = "1h 10m left"))
-            StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, startsIn = "in 3h 40m"))
+            StatusCard(StatusUi.QuietNow(until = "10:30", category = Category.Study, level = QuietLevel.Silent, left = "1h 10m left"))
+            StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, level = QuietLevel.Vibrate, startsIn = "in 3h 40m"))
             StatusCard(StatusUi.NothingScheduled)
             StatusCard(StatusUi.NoAccess)
         }

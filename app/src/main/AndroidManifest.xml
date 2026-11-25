@@ -9,6 +9,10 @@
 
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
+    <!-- Optional: the "starts in 5 minutes" reminders. Asked for (Android 13+) only when the
+         user taps Allow in Home's Setup list; everything else works without it. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".AlarmApp"
         android:allowBackup="true"

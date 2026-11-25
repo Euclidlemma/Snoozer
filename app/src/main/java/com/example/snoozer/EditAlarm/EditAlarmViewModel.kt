@@ -39,6 +39,10 @@ class EditAlarmViewModel @Inject constructor(
     private val alarmId: Int? = savedStateHandle.get<Int>(Routes.EditAlarm.ARG_ID)?.takeIf { it >= 0 }
     private val isNew = alarmId == null
 
+    /** The day page a new snoozer was opened from, if any. Comes from the route. */
+    private val fromDay: DayOfWeek? =
+        savedStateHandle.get<Int>(Routes.EditAlarm.ARG_DAY)?.takeIf { it in 1..7 }?.let(DayOfWeek::of)
+
     // Kept in SavedStateHandle so a half-filled form survives the process being killed. Stored
     // as plain text (EditForm.encode), never as a class: Android reads every saved value before
     // this ViewModel exists, so a saved class that no longer matches would crash right there.
@@ -71,8 +75,7 @@ class EditAlarmViewModel @Inject constructor(
     private suspend fun load() {
         val loaded = try {
             if (alarmId == null) {
-                val day = savedStateHandle.get<Int>(Routes.EditAlarm.ARG_DAY)?.takeIf { it in 1..7 }
-                EditForm.new(day?.let(DayOfWeek::of))
+                EditForm.new(fromDay)
             } else {
                 repository.getAlarmById(alarmId)?.let(EditForm::from)
             }
@@ -106,7 +109,7 @@ class EditAlarmViewModel @Inject constructor(
     fun onEndChange(hour: Int, minute: Int) = edit { it.withEnd(hour, minute) }
     fun onToggleDay(day: DayOfWeek) = edit { it.toggleDay(day) }
     fun onPreset(preset: RepeatPreset) = edit { it.withPreset(preset) }
-    fun onCategory(category: Category) = edit { it.copy(category = category) }
+    fun onCategory(category: Category) = edit { it.switchCategory(category, isNew, fromDay) }
 
     fun save() {
         val current = form.value ?: return

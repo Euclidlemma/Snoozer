@@ -4,25 +4,32 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import com.example.snoozer.alarm.QuietLevel
 
 /**
- * Mutes the ringer and later restores whatever mode the user had before (normal or
- * vibrate), instead of always forcing normal. The pre-mute mode is stored once, when
- * the first of possibly several overlapping windows starts, and cleared on restore.
+ * Quiets the ringer to a [QuietLevel] and later restores whatever mode the user had before
+ * (normal, vibrate or silent), instead of always forcing normal. The pre-mute mode is stored
+ * once, when the first of possibly several overlapping windows starts, and cleared on restore.
  */
 object RingerController {
     private const val TAG = "RingerController"
     private const val PREFS = "ringer_state"
     private const val KEY_SAVED_MODE = "saved_mode"
 
-    fun mute(context: Context) {
+    /**
+     * Sets the ringer for [level]. Called again when the level changes mid-quiet (a Study
+     * window ends while a Work one keeps running), so the saved mode is kept, not replaced.
+     * Never louder than the mode the user had before Snoozer stepped in.
+     */
+    fun mute(context: Context, level: QuietLevel) {
         if (!hasDndAccess(context)) return
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.contains(KEY_SAVED_MODE)) {
             prefs.edit().putInt(KEY_SAVED_MODE, audio.ringerMode).apply()
         }
-        setMode(audio, AudioManager.RINGER_MODE_SILENT)
+        val userMode = prefs.getInt(KEY_SAVED_MODE, audio.ringerMode)
+        setMode(audio, level.ringerModeFor(userMode))
     }
 
     /**

@@ -7,6 +7,22 @@ import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
 import java.time.DayOfWeek
 
+/** Where a new snoozer of a category starts: its usual time and days. */
+data class CategoryDefaults(
+    val startHour: Int,
+    val startMinute: Int,
+    val endHour: Int,
+    val endMinute: Int,
+    val days: List<DayOfWeek>,
+)
+
+/** Work: a working day, 09:00-17:00 on weekdays. Study: an evening session, 19:00-21:00 on weekdays. */
+val Category.defaults: CategoryDefaults
+    get() = when (this) {
+        Category.Work -> CategoryDefaults(9, 0, 17, 0, DayOfWeek.entries.take(5))
+        Category.Study -> CategoryDefaults(19, 0, 21, 0, DayOfWeek.entries.take(5))
+    }
+
 /** Quick picks for the repeat days. */
 enum class RepeatPreset(val label: String, val days: Set<DayOfWeek>) {
     Weekdays("Weekdays", DayOfWeek.entries.take(5).toSet()),
@@ -30,6 +46,28 @@ data class EditForm(
     /** "8:0:9:0:1,3:Work": times, ISO day numbers, category label. Read back by [decode]. */
     fun encode(): String =
         "$startHour:$startMinute:$endHour:$endMinute:${days.joinToString(",") { it.value.toString() }}:${category.label}"
+
+    /**
+     * Switches category. For a new snoozer the times (and days) follow the category's starting
+     * window, but only the parts the user hasn't changed yet: once they've picked their own
+     * times or days, switching category keeps them. Editing a saved snoozer never moves times.
+     * [fromDay] is the day page the new snoozer was opened from, if any.
+     */
+    fun switchCategory(to: Category, isNew: Boolean, fromDay: DayOfWeek?): EditForm {
+        if (!isNew || to == category) return copy(category = to)
+        val untouched = new(fromDay, category)
+        val target = new(fromDay, to)
+        val timesUntouched = startHour == untouched.startHour && startMinute == untouched.startMinute &&
+            endHour == untouched.endHour && endMinute == untouched.endMinute
+        return copy(
+            category = to,
+            startHour = if (timesUntouched) target.startHour else startHour,
+            startMinute = if (timesUntouched) target.startMinute else startMinute,
+            endHour = if (timesUntouched) target.endHour else endHour,
+            endMinute = if (timesUntouched) target.endMinute else endMinute,
+            days = if (days == untouched.days) target.days else days,
+        )
+    }
 
     fun withStart(hour: Int, minute: Int) = copy(startHour = hour, startMinute = minute)
     fun withEnd(hour: Int, minute: Int) = copy(endHour = hour, endMinute = minute)
@@ -55,7 +93,15 @@ data class EditForm(
         )
 
         /** A new snoozer: 08:00-09:00, Work, on [day] if the user came from that day's page. */
-        fun new(day: DayOfWeek?) = EditForm(8, 0, 9, 0, listOfNotNull(day), Category.Work)
+        /**
+         * A new snoozer with [category]'s starting window. Opened from a day's page, it starts
+         * on just that day; otherwise on the category's usual days.
+         */
+        fun new(day: DayOfWeek?, category: Category = Category.Work): EditForm {
+            val d = category.defaults
+            return EditForm(d.startHour, d.startMinute, d.endHour, d.endMinute,
+                if (day != null) listOf(day) else d.days, category)
+        }
 
         /**
          * Reads text written by [encode]. Returns null for anything malformed or out of range

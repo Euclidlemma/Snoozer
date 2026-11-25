@@ -1,6 +1,14 @@
 package com.example.snoozer.home
 
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +27,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -53,6 +66,10 @@ import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.Permissions
 import com.example.snoozer.util.openDndSettings
 import com.example.snoozer.util.openExactAlarmSettings
+import com.example.snoozer.util.openNotificationSettings
+import com.example.snoozer.util.notificationAsk
+import com.example.snoozer.util.refusedForGood
+import com.example.snoozer.util.NotificationAsk
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
@@ -63,12 +80,43 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     // Re-checking on every resume updates the checklist the moment the user comes back.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
 
+    // The notification permission is a normal runtime dialog (Android 13+), asked only when the
+    // user taps Allow. Saying no changes nothing else; the row just stays unticked.
+    val prefs = remember(context) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+    // Android's "show rationale" flag just before the dialog opened; with the flag after it, it
+    // tells a final refusal apart from a first "no" or a dialog closed without choosing.
+    var rationaleBefore by rememberSaveable { mutableStateOf(false) }
+    val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val rationaleAfter = context.findActivity()
+            ?.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) == true
+        prefs.edit().putBoolean(KEY_REFUSED_NOTIFICATIONS, refusedForGood(granted, rationaleBefore, rationaleAfter)).apply()
+        viewModel.refreshPermissions()
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
     val current = state ?: return // first database read; the screen is blank for a moment
     HomeContent(
         state = current,
         onAllowDnd = context::openDndSettings,
         onAllowExactAlarms = context::openExactAlarmSettings,
+        onAllowNotifications = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val permission = Manifest.permission.POST_NOTIFICATIONS
+                val action = notificationAsk(
+                    permissionGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED,
+                    refusedForGood = prefs.getBoolean(KEY_REFUSED_NOTIFICATIONS, false),
+                )
+                when (action) {
+                    NotificationAsk.Ask -> {
+                        rationaleBefore = context.findActivity()?.shouldShowRequestPermissionRationale(permission) == true
+                        askNotifications.launch(permission)
+                    }
+                    NotificationAsk.OpenSettings -> context.openNotificationSettings()
+                }
+            } else {
+                context.openNotificationSettings()
+            }
+        },
         onOpenWeek = {
             navController.navigateFrom(lifecycleOwner, Routes.DayPicker.route) {
                 popUpTo(Routes.Home.route) { inclusive = false }
@@ -78,6 +126,15 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     )
 }
 
+private const val PREFS = "permission_asks"
+private const val KEY_REFUSED_NOTIFICATIONS = "refused_notifications"
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 /** Stateless home screen: header, today's status, the setup checklist and "Open my week". */
 @Composable
 fun HomeContent(
@@ -85,6 +142,7 @@ fun HomeContent(
     onAllowDnd: () -> Unit,
     onAllowExactAlarms: () -> Unit,
     onOpenWeek: () -> Unit,
+    onAllowNotifications: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().systemBarsPadding()) {
@@ -108,10 +166,19 @@ fun HomeContent(
                 if (state.permissions.exactAlarmsApplies) {
                     PermissionRow(
                         title = "Exact alarms",
-                        description = "Recommended. Without it, muting can start a few minutes late.",
+                        description = "Recommended. Without it, muting can start up to an hour late.",
                         granted = state.permissions.exactAlarms,
                         onAllow = onAllowExactAlarms,
                         seed = 124,
+                    )
+                }
+                if (state.permissions.notificationsApply) {
+                    PermissionRow(
+                        title = "Notifications",
+                        description = "Optional. Reminds you 5 minutes before quiet time starts.",
+                        granted = state.permissions.notifications,
+                        onAllow = onAllowNotifications,
+                        seed = 127,
                     )
                 }
             }
@@ -243,7 +310,7 @@ private fun HomeReadyPreview() {
 private fun HomeFirstRunPreview() {
     SnoozerTheme {
         HomeContent(
-            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true)),
+            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true)),
             onAllowDnd = {}, onAllowExactAlarms = {}, onOpenWeek = {},
         )
     }

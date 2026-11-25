@@ -1,11 +1,6 @@
 package com.example.snoozer.alarm
 
-import android.content.Context
-import android.util.Log
-import com.example.snoozer.receiver.RingerController
-import com.example.snoozer.scheduler.AlarmScheduler
 import com.example.snoozer.util.TimeSource
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.DayOfWeek
@@ -13,18 +8,22 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Changes to saved windows that also have to touch the system: scheduled alarms and the
- * ringer. Shared by every ViewModel that edits alarms, so the rules live in one place.
+ * Changes to saved windows that also have to touch the system: scheduled alarms, the ringer
+ * and reminder notices. Shared by every ViewModel and alarm receiver, so the rules live in
+ * one place. The system parts come in as interfaces ([WindowScheduler], [Ringer], [Reminders])
+ * so these rules are unit-tested with fakes.
  *
  * A singleton with one lock, so two changes (a quick off-then-on toggle, or a toggle while
- * a save is running) run one after the other instead of mixing their reads and writes.
+ * a save is running, or an alarm firing mid-save) run one after the other.
  */
 @Singleton
 class AlarmActions @Inject constructor(
     private val repository: AlarmRepository,
-    private val scheduler: AlarmScheduler,
+    private val scheduler: WindowScheduler,
+    private val ringer: Ringer,
+    private val reminders: Reminders,
     private val timeSource: TimeSource,
-    @ApplicationContext private val appContext: Context,
+    private val logger: Logger,
 ) {
     private val lock = Mutex()
 
@@ -33,33 +32,42 @@ class AlarmActions @Inject constructor(
         val id = repository.insertAlarm(alarm)
         val saved = alarm.copy(id = id.toInt())
         scheduler.scheduleAlarm(saved)
-        muteIfActive(saved)
+        // The scheduler only sets the *next* mute, so a window that has already started
+        // (say 09:00-11:00 saved at 10:00) would first mute next week. Quiet the phone now
+        // instead; its unmute for today is already scheduled.
+        if (isRunning(saved)) applyQuiet()
     }
 
     /** Replaces [old] with [new] (same id), moving its scheduled alarms to the new times. */
     suspend fun update(old: Alarm, new: Alarm) = lock.withLock {
-        // Read before anything changes: was this window already muting the phone?
-        val wasRunning = old.isEnabled && AlarmTime.isActiveAt(old, timeSource.now())
+        // Read before anything changes: was this window already quieting the phone?
+        val wasRunning = isRunning(old)
         repository.updateAlarm(new)
         scheduler.cancelAlarm(old)
         scheduler.scheduleAlarm(new)
-        releaseRingerIfIdle(old)
-        // Mute only when the edit makes the window cover now (say its start moved earlier).
-        // If it was already running, the phone is muted, or the user unmuted it on purpose
-        // mid-window; editing the category or end time shouldn't silence it again.
-        if (!wasRunning) muteIfActive(new)
+        reminders.cancel(old.id) // a shown notice may describe the old times
+        val nowRunning = isRunning(new)
+        // Touch the ringer when the edit starts or ends the running state (a start moved
+        // earlier quiets now; an end moved earlier hands over, since its pending unmute was
+        // just cancelled), or when it keeps running but its level changes (Work -> Study goes
+        // silent at once). Any other edit of a running window leaves the ringer alone: the
+        // user may have unmuted on purpose mid-window.
+        val levelChanged = old.category.quietLevel != new.category.quietLevel
+        if (wasRunning != nowRunning || (nowRunning && levelChanged)) applyQuiet()
     }
 
     suspend fun delete(alarm: Alarm) = lock.withLock {
         repository.deleteAlarm(alarm)
         scheduler.cancelAlarm(alarm)
-        releaseRingerIfIdle(alarm)
+        reminders.cancel(alarm.id)
+        // Its pending unmute is gone, so hand over (or give the ringer back) right away.
+        if (isRunning(alarm)) applyQuiet()
     }
 
     /**
      * Switches a window on or off without deleting it. Reads the saved row first, so a
-     * second tap always starts from what the first one wrote. Switching off cancels its
-     * alarms and, if it is muting the phone right now, gives the ringer back.
+     * second tap always starts from what the first one wrote. Switching on quiets the phone
+     * if the window is running; switching off hands over or gives the ringer back.
      */
     suspend fun setEnabled(id: Int, enabled: Boolean) = lock.withLock {
         val alarm = repository.getAlarmById(id) ?: return@withLock
@@ -68,75 +76,79 @@ class AlarmActions @Inject constructor(
         repository.updateAlarm(updated)
         if (enabled) {
             scheduler.scheduleAlarm(updated)
-            muteIfActive(updated)
         } else {
             scheduler.cancelAlarm(alarm)
-            releaseRingerIfIdle(alarm)
+            reminders.cancel(alarm.id)
         }
+        // Running now, counting the window as switched on (whichever way it is going).
+        if (isRunning(alarm.copy(isEnabled = true))) applyQuiet()
     }
 
     // Alarm broadcasts. They take the same lock as the edits above, so a mute or unmute that
     // fires while the user is saving or deleting sees the finished change, never half of it.
 
-    /** A window's mute alarm fired. Mutes only if that window is still saved and switched on. */
+    /**
+     * A window's reminder fired for the occurrence starting on [startDay]. Shown only if the
+     * window is still saved and on, a notice would be seen, Snoozer can actually quiet the
+     * phone, and it isn't late: reminders don't use the idle-time alarm budget (that is kept
+     * for the mutes), so in deep idle one can arrive after the start, and then it's dropped.
+     * The next week's reminder is set when this occurrence's unmute reschedules the window.
+     */
+    suspend fun onReminderFired(alarmId: Int, startDay: DayOfWeek) = lock.withLock {
+        val alarm = repository.getAlarmById(alarmId)
+        if (alarm == null || !alarm.isEnabled) return@withLock
+        if (!reminders.canShow() || !ringer.canChange()) return@withLock
+        val minutes = AlarmTime.minutesUntilStart(alarm, startDay, timeSource.now())
+        if (minutes !in 1..AlarmTime.REMINDER_EARLIEST_MINUTES + 1) {
+            logger.warn("Reminder for $alarmId arrived $minutes min before its start; dropped")
+            return@withLock
+        }
+        reminders.show(alarm, minutes)
+    }
+
+    /** A window's mute alarm fired. Quiets the phone only if that window is still saved and on. */
     suspend fun onMuteFired(alarmId: Int) = lock.withLock {
         val alarm = repository.getAlarmById(alarmId)
         if (alarm == null || !alarm.isEnabled) {
             // A leftover alarm for a deleted or switched-off window: don't silence the phone.
-            Log.w(TAG, "Mute for missing or switched-off snoozer $alarmId ignored")
+            logger.warn("Mute for missing or switched-off snoozer $alarmId ignored")
             return@withLock
         }
-        RingerController.mute(appContext)
+        reminders.cancel(alarmId) // "starts in 5 minutes" is out of date once it has started
+        applyQuiet()
     }
 
     /**
-     * A window's unmute alarm fired for the occurrence that started on [day]. Gives the ringer
-     * back unless another window is still running, then sets this window up for next week.
+     * A window's unmute alarm fired for the occurrence that started on [day]. Hands over to
+     * any window still running (Study ends, Work continues: silent becomes vibrate) or gives
+     * the ringer back, then sets this window up for next week.
      */
     suspend fun onUnmuteFired(alarmId: Int, day: DayOfWeek) = lock.withLock {
-        val alarms = repository.getAllAlarmsDirect()
-        val now = timeSource.now()
-        // Don't unmute while another window is still running (e.g. 9-11 and 10-10:30).
-        // That window's own unmute will restore the ringer later.
-        val otherActive = alarms.any { it.id != alarmId && it.isEnabled && AlarmTime.isActiveAt(it, now) }
-        if (!otherActive) RingerController.restore(appContext)
+        // Leave the ending window out: it is ending now, whatever the clock's last second says.
+        applyQuiet(excludingId = alarmId)
         // Read under the lock, so a window deleted a moment ago isn't brought back.
-        val alarm = alarms.firstOrNull { it.id == alarmId }
+        val alarm = repository.getAlarmById(alarmId)
         if (alarm != null) scheduler.scheduleAlarmWithDay(alarm, day)
-        else Log.w(TAG, "Unmute for missing snoozer $alarmId; not rescheduled")
+        else logger.warn("Unmute for missing snoozer $alarmId; not rescheduled")
     }
 
-    /** Re-creates every window's alarms (after a reboot, an update or a clock change). */
+    /**
+     * Re-creates every window's alarms (after a reboot, an update or a clock change).
+     */
     suspend fun rescheduleAll() = lock.withLock {
         repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
     }
 
-    /**
-     * The scheduler only sets the *next* mute, so a window that has already started (say
-     * 09:00-11:00 saved at 10:00) would first mute next week. Mute now instead; its unmute
-     * for today is already scheduled. Does nothing for a switched-off window.
-     */
-    private fun muteIfActive(alarm: Alarm) {
-        if (alarm.isEnabled && AlarmTime.isActiveAt(alarm, timeSource.now())) {
-            RingerController.mute(appContext)
-        }
-    }
+    private fun isRunning(alarm: Alarm): Boolean =
+        alarm.isEnabled && AlarmTime.isActiveAt(alarm, timeSource.now())
 
     /**
-     * Deleting, editing or switching off a window while it is muting the phone cancels its
-     * pending unmute, which would leave the phone silent. If [changed] (the old version) was
-     * active and no saved, enabled window still covers now, restore the ringer right away.
+     * The one place that decides the ringer: the quietest level among the saved windows
+     * running now ([excludingId] aside), or the user's own mode back when none is. Called
+     * under [lock] by every change above, so they all follow the same rules.
      */
-    private suspend fun releaseRingerIfIdle(changed: Alarm) {
-        val now = timeSource.now()
-        if (!AlarmTime.isActiveAt(changed, now)) return
-        val stillActive = repository.getAllAlarmsDirect().any {
-            it.isEnabled && AlarmTime.isActiveAt(it, now)
-        }
-        if (!stillActive) RingerController.restore(appContext)
-    }
-
-    private companion object {
-        const val TAG = "AlarmActions"
+    private suspend fun applyQuiet(excludingId: Int? = null) {
+        val level = AlarmTime.quietLevelAt(repository.getAllAlarmsDirect(), timeSource.now(), excludingId)
+        if (level == null) ringer.restore() else ringer.quiet(level)
     }
 }
