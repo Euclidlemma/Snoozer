@@ -18,6 +18,14 @@ fun Context.openExactAlarmSettings() {
     }
 }
 
+/**
+ * Opens Snoozer's app info page, where the battery setting lives (Battery, then Unrestricted on
+ * Samsung). Android has no public screen for just this app's battery setting, and asking for the
+ * exemption directly (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) is restricted on Google Play.
+ */
+fun Context.openBatterySettings() =
+    openSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+
 /** Some devices strip these Settings screens; fall back to Snoozer's app info page. */
 private fun Context.openSettings(intent: Intent) {
     try {

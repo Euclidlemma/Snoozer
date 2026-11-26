@@ -66,6 +66,7 @@ import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.Permissions
 import com.example.snoozer.util.openDndSettings
 import com.example.snoozer.util.openExactAlarmSettings
+import com.example.snoozer.util.openBatterySettings
 import com.example.snoozer.util.openNotificationSettings
 import com.example.snoozer.util.notificationAsk
 import com.example.snoozer.util.refusedForGood
@@ -99,6 +100,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         state = current,
         onAllowDnd = context::openDndSettings,
         onAllowExactAlarms = context::openExactAlarmSettings,
+        onAllowBattery = context::openBatterySettings,
         onAllowNotifications = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val permission = Manifest.permission.POST_NOTIFICATIONS
@@ -143,6 +145,7 @@ fun HomeContent(
     onAllowExactAlarms: () -> Unit,
     onOpenWeek: () -> Unit,
     onAllowNotifications: () -> Unit = {},
+    onAllowBattery: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().systemBarsPadding()) {
@@ -181,6 +184,14 @@ fun HomeContent(
                         seed = 127,
                     )
                 }
+                PermissionRow(
+                    title = "Battery: Unrestricted",
+                    description = "Recommended. Keeps your phone from putting Snoozer to sleep and delaying it. " +
+                        "Opens app info: tap Battery, then Unrestricted.",
+                    granted = state.permissions.batteryUnrestricted,
+                    onAllow = onAllowBattery,
+                    seed = 130,
+                )
             }
         }
         Column(
@@ -310,7 +321,7 @@ private fun HomeReadyPreview() {
 private fun HomeFirstRunPreview() {
     SnoozerTheme {
         HomeContent(
-            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true)),
+            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true, batteryUnrestricted = false)),
             onAllowDnd = {}, onAllowExactAlarms = {}, onOpenWeek = {},
         )
     }
