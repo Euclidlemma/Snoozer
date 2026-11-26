@@ -422,7 +422,7 @@ private fun Footer(nextReport: String) {
 private fun EarlierWeeks(weeks: List<EarlierWeekUi>) {
     DoodleSection(title = "Earlier weeks", seed = 870) {
         weeks.forEach { w ->
-            Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+            Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
                 Text(w.range, style = SnoozerTheme.type.body, modifier = Modifier.weight(1f))
                 Text(w.total, style = SnoozerTheme.type.label)
             }
