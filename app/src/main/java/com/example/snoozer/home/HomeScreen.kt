@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -308,7 +309,10 @@ private fun PermissionRow(title: String, description: String, granted: Boolean, 
             Text(description, style = SnoozerTheme.type.caption, color = scheme.onSurfaceVariant)
         }
         if (!granted) {
-            DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) { Text("Allow") }
+            // Spoken with the row's name: several rows each have an Allow button.
+            DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) {
+                Text("Allow", modifier = Modifier.clearAndSetSemantics { contentDescription = "Allow $title" })
+            }
         }
     }
 }
