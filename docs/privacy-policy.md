@@ -63,4 +63,4 @@ If this policy changes, the new version will be posted here with a new effective
 
 ## Contact
 
-Questions about this policy: [CONTACT EMAIL]
+Questions about this policy: jakeMobileDev@gmail.com

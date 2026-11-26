@@ -62,10 +62,10 @@ Screenshots were taken on an emulator with sample snoozers, not a real phone's d
 **Category:** Productivity. **Tags:** suggestions such as Productivity, Study, Time management.
 
 **Contact details:** an email address is required and is shown publicly on the store page.
-Use the same address as in the privacy policy.
+Use jakeMobileDev@gmail.com, the same address as in the privacy policy.
 
 **Privacy policy URL:** the published address of `docs/privacy-policy.md` (see "Publishing
-the privacy policy" below). Fill in `[CONTACT EMAIL]` in it first.
+the privacy policy" below).
 
 ## App content
 
@@ -108,7 +108,7 @@ and answer from it if it says otherwise.
 
 The policy is `docs/privacy-policy.md`. To publish it with GitHub Pages:
 
-1. Fill in `[CONTACT EMAIL]` and merge it into `main`.
+1. Merge it into `main` (its contact address is already filled in).
 2. In the GitHub repository: Settings → Pages → Source: Deploy from a branch → `main`, folder
    `/docs`.
 3. The policy will be at `https://<github-user>.github.io/<repository>/privacy-policy`.
