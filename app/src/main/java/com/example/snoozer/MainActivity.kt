@@ -131,6 +131,7 @@ class MainActivity : ComponentActivity() {
                                 // -1 = no value: a new snoozer / no starting day.
                                 navArgument(Routes.EditAlarm.ARG_ID) { type = NavType.IntType; defaultValue = -1 },
                                 navArgument(Routes.EditAlarm.ARG_DAY) { type = NavType.IntType; defaultValue = -1 },
+                                navArgument(Routes.EditAlarm.ARG_DATE) { type = NavType.StringType; nullable = true; defaultValue = null },
                             ),
                         ) {
                             EditAlarmScreen(navController)

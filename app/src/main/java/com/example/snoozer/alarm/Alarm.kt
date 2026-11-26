@@ -28,3 +28,10 @@ data class Alarm(
      */
     val untilDate: LocalDate? = null,
 )
+
+/**
+ * The date of a snoozer that runs on one date only (made with "One date"): its first and last
+ * dates are the same day, on that day's weekday. Null for a weekly snoozer.
+ */
+val Alarm.oneDate: LocalDate?
+    get() = fromDate?.takeIf { it == untilDate && daysOfWeek.distinct() == listOf(it.dayOfWeek) }

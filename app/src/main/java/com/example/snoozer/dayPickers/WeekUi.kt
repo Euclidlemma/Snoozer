@@ -5,6 +5,7 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
+import com.example.snoozer.alarm.oneDate
 import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.QuietStatus
@@ -173,8 +174,10 @@ object WeekUi {
         }
 
     private fun day(day: DayOfWeek, alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean): DayUi {
+        // A one-date snoozer shows on its weekday only in its own week; the Month view has it always.
+        val date = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(day.value - 1L)
         val onDay = alarms
-            .filter { day in it.daysOfWeek }
+            .filter { day in it.daysOfWeek && (it.oneDate == null || it.oneDate == date) }
             .sortedWith(compareBy({ it.startHour }, { it.startMinute }, { it.id }))
         val isToday = day == now.dayOfWeek
         // Ended classes and ones whose term hasn't started stay listed ("Ended 4 Dec", "Starts
@@ -221,6 +224,9 @@ object WeekUi {
     /** "Ended 4 Dec", "Starts 14 Sep" or "Until 4 Dec"; null for a snoozer without dates. */
     fun dateNote(alarm: Alarm, now: LocalDateTime): String? = when {
         AlarmTime.hasEnded(alarm, now) -> "Ended ${AlarmTime.formatDate(alarm.untilDate!!)}"
+        alarm.oneDate != null -> alarm.oneDate!!.let { d ->
+            if (d == now.toLocalDate()) "Only today" else "Only on ${d.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${AlarmTime.formatDate(d)}"
+        }
         AlarmTime.notStartedYet(alarm, now) -> "Starts ${AlarmTime.formatDate(alarm.fromDate!!)}"
         alarm.untilDate != null -> "Until ${AlarmTime.formatDate(alarm.untilDate)}"
         else -> null
