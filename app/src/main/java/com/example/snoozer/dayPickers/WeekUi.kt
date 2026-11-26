@@ -181,7 +181,11 @@ object WeekUi {
         val enabled = onDay.filter { it.isEnabled && !AlarmTime.hasEnded(it, now) }
         val summary = when {
             onDay.isEmpty() -> null
-            enabled.isEmpty() -> "${count(onDay.size)} · all off or ended"
+            enabled.isEmpty() -> "${count(onDay.size)} · " + when {
+                onDay.none { it.isEnabled } -> "all off"
+                onDay.all { it.isEnabled } -> "all ended"
+                else -> "all off or ended"
+            }
             else -> "${count(enabled.size)} · ${AlarmTime.formatDuration(quietMinutes(enabled))} quiet"
         }
         return DayUi(
