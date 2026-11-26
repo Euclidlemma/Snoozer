@@ -1,6 +1,7 @@
 package com.example.snoozer.timetable
 
 import android.content.Context
+import android.content.Intent
 import androidx.core.net.toUri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
@@ -60,6 +61,15 @@ class TimetableFileReader @Inject constructor(@ApplicationContext private val co
             out.toByteArray()
         }
         return bytes.toString(Charsets.UTF_8)
+    }
+
+    /** Gives back the lasting read access the picker took (nothing to give back is fine). */
+    fun release(uri: String) {
+        try {
+            context.contentResolver.releasePersistableUriPermission(uri.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: SecurityException) {
+            // Never taken (opened with Snoozer, or the provider didn't offer it).
+        }
     }
 
     private companion object {
@@ -185,6 +195,11 @@ class ImportViewModel @Inject constructor(
             }
             events.send(event)
         }
+    }
+
+    // The preview is closed for good (not just rotated or restarted): the file isn't needed again.
+    override fun onCleared() {
+        uri?.let(reader::release)
     }
 
     private companion object {

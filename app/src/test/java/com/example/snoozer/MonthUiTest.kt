@@ -84,6 +84,14 @@ class MonthUiTest {
     }
 
     @Test
+    fun daySummary_leavesOutClassesBeforeTheirTerm() {
+        val january = Alarm(9, 14, 30, 16, 20, listOf(TUESDAY), work = "Study", name = "LAB",
+            fromDate = LocalDate.of(2027, 1, 12), untilDate = LocalDate.of(2027, 3, 30))
+        val tuesday = WeekUi.build(listOf(january), now).days[1]
+        assertEquals("1 snoozer · not started yet", tuesday.summary)
+    }
+
+    @Test
     fun weeklyTotals_leaveOutClassesOutsideTheirTerm() {
         // In term: Work 5 x 8h, Study 2 x 50m.
         assertEquals(mapOf(Category.Work to 2400, Category.Study to 100), WeekUi.weeklyMinutes(alarms, now.toLocalDate()))

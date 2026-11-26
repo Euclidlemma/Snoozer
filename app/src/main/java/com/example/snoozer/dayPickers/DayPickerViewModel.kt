@@ -16,9 +16,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
+import com.example.snoozer.alarm.Alarm
 import java.time.YearMonth
 import javax.inject.Inject
 
@@ -58,15 +62,20 @@ class DayPickerViewModel @Inject constructor(
      * Null until the first database read, so the screen doesn't flash "A free day" on open.
      * The clock only ticks while the screen collects this (it stops 5s after it leaves).
      */
-    val uiState: StateFlow<WeekUiState?> =
-        combine(repository.observeAlarms(), timeSource.minuteTicks, canMute) { alarms, now, dnd ->
-            WeekUi.build(alarms, now, canMute = dnd)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    // One database observer and one clock for both views.
+    private data class Snapshot(val alarms: List<Alarm>, val now: LocalDateTime, val canMute: Boolean)
 
-    /** The month calendar, built only from the same alarms and clock as [uiState]. */
+    private val snapshot = combine(repository.observeAlarms(), timeSource.minuteTicks, canMute, ::Snapshot)
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    val uiState: StateFlow<WeekUiState?> =
+        snapshot.map { WeekUi.build(it.alarms, it.now, canMute = it.canMute) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The month calendar; only built while the Month view is showing. */
     val monthState: StateFlow<MonthUiState?> =
-        combine(repository.observeAlarms(), timeSource.minuteTicks, canMute, month, selected) { alarms, now, dnd, m, d ->
-            MonthUi.build(alarms, now, m, d, canMute = dnd)
+        combine(snapshot, view, month, selected) { s, v, m, d ->
+            if (v == WeekView.Month) MonthUi.build(s.alarms, s.now, m, d, canMute = s.canMute) else null
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun refreshPermissions() {

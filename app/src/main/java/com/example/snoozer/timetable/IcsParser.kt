@@ -63,7 +63,7 @@ object IcsParser {
         val singles = mutableListOf<Single>()
         for (event in events(unfold(text))) {
             when (val r = read(event, zone)) {
-                is Read.Weekly -> classes += r.cls
+                is Read.Weekly -> classes += r.classes
                 is Read.Once -> singles += r.single
                 is Read.Skip -> skip(r.reason)
                 Read.Ignore -> Unit
@@ -148,7 +148,8 @@ object IcsParser {
     private data class Single(val name: String, val start: LocalDateTime, val end: LocalDateTime)
 
     private sealed interface Read {
-        data class Weekly(val cls: ParsedClass) : Read
+        /** Usually one class; more when its local time moves partway (a clock change elsewhere). */
+        data class Weekly(val classes: List<ParsedClass>) : Read
         data class Once(val single: Single) : Read
         data class Skip(val reason: SkipReason) : Read
         /** Not a class and not worth reporting: a cancelled event, or a changed single occurrence. */
@@ -185,7 +186,10 @@ object IcsParser {
         // "1MO" (the first Monday) belongs to monthly rules; weekly ones list plain days.
         val days = if (byDay.isNullOrEmpty()) setOf(start.dayOfWeek)
             else byDay.map { DAY_CODES[it] ?: return Read.Skip(SkipReason.NotWeekly) }.toSet()
-        val count = rule["COUNT"]?.toIntOrNull()
+        // RFC 5545 counts DTSTART as the first instance even when it isn't one of the BYDAY days
+        // (it's then not a class day here), so it uses up one of COUNT.
+        val count = rule["COUNT"]?.toIntOrNull()?.let { if (start.dayOfWeek in days) it else it - 1 }
+        if (count != null && count <= 0) return Read.Skip(SkipReason.Unreadable)
         val until = rule["UNTIL"]?.let { untilInstant(it, start.zone) ?: return Read.Skip(SkipReason.Unreadable) }
 
         // Walk the dates in the event's own time zone, as the file means them.
@@ -207,16 +211,29 @@ object IcsParser {
         if (occurrences.isEmpty()) return Read.Skip(SkipReason.Unreadable)
         // On the phone, in its own time zone: a class at 23:30 elsewhere can land on another day.
         val local = occurrences.map { local(it, zone) }
-        val first = local.first()
+        // When the file's zone and the phone's change clocks on different dates (or the file is in
+        // UTC), the local time moves partway through the term: each run of the same local times
+        // becomes its own class, so every part mutes at the hour the class really is.
+        val runs = mutableListOf<MutableList<LocalDateTime>>()
+        for (t in local) {
+            val last = runs.lastOrNull()?.last()
+            if (last != null && last.toLocalTime() == t.toLocalTime() &&
+                last.plus(length).toLocalTime() == t.plus(length).toLocalTime()) runs.last() += t
+            else runs += mutableListOf(t)
+        }
         return Read.Weekly(
-            ParsedClass(
-                name = name,
-                start = first.toLocalTime(),
-                end = first.plus(length).toLocalTime(),
-                days = local.map { it.dayOfWeek }.toSet(),
-                from = first.toLocalDate(),
-                until = if (openEnded) null else local.last().toLocalDate(),
-            )
+            runs.mapIndexed { i, run ->
+                val first = run.first()
+                ParsedClass(
+                    name = name,
+                    start = first.toLocalTime(),
+                    end = first.plus(length).toLocalTime(),
+                    days = run.map { it.dayOfWeek }.toSet(),
+                    from = first.toLocalDate(),
+                    // Only the last run of a repeat with no end stays open-ended.
+                    until = if (openEnded && i == runs.lastIndex) null else run.last().toLocalDate(),
+                )
+            }
         )
     }
 

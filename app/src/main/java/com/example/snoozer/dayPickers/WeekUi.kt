@@ -177,14 +177,17 @@ object WeekUi {
             .filter { day in it.daysOfWeek }
             .sortedWith(compareBy({ it.startHour }, { it.startMinute }, { it.id }))
         val isToday = day == now.dayOfWeek
-        // Ended classes stay listed (dimmed, "Ended 4 Dec") but don't count toward the day.
-        val enabled = onDay.filter { it.isEnabled && !AlarmTime.hasEnded(it, now) }
+        // Ended classes and ones whose term hasn't started stay listed ("Ended 4 Dec", "Starts
+        // 12 Jan") but don't count toward the day, matching "This week".
+        val current = { a: Alarm -> !AlarmTime.hasEnded(a, now) && !AlarmTime.notStartedYet(a, now) }
+        val enabled = onDay.filter { it.isEnabled && current(it) }
         val summary = when {
             onDay.isEmpty() -> null
             enabled.isEmpty() -> "${count(onDay.size)} · " + when {
                 onDay.none { it.isEnabled } -> "all off"
-                onDay.all { it.isEnabled } -> "all ended"
-                else -> "all off or ended"
+                onDay.filter { it.isEnabled }.all { AlarmTime.hasEnded(it, now) } -> if (onDay.all { it.isEnabled }) "all ended" else "all off or ended"
+                onDay.filter { it.isEnabled }.all { AlarmTime.notStartedYet(it, now) } -> "not started yet"
+                else -> "none this week"
             }
             else -> "${count(enabled.size)} · ${AlarmTime.formatDuration(quietMinutes(enabled))} quiet"
         }

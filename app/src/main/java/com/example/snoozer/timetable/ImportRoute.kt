@@ -1,6 +1,7 @@
 package com.example.snoozer.timetable
 
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -35,7 +36,16 @@ fun rememberTimetablePicker(onPicked: (Uri) -> Unit): () -> Unit {
     val context = LocalContext.current
     val picked by rememberUpdatedState(onPicked)
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) picked(uri)
+        if (uri != null) {
+            // Keep read access past this moment, so the preview can read the file again if Android
+            // restarts the app meanwhile. Released when the preview closes (ImportViewModel).
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (e: SecurityException) {
+                // Some providers don't offer it; the file is still readable for now.
+            }
+            picked(uri)
+        }
     }
     return {
         try {

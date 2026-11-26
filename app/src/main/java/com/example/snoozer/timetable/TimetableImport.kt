@@ -24,17 +24,34 @@ object TimetableImport {
      */
     fun merge(classes: List<ParsedClass>): List<Candidate> =
         classes.groupBy { Triple(it.name, it.start, it.end) }
-            .map { (k, group) ->
-                val until = if (group.any { it.until == null }) null else group.maxOf { it.until!! }
-                val merged = ParsedClass(
-                    name = k.first, start = k.second, end = k.third,
-                    days = group.flatMap { it.days }.toSet(),
-                    from = group.minOf { it.from },
-                    until = until,
-                )
-                Candidate(key = "${merged.name}|${merged.start}|${merged.end}", cls = merged)
-            }
+            .flatMap { (_, group) -> terms(group) }
+            .map { c -> Candidate(key = "${c.name}|${c.start}|${c.end}|${c.from}", cls = c) }
             .sortedWith(compareBy({ it.cls.days.min() }, { it.cls.start }, { it.cls.name }))
+
+    /**
+     * Joins the parts of one class (same name and times) whose dates touch or overlap. Parts
+     * further apart than [TERM_GAP_DAYS] (the same course in fall and in winter) stay separate,
+     * so the break between terms isn't muted. A reading week is a shorter gap and is joined.
+     */
+    private fun terms(parts: List<ParsedClass>): List<ParsedClass> {
+        val out = mutableListOf<ParsedClass>()
+        for (p in parts.sortedBy { it.from }) {
+            val last = out.lastOrNull()
+            val lastUntil = last?.until
+            if (last != null && (lastUntil == null || !p.from.isAfter(lastUntil.plusDays(TERM_GAP_DAYS)))) {
+                out[out.lastIndex] = last.copy(
+                    days = last.days + p.days,
+                    until = if (lastUntil == null || p.until == null) null else maxOf(lastUntil, p.until),
+                )
+            } else {
+                out += p
+            }
+        }
+        return out
+    }
+
+    /** Longer than a reading week, shorter than the break between two terms. */
+    private const val TERM_GAP_DAYS = 21L
 
     /** Already saved: a snoozer with the same name, times and days. */
     fun alreadyAdded(c: ParsedClass, existing: List<Alarm>): Boolean = existing.any { a ->

@@ -136,9 +136,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** The calendar file this activity was opened with, if any. */
+    /**
+     * The calendar file this activity was opened with, if any. Not when reopened from Recents:
+     * Android then replays the original intent, and the file was already handled (its read
+     * access has usually lapsed too).
+     */
     private fun calendarFileIn(intent: Intent?): Uri? =
-        intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data?.takeIf { it.scheme == "content" }
+        intent?.takeIf { it.action == Intent.ACTION_VIEW && it.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0 }
+            ?.data?.takeIf { it.scheme == "content" }
 
     /** Onboarding for new people (and until a started one is finished), Home otherwise. See [decideFirstLaunch]. */
     private fun startRoute(): String = when (decideFirstLaunch(onboarding)) {

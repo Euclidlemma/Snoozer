@@ -85,4 +85,17 @@ class TimetableImportTest {
             TimetableImport.skippedText(mapOf(SkipReason.NotWeekly to 1, SkipReason.AllDay to 2)))
         assertNull(TimetableImport.skippedText(emptyMap()))
     }
+
+    @Test
+    fun sameClassInTwoTerms_staysTwo_butAReadingWeekGapJoins() {
+        val fall = ParsedClass("MATH 101", LocalTime.of(9, 30), LocalTime.of(10, 20), setOf(MONDAY),
+            LocalDate.of(2026, 9, 7), LocalDate.of(2026, 12, 7))
+        val winter = fall.copy(from = LocalDate.of(2027, 1, 4), until = LocalDate.of(2027, 4, 5))
+        val merged = TimetableImport.merge(listOf(winter, fall))
+        assertEquals(2, merged.size)
+        assertEquals(2, merged.map { it.key }.toSet().size) // keys stay distinct
+        // A one-week gap (reading week) is the same term.
+        val afterBreak = fall.copy(from = LocalDate.of(2026, 12, 14), until = LocalDate.of(2026, 12, 18))
+        assertEquals(1, TimetableImport.merge(listOf(fall, afterBreak)).size)
+    }
 }

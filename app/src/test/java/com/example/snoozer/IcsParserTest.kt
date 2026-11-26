@@ -139,4 +139,48 @@ class IcsParserTest {
         assertTrue(IcsParser.looksLikeCalendar(ics))
         assertFalse(IcsParser.looksLikeCalendar("hello"))
     }
+
+    @Test
+    fun clockChangeInTheFilesZoneOnly_splitsTheClassAtTheRealHours() {
+        // Edmonton moves its clocks on 1 Nov; Whitehorse stays at UTC-7 all year.
+        val ics = """
+            BEGIN:VCALENDAR
+            BEGIN:VEVENT
+            SUMMARY:MATH 101
+            DTSTART;TZID=America/Edmonton:20260907T093000
+            DTEND;TZID=America/Edmonton:20260907T102000
+            RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR;UNTIL=20261204T235959Z
+            END:VEVENT
+            END:VCALENDAR
+        """.trimIndent()
+        val parts = IcsParser.parse(ics, ZoneId.of("America/Whitehorse")).classes.sortedBy { it.from }
+        assertEquals(2, parts.size)
+        assertEquals(LocalTime.of(8, 30), parts[0].start)
+        assertEquals(LocalDate.of(2026, 10, 30), parts[0].until)
+        assertEquals(LocalTime.of(9, 30), parts[1].start)
+        assertEquals(LocalDate.of(2026, 11, 2), parts[1].from)
+        assertEquals(LocalDate.of(2026, 12, 4), parts[1].until)
+        // In the file's own zone it's one class all term.
+        assertEquals(1, IcsParser.parse(ics, ZoneId.of("America/Edmonton")).classes.size)
+    }
+
+    @Test
+    fun count_includesADtstartOffItsDays() {
+        // DTSTART is a Tuesday, the rule is Mon/Wed: DTSTART is instance 1 of 4.
+        val ics = """
+            BEGIN:VCALENDAR
+            BEGIN:VEVENT
+            SUMMARY:Seminar
+            DTSTART:20260908T100000
+            DTEND:20260908T110000
+            RRULE:FREQ=WEEKLY;BYDAY=MO,WE;COUNT=4
+            END:VEVENT
+            END:VCALENDAR
+        """.trimIndent()
+        val c = IcsParser.parse(ics, ZoneId.of("UTC")).classes.single()
+        assertEquals(LocalDate.of(2026, 9, 9), c.from)
+        // Tue 8 (DTSTART), Wed 9, Mon 14, Wed 16; counting only Mon/Wed would run to Mon 21.
+        assertEquals(LocalDate.of(2026, 9, 16), c.until)
+        assertEquals(setOf(MONDAY, WEDNESDAY), c.days)
+    }
 }
