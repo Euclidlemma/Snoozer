@@ -1,7 +1,6 @@
 package com.example.snoozer.report
 
 import android.content.Context
-import android.util.Log
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,14 +8,12 @@ import com.example.snoozer.alarm.QuietStretchDao
 import com.example.snoozer.util.TimeSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -63,17 +60,4 @@ class ReportViewModel @Inject constructor(
             seen.markSeen(WeeklyReport.reportWeek(now))
             WeeklyReport.build(stretches, now, zone)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportUiState.Loading)
-
-    init {
-        // Drop stretches older than the report shows. Nothing depends on the result.
-        viewModelScope.launch {
-            try {
-                dao.deleteEndedBefore(WeeklyReport.keepFrom(timeSource.now(), zone))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w("ReportViewModel", "Could not prune the quiet log", e)
-            }
-        }
-    }
 }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -305,12 +304,14 @@ private fun DayBars(days: List<DayBarUi>, reveal: State<Float>) {
     }
     DoodleSection(title = "Day by day", seed = 840) {
         Row(
-            Modifier.fillMaxWidth().height(BarAreaHeight + 44.dp).clearAndSetSemantics { contentDescription = summary },
+            // Wraps its content (bars share the bottom edge), so the star and the day letters always
+            // fit, at any font size.
+            Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = summary },
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.Bottom,
         ) {
             days.forEachIndexed { i, d ->
-                Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "★",
                         style = SnoozerTheme.type.title,

@@ -38,7 +38,7 @@ class DayPickerViewModel @Inject constructor(
     private val actions: AlarmActions,
     private val timeSource: TimeSource,
     private val permissionChecker: PermissionChecker,
-    quietStretches: QuietStretchDao,
+    private val quietStretches: QuietStretchDao,
     reportSeen: ReportSeenStore,
 ) : ViewModel() {
 
@@ -93,6 +93,20 @@ class DayPickerViewModel @Inject constructor(
         combine(snapshot, view, month, selected) { s, v, m, d ->
             if (v == WeekView.Month) MonthUi.build(s.alarms, s.now, m, d, canMute = s.canMute) else null
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    init {
+        // Keep the quiet log to the weeks the report shows. Here, not on the report screen, so it
+        // happens even for someone who never opens the report. Nothing depends on the result.
+        viewModelScope.launch {
+            try {
+                quietStretches.deleteEndedBefore(WeeklyReport.keepFrom(timeSource.now(), ZoneId.systemDefault()))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not prune the quiet log", e)
+            }
+        }
+    }
 
     fun refreshPermissions() {
         canMute.value = permissionChecker.check().dnd

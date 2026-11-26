@@ -257,4 +257,28 @@ class AlarmActionsTest {
         time.at = at(9); actions.onMuteFired(1)
         assertTrue(stretches.rows.single().missed)
     }
+
+    @Test
+    fun rescheduleAll_afterAMissedUnmute_catchesUpTheRingerAndTheLog() = runBlocking {
+        // Study 09-11 muted at 09:00; the phone was off at 11:00, so its unmute never fired.
+        val study = alarm(1, 9, 11, "Study")
+        saved(study)
+        time.at = at(9); actions.onMuteFired(1)
+        ringer.calls.clear()
+        time.at = at(13); actions.rescheduleAll()
+        assertEquals(listOf("restore"), ringer.calls)
+        assertEquals(at(13), local(stretches.rows.single().endMillis!!))
+    }
+
+    @Test
+    fun rescheduleAll_whenItAgrees_leavesTheRingerAlone() = runBlocking {
+        // Mid-window, the user turned the sound up by hand; an app update must not undo that.
+        val work = alarm(1, 9, 17, "Work")
+        saved(work)
+        time.at = at(9); actions.onMuteFired(1)
+        ringer.calls.clear()
+        time.at = at(12); actions.rescheduleAll()
+        assertEquals(emptyList<String>(), ringer.calls)
+        assertEquals(null, stretches.rows.single().endMillis)
+    }
 }

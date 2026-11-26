@@ -168,6 +168,19 @@ class AlarmActions @Inject constructor(
      */
     suspend fun rescheduleAll() = lock.withLock {
         repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
+        // Alarms that should have fired meanwhile (the phone was off, or the clock jumped) never
+        // will. If what runs now differs from what Snoozer last set (per the quiet log), catch the
+        // ringer and the log up. When they agree, leave the ringer alone: the user may have
+        // turned it up on purpose, and an update or clock change shouldn't undo that.
+        val running = AlarmTime.quietLevelAt(repository.getAllAlarmsDirect(), timeSource.now())
+        val logged = try {
+            quietLog.open()?.categoryValue?.quietLevel
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            running // can't tell: change nothing
+        }
+        if (running != logged) applyQuiet()
     }
 
     private fun isRunning(alarm: Alarm): Boolean =
