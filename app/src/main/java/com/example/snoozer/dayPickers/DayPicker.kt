@@ -66,6 +66,8 @@ import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.openDndSettings
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import com.example.snoozer.report.ReportStrip
+import com.example.snoozer.report.ReportStripUi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -177,6 +179,8 @@ fun WeekContent(
     onSelectDate: (LocalDate) -> Unit = {},
     onImport: () -> Unit = {},
     onRemoveEnded: () -> Unit = {},
+    report: ReportStripUi? = null,
+    onReport: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxSize()) {
@@ -187,7 +191,10 @@ fun WeekContent(
             StatusCard(state.status, onAllowAccess = onAllowAccess, modifier = Modifier.weight(1f))
             HelpButton(onHelp)
         }
-        if (state.weeklyTotals != null) {
+        // Last week's report, in place of the plain totals line (shown until the report state arrives).
+        if (report != null) {
+            ReportStrip(report, onClick = onReport, modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S))
+        } else if (state.weeklyTotals != null) {
             Text(
                 state.weeklyTotals,
                 style = SnoozerTheme.type.caption,
