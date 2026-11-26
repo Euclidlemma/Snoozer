@@ -48,10 +48,6 @@ interface QuietStretchDao {
     @Query("SELECT * FROM quiet_stretches WHERE endMillis IS NULL OR endMillis > :fromMillis ORDER BY startMillis")
     fun observeSince(fromMillis: Long): Flow<List<QuietStretch>>
 
-    /** Whether anything was logged before [millis]: the report then has a past to show. */
-    @Query("SELECT EXISTS(SELECT 1 FROM quiet_stretches WHERE startMillis < :millis)")
-    fun observeAnyBefore(millis: Long): Flow<Boolean>
-
     /** Drops finished stretches older than the report keeps. */
     @Query("DELETE FROM quiet_stretches WHERE endMillis IS NOT NULL AND endMillis < :millis")
     suspend fun deleteEndedBefore(millis: Long)

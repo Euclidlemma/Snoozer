@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
+import com.example.snoozer.alarm.QuietStretchDao
+import com.example.snoozer.report.ReportSeenStore
+import com.example.snoozer.report.ReportStripUi
+import com.example.snoozer.report.WeeklyReport
 import java.time.LocalDateTime
 import com.example.snoozer.alarm.Alarm
 import java.time.YearMonth
@@ -33,6 +38,8 @@ class DayPickerViewModel @Inject constructor(
     private val actions: AlarmActions,
     private val timeSource: TimeSource,
     private val permissionChecker: PermissionChecker,
+    quietStretches: QuietStretchDao,
+    reportSeen: ReportSeenStore,
 ) : ViewModel() {
 
     /** The page to open on: today (0 = Monday). The pager owns the selection after that. */
@@ -57,20 +64,29 @@ class DayPickerViewModel @Inject constructor(
             ?: YearMonth.from(selected.value)
     )
 
-    /**
-     * Rebuilt whenever the alarms change and at every minute, so "in 2h 15m" stays current.
-     * Null until the first database read, so the screen doesn't flash "A free day" on open.
-     * The clock only ticks while the screen collects this (it stops 5s after it leaves).
-     */
     // One database observer and one clock for both views.
     private data class Snapshot(val alarms: List<Alarm>, val now: LocalDateTime, val canMute: Boolean)
 
     private val snapshot = combine(repository.observeAlarms(), timeSource.minuteTicks, canMute, ::Snapshot)
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
+    /**
+     * Rebuilt whenever the alarms change and at every minute, so "in 2h 15m" stays current.
+     * Null until the first database read, so the screen doesn't flash "A free day" on open.
+     * The clock only ticks while the screen collects this (it stops 5s after it leaves).
+     */
     val uiState: StateFlow<WeekUiState?> =
         snapshot.map { WeekUi.build(it.alarms, it.now, canMute = it.canMute) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The strip that opens the weekly report: last week's total, with a dot until it's opened
+     * (or the first-week note). Reads the same weeks of log the report does.
+     */
+    val reportStrip: StateFlow<ReportStripUi?> =
+        combine(snapshot, quietStretches.observeSince(WeeklyReport.keepFrom(timeSource.now(), ZoneId.systemDefault())), reportSeen.seenWeek) { s, stretches, seenWeek ->
+            WeeklyReport.strip(stretches, s.now, ZoneId.systemDefault(), seenWeek)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The month calendar; only built while the Month view is showing. */
     val monthState: StateFlow<MonthUiState?> =

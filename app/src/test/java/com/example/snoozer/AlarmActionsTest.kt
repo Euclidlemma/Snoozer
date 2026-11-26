@@ -75,7 +75,6 @@ class AlarmActionsTest {
         override suspend fun update(stretch: QuietStretch) { rows.replaceAll { if (it.id == stretch.id) stretch else it } }
         override suspend fun open(): QuietStretch? = rows.lastOrNull { it.endMillis == null }
         override fun observeSince(fromMillis: Long): Flow<List<QuietStretch>> = flowOf(rows.toList())
-        override fun observeAnyBefore(millis: Long): Flow<Boolean> = flowOf(rows.any { it.startMillis < millis })
         override suspend fun deleteEndedBefore(millis: Long) { rows.removeAll { it.endMillis != null && it.endMillis!! < millis } }
     }
 
