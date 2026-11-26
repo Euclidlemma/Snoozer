@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# The Play upload key and its passwords: never commit them.
+keystore.properties
+*.jks
+*.keystore

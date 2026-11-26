@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     // AGP 9 compiles Kotlin itself ("built-in Kotlin"); no separate kotlin-android plugin.
     alias(libs.plugins.android.application)
@@ -16,8 +18,9 @@ android {
         // java.time (DayOfWeek) is used throughout and needs API 26.
         minSdk = 26
         targetSdk = 36
+        // versionCode must grow with every upload to Play (1, 2, 3...); versionName is what people see.
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,13 +28,37 @@ android {
         }
     }
 
+    // The upload key for Google Play. Its location and passwords live in keystore.properties at
+    // the project root, which git ignores (see keystore.properties.example). Without it, release
+    // builds come out unsigned, unless -PlocalRelease asks to sign with the debug key to try the
+    // shrunk build on a phone. Play rejects debug-signed uploads, so that can't ship by accident.
+    val keystoreFile = rootProject.file("keystore.properties")
+    val uploadKey = Properties().apply { if (keystoreFile.exists()) keystoreFile.inputStream().use(::load) }
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            create("upload") {
+                storeFile = rootProject.file(uploadKey.getProperty("storeFile"))
+                storePassword = uploadKey.getProperty("storePassword")
+                keyAlias = uploadKey.getProperty("keyAlias")
+                keyPassword = uploadKey.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 shrinks and optimizes the code; unused resources are dropped too.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = when {
+                keystoreFile.exists() -> signingConfigs.getByName("upload")
+                project.hasProperty("localRelease") -> signingConfigs.getByName("debug")
+                else -> null
+            }
         }
     }
     compileOptions {
