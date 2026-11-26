@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,6 +42,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,7 +62,7 @@ import com.example.snoozer.ui.doodle.DoodleIllustration
 import com.example.snoozer.ui.doodle.Illustrations
 import com.example.snoozer.ui.doodle.DoodleSection
 import com.example.snoozer.ui.doodle.doodleFill
-import com.example.snoozer.ui.doodle.highlighter
+import com.example.snoozer.ui.doodle.lineHighlighter
 import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.ui.theme.Spacing
@@ -276,10 +278,14 @@ private val MascotSize = 196.dp
 private fun StatusLine(text: String, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
         Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(24.dp))
+        // Marked line by line: on a narrow screen it wraps, and one swipe across the whole box
+        // ran past the end of the shorter second line.
+        var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
         Text(
             text,
             style = SnoozerTheme.type.body,
-            modifier = Modifier.highlighter(SnoozerTheme.colors.highlighter).padding(horizontal = Spacing.XS),
+            onTextLayout = { layout = it },
+            modifier = Modifier.padding(horizontal = Spacing.XS).lineHighlighter(SnoozerTheme.colors.highlighter, { layout }),
         )
     }
 }
@@ -291,31 +297,46 @@ private fun StatusLine(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun PermissionRow(title: String, description: String, granted: Boolean, onAllow: () -> Unit, seed: Int) {
     val scheme = MaterialTheme.colorScheme
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.M)) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .doodleFill(if (granted) scheme.secondaryContainer else Color.Transparent,
-                    cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
-                .sketchyBorder(if (granted) scheme.onSurface else scheme.outline, width = 1.5.dp,
-                    cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
-                .semantics { contentDescription = if (granted) "Allowed" else "Not allowed yet" },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (granted) Icon(painterResource(R.drawable.ic_doodle_check), contentDescription = null, modifier = Modifier.size(22.dp))
+    val allow = @Composable {
+        // Spoken with the row's name: several rows each have an Allow button.
+        DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) {
+            Text("Allow", modifier = Modifier.clearAndSetSemantics { contentDescription = "Allow $title" })
         }
-        Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-            Text(title, style = SnoozerTheme.type.label)
-            Text(description, style = SnoozerTheme.type.caption, color = scheme.onSurfaceVariant)
-        }
-        if (!granted) {
-            // Spoken with the row's name: several rows each have an Allow button.
-            DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) {
-                Text("Allow", modifier = Modifier.clearAndSetSemantics { contentDescription = "Allow $title" })
+    }
+    // On a narrow row (a foldable's cover screen) a button beside the words squeezes them to a
+    // word or two per line, so there it goes under the words instead.
+    BoxWithConstraints {
+        val beside = maxWidth >= AllowBesideFrom
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.S)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.M)) {
+                Box(
+                    modifier = Modifier
+                        .size(CheckSize)
+                        .doodleFill(if (granted) scheme.secondaryContainer else Color.Transparent,
+                            cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
+                        .sketchyBorder(if (granted) scheme.onSurface else scheme.outline, width = 1.5.dp,
+                            cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
+                        .semantics { contentDescription = if (granted) "Allowed" else "Not allowed yet" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (granted) Icon(painterResource(R.drawable.ic_doodle_check), contentDescription = null, modifier = Modifier.size(22.dp))
+                }
+                Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
+                    Text(title, style = SnoozerTheme.type.label)
+                    Text(description, style = SnoozerTheme.type.caption, color = scheme.onSurfaceVariant)
+                }
+                if (!granted && beside) allow()
             }
+            // Lined up with the words, past the circle.
+            if (!granted && !beside) Box(Modifier.padding(start = CheckSize + Spacing.M)) { allow() }
         }
     }
 }
+
+private val CheckSize = 32.dp
+
+/** From this row width the Allow button fits beside the words. */
+private val AllowBesideFrom = 280.dp
 
 @Preview(name = "Home - ready", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
 @Preview(name = "Home - ready, dark", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFF2A2D2F,

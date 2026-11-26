@@ -371,12 +371,14 @@ private fun TimeField(label: String, time: String, onChange: (Int, Int) -> Unit,
             .clickable(onClickLabel = "Change $label time", role = Role.Button) { picking = true }
             .padding(horizontal = Spacing.M, vertical = Spacing.S),
     ) {
-        Text(label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // The clock sits by the label, so the time gets the field's whole width: beside the time
+        // it split "09:00" over two lines on a narrow cover screen.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(Spacing.S))
-            Text(time, style = SnoozerTheme.type.headline)
+            Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(Spacing.XS))
+            Text(label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Text(time, style = SnoozerTheme.type.headline, maxLines = 1, softWrap = false)
     }
 }
 

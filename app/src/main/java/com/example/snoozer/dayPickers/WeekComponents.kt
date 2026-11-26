@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -72,57 +73,72 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: (
         hatch = scheme.onTertiary.copy(alpha = 0.3f),
     )
     DoodleCard(colors = yellow, seed = 41, modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .padding(Spacing.M)
-                .semantics(mergeDescendants = true) {},
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.M),
-        ) {
-            // While a window is running or coming up, its category's drawing (the study or work
-            // character) leads the card; otherwise there's no category, so the clock stays.
-            val category = when (status) {
-                is StatusUi.QuietNow -> status.category
-                is StatusUi.Next -> status.category
-                StatusUi.NothingScheduled, StatusUi.NoAccess -> null
+        BoxWithConstraints {
+            // On a narrow screen (a foldable's cover screen) the drawing beside the big time leaves
+            // too little room, and "tomorrow" breaks mid-word, so the drawing goes above instead.
+            val stacked = maxWidth < StatusStackBelow
+            val art = @Composable {
+                // While a window is running or coming up, its category's drawing (the study or work
+                // character) leads the card; otherwise there's no category, so the clock stays.
+                val category = when (status) {
+                    is StatusUi.QuietNow -> status.category
+                    is StatusUi.Next -> status.category
+                    StatusUi.NothingScheduled, StatusUi.NoAccess -> null
+                }
+                if (category != null) {
+                    DoodleIllustration(category.illustration, size = if (stacked) StatusArtSizeSmall else StatusArtSize, round = true, seed = 43)
+                } else {
+                    Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(36.dp))
+                }
             }
-            if (category != null) {
-                DoodleIllustration(category.illustration, size = StatusArtSize, round = true, seed = 43)
-            } else {
-                Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(36.dp))
-            }
-            Column {
-                when (status) {
-                    is StatusUi.QuietNow -> {
-                        Text("Quiet now · ${status.category.label} · ${status.level.label}", style = type.caption)
-                        Text("until ${status.until}", style = type.headline)
-                        Text(listOfNotNull(status.left, status.then).joinToString(" · "), style = type.caption)
-                    }
-                    is StatusUi.Next -> {
-                        Text("Next quiet time", style = type.caption)
-                        Text("${status.time} ${status.day}", style = type.headline)
-                        Text("${status.category.label} · ${status.level.label} · ${status.startsIn}", style = type.caption)
-                    }
-                    StatusUi.NothingScheduled -> {
-                        Text("No quiet times yet", style = type.title)
-                        Text("Tap + to plan your first one.", style = type.caption)
-                    }
-                    // Without Do Not Disturb access nothing mutes, so say that instead of a schedule.
-                    StatusUi.NoAccess -> {
-                        Text("Snoozer is paused", style = type.title)
-                        Text("Do Not Disturb access is off, so your phone won't be muted.", style = type.caption)
-                        Spacer(Modifier.height(Spacing.S))
-                        DoodleButton(onClick = onAllowAccess, seed = 42, wobble = DoodleDefaults.WobbleLight) {
-                            Text("Allow access")
+            val words = @Composable {
+                Column {
+                    when (status) {
+                        is StatusUi.QuietNow -> {
+                            Text("Quiet now · ${status.category.label} · ${status.level.label}", style = type.caption)
+                            Text("until ${status.until}", style = type.headline)
+                            Text(listOfNotNull(status.left, status.then).joinToString(" · "), style = type.caption)
+                        }
+                        is StatusUi.Next -> {
+                            Text("Next quiet time", style = type.caption)
+                            Text("${status.time} ${status.day}", style = type.headline)
+                            Text("${status.category.label} · ${status.level.label} · ${status.startsIn}", style = type.caption)
+                        }
+                        StatusUi.NothingScheduled -> {
+                            Text("No quiet times yet", style = type.title)
+                            Text("Tap + to plan your first one.", style = type.caption)
+                        }
+                        // Without Do Not Disturb access nothing mutes, so say that instead of a schedule.
+                        StatusUi.NoAccess -> {
+                            Text("Snoozer is paused", style = type.title)
+                            Text("Do Not Disturb access is off, so your phone won't be muted.", style = type.caption)
+                            Spacer(Modifier.height(Spacing.S))
+                            DoodleButton(onClick = onAllowAccess, seed = 42, wobble = DoodleDefaults.WobbleLight) {
+                                Text("Allow access")
+                            }
                         }
                     }
                 }
+            }
+            val merged = Modifier.padding(Spacing.M).semantics(mergeDescendants = true) {}
+            if (stacked) {
+                Column(merged, verticalArrangement = Arrangement.spacedBy(Spacing.S)) { art(); words() }
+            } else {
+                Row(
+                    merged,
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.M),
+                ) { art(); words() }
             }
         }
     }
 }
 
 private val StatusArtSize = 76.dp
+private val StatusArtSizeSmall = 56.dp
+
+/** Below this card width the drawing sits above the words rather than beside them. */
+private val StatusStackBelow = 250.dp
 
 /**
  * The seven days as handwritten letters. Today is circled, the selected day gets a
