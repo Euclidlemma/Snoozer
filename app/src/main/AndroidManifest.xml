@@ -34,6 +34,16 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- "Open with Snoozer" for calendar files, to import a timetable. Content URIs only:
+                 the opening app grants read access to that one file; no permission is needed. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="text/x-vcalendar" />
+                <data android:mimeType="application/ics" />
+            </intent-filter>
         </activity>
 
         <!-- Start/End Alarm Receiver. Only our own PendingIntents reach it, so it must

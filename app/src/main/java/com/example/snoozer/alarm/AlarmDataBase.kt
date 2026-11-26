@@ -8,7 +8,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Alarm::class], version = 2, exportSchema = true)
+@Database(entities = [Alarm::class], version = 3, exportSchema = true)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
 
@@ -24,13 +24,23 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        // v3: an optional name and the dates a timetable import sets. All nullable with no
+        // default, matching the entity, so existing snoozers read back unchanged (no name, no dates).
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN name TEXT")
+                db.execSQL("ALTER TABLE alarms ADD COLUMN fromDate TEXT")
+                db.execSQL("ALTER TABLE alarms ADD COLUMN untilDate TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): AlarmDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlarmDatabase::class.java,
                     "alarm_database"
-                ).addMigrations(MIGRATION_1_2).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
                 INSTANCE = instance
                 instance
             }

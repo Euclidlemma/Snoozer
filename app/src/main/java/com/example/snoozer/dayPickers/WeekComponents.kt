@@ -238,7 +238,7 @@ fun TimelineItem(
             modifier = Modifier
                 .weight(1f)
                 .padding(bottom = Spacing.M)
-                .alpha(if (card.enabled) 1f else 0.55f),
+                .alpha(if (card.enabled && !card.ended) 1f else 0.55f),
         ) {
             Column(Modifier.padding(start = Spacing.M, end = Spacing.S, top = Spacing.S, bottom = Spacing.M)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
@@ -251,25 +251,45 @@ fun TimelineItem(
                             checked = it
                             onToggle(it)
                         },
-                        contentDescription = "${card.category.label}, ${card.start} to ${card.end}",
+                        contentDescription = listOfNotNull(card.name, card.category.label).joinToString(", ") + ", ${card.start} to ${card.end}",
                         seed = card.id * 5,
                     )
                 }
-                Row(verticalAlignment = Alignment.Top) {
-                    Text("${card.start} – ${card.end}", style = type.headline)
-                    // Overnight windows end the next day; say so instead of looking like a typo.
-                    if (card.endsNextDay) {
-                        Text(
-                            "+1",
-                            style = type.caption,
-                            modifier = Modifier.padding(start = Spacing.XS).semantics { contentDescription = "next day" },
-                        )
+                // The category's drawing beside the times: Work's or Study's, the same art as the
+                // edit screen's cards. Decorative: the tag above already says which it is.
+                Row(
+                    modifier = Modifier.padding(top = Spacing.XS),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CardArtGap),
+                ) {
+                    DoodleIllustration(
+                        image = card.category.illustration,
+                        size = CardArtSize,
+                        seed = card.id * 7,
+                    )
+                    Column(Modifier.weight(1f)) {
+                        // An imported class says which one it is.
+                        if (card.name != null) Text(card.name, style = type.label, maxLines = 2)
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text("${card.start} – ${card.end}", style = type.headline)
+                            // Overnight windows end the next day; say so instead of looking like a typo.
+                            if (card.endsNextDay) {
+                                Text(
+                                    "+1",
+                                    style = type.caption,
+                                    modifier = Modifier.padding(start = Spacing.XS).semantics { contentDescription = "next day" },
+                                )
+                            }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+                            Text(card.duration, style = type.caption)
+                            Text("·", style = type.caption)
+                            RepeatLetters(card.repeatsOn, card.repeatText)
+                        }
+                        if (card.dateNote != null) {
+                            Text(card.dateNote, style = type.caption, modifier = Modifier.padding(top = Spacing.XS))
+                        }
                     }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
-                    Text(card.duration, style = type.caption)
-                    Text("·", style = type.caption)
-                    RepeatLetters(card.repeatsOn, card.repeatText)
                 }
             }
         }
@@ -334,7 +354,7 @@ private fun RepeatLetters(repeatsOn: List<Boolean>, description: String) {
 
 /** Shown on a day with no snoozers, so the page invites you to add one instead of looking broken. */
 @Composable
-fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier) {
+fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier, onImport: (() -> Unit)? = null) {
     val circle = remember { SketchyShape(cornerRadius = DoodleDefaults.Round, seed = 52) }
     Column(
         modifier = modifier.fillMaxWidth().padding(vertical = Spacing.L),
@@ -365,5 +385,20 @@ fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier) 
             Spacer(Modifier.width(Spacing.XS))
             Text("Add snoozer")
         }
+        // Classes are quicker to bring in from a calendar file than to type one by one.
+        if (onImport != null) {
+            DoodleButton(onClick = onImport, seed = 54, wobble = DoodleDefaults.WobbleLight,
+                containerColor = Color.Transparent, borderColor = Color.Transparent) {
+                Icon(painterResource(R.drawable.ic_doodle_import), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(Spacing.XS))
+                Text("Import a timetable")
+            }
+        }
     }
 }
+
+/** The Work or Study drawing on each snoozer card. */
+private val CardArtSize = 72.dp
+
+/** Room between the drawing and the times, so the left of the card doesn't feel crowded. */
+private val CardArtGap = 32.dp

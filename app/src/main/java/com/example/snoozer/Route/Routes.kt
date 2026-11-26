@@ -19,6 +19,13 @@ sealed class Routes(val route: String) {
 
     data object DayPicker : Routes("DayPicker")
 
+    /** The import preview for a calendar file; [ARG_URI] is the file's content:// address. */
+    data object ImportTimetable : Routes("importTimetable?uri={uri}") {
+        const val ARG_URI = "uri"
+
+        fun of(uri: String) = "importTimetable?uri=" + android.net.Uri.encode(uri)
+    }
+
     /** Edit an existing snoozer by id, or create one (optionally starting on a given day). */
     data object EditAlarm : Routes("editAlarm?id={id}&day={day}") {
         const val ARG_ID = "id"
