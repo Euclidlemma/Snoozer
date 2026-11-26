@@ -41,7 +41,15 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
         // The reminder is always set, even with notifications off: they can be turned on in
         // Settings at any time without the app noticing. It costs the mutes nothing (see
         // below), and AlarmActions.onReminderFired only shows it if it can be seen.
-        Kind.entries.forEach { schedule(alarm, day, it) }
+        Kind.entries.forEach { kind ->
+            try {
+                schedule(alarm, day, kind)
+            } catch (e: IllegalStateException) {
+                // Android allows an app 500 pending alarms; past that, setting one throws. Skip this
+                // one instead of failing the save or the reboot. The import keeps well under it.
+                Log.e(TAG, "Alarm limit reached; $kind for ${alarm.id} on $day not set", e)
+            }
+        }
     }
 
     override fun cancelAlarm(alarm: Alarm) {

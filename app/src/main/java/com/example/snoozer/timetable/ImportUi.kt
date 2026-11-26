@@ -23,6 +23,8 @@ sealed interface ImportUiState {
         val skipped: String?,
         /** True while the classes are being saved, so Add can't be tapped twice. */
         val saving: Boolean = false,
+        /** Set when the ticked classes would need more alarms than Android allows; Add is off. */
+        val limitNote: String? = null,
     ) : ImportUiState {
         /** How many will be added: ticked, and not already in Snoozer. */
         val addCount: Int get() = rows.count { it.checked && !it.alreadyAdded }

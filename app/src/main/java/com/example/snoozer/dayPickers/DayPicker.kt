@@ -197,15 +197,21 @@ fun WeekContent(
         }
         ViewBar(view = view, onView = onView, onImport = onImport)
         if (state.endedCount > 0) EndedNotice(state.endedCount, onRemoveEnded)
-        if (view == WeekView.Month && month != null) {
-            MonthContent(
-                state = month,
-                onMonth = onMonth,
-                onSelect = onSelectDate,
-                onCardClick = onCardClick,
-                onToggle = onToggle,
-                modifier = Modifier.weight(1f),
-            )
+        if (view == WeekView.Month) {
+            // The month arrives a moment after switching; keep its space empty meanwhile rather
+            // than flashing the week pages.
+            if (month == null) {
+                Box(Modifier.weight(1f).fillMaxWidth())
+            } else {
+                MonthContent(
+                    state = month,
+                    onMonth = onMonth,
+                    onSelect = onSelectDate,
+                    onCardClick = onCardClick,
+                    onToggle = onToggle,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         } else {
             WeekStrip(
                 days = state.days,

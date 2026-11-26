@@ -63,6 +63,15 @@ class TimetableFileReader @Inject constructor(@ApplicationContext private val co
         return bytes.toString(Charsets.UTF_8)
     }
 
+    /**
+     * Gives back every lasting read access except [keep]'s: ones left behind when the app was
+     * stopped mid-import. Snoozer only ever takes these for imports, so none is needed again.
+     */
+    fun releaseAllExcept(keep: String?) {
+        val held = try { context.contentResolver.persistedUriPermissions } catch (e: Exception) { emptyList() }
+        held.map { it.uri.toString() }.filter { it != keep }.forEach(::release)
+    }
+
     /** Gives back the lasting read access the picker took (nothing to give back is fine). */
     fun release(uri: String) {
         try {
@@ -120,11 +129,13 @@ class ImportViewModel @Inject constructor(
                 category = cat,
                 skipped = l.skipped,
                 saving = s,
+                limitNote = TimetableImport.budgetNote(l.candidates, c, l.existing, timeSource.now()),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ImportUiState.Loading)
 
     init {
+        reader.releaseAllExcept(uri)
         viewModelScope.launch { load() }
     }
 
@@ -178,6 +189,7 @@ class ImportViewModel @Inject constructor(
         if (saving.value) return
         val alarms = TimetableImport.toAlarms(l.candidates, keys, l.existing, category.value)
         if (alarms.isEmpty()) return
+        if (TimetableImport.budgetNote(l.candidates, keys, l.existing, timeSource.now()) != null) return
         saving.value = true
         viewModelScope.launch {
             val event = try {

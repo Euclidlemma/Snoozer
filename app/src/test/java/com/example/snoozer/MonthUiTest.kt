@@ -84,6 +84,18 @@ class MonthUiTest {
     }
 
     @Test
+    fun aClassSplitAtAClockChange_hasNoMidTermEndMark() {
+        val before = Alarm(5, 8, 30, 9, 20, listOf(MONDAY, FRIDAY), work = "Study", name = "MATH 101",
+            fromDate = LocalDate.of(2026, 9, 7), untilDate = LocalDate.of(2026, 10, 30))
+        val after = before.copy(id = 6, startHour = 9, endHour = 10, fromDate = LocalDate.of(2026, 11, 2), untilDate = LocalDate.of(2026, 12, 4))
+        val oct = MonthUi.build(listOf(before, after), now, YearMonth.of(2026, 10), LocalDate.of(2026, 10, 30))
+        assertFalse(oct.weeks.flatten().single { it.date == LocalDate.of(2026, 10, 30) }.endsHere)
+        assertTrue(oct.selected.notes.isEmpty())
+        // The real last class still gets one.
+        assertEquals(listOf("Last MATH 101 class"), MonthUi.selectedDay(listOf(before, after), now, LocalDate.of(2026, 12, 4)).notes)
+    }
+
+    @Test
     fun daySummary_leavesOutClassesBeforeTheirTerm() {
         val january = Alarm(9, 14, 30, 16, 20, listOf(TUESDAY), work = "Study", name = "LAB",
             fromDate = LocalDate.of(2027, 1, 12), untilDate = LocalDate.of(2027, 3, 30))

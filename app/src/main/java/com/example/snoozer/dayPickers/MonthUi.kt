@@ -77,7 +77,7 @@ object MonthUi {
         val days = generateSequence(first) { it.plusDays(1) }.takeWhile { !it.isAfter(last) }.toList()
         val cells = days.map { date ->
             val starting = enabled.filter { AlarmTime.startsOn(it, date) }
-            val endingNames = enabled.filter { it.untilDate == date }.map(::label)
+            val endingNames = enabled.filter { it.untilDate == date && !continues(it, enabled) }.map(::label)
             val work = starting.any { it.category == Category.Work }
             val study = starting.any { it.category == Category.Study }
             DayCellUi(
@@ -109,7 +109,7 @@ object MonthUi {
         val notes = alarms.filter { it.isEnabled }.flatMap { a ->
             listOfNotNull(
                 if (a.fromDate == date) "First ${label(a)} class" else null,
-                if (a.untilDate == date) "Last ${label(a)} class" else null,
+                if (a.untilDate == date && !continues(a, alarms)) "Last ${label(a)} class" else null,
             )
         }
         return SelectedDayUi(
@@ -123,6 +123,24 @@ object MonthUi {
             notes = notes,
         )
     }
+
+    /**
+     * A class that goes on after its last date under another snoozer: the same name, picking up
+     * within a few weeks (an import splits a class whose hour moves at a clock change). Its last
+     * date isn't the class's last day, so it gets no end mark.
+     */
+    private fun continues(alarm: Alarm, all: List<Alarm>): Boolean {
+        val until = alarm.untilDate ?: return false
+        val name = alarm.name?.takeIf { it.isNotBlank() } ?: return false
+        return all.any { o ->
+            val from = o.fromDate
+            o.id != alarm.id && o.isEnabled && o.name == name && from != null &&
+                !from.isBefore(until) && !from.isAfter(until.plusDays(CONTINUE_DAYS))
+        }
+    }
+
+    /** Same as the import's term gap: longer than a reading week. */
+    private const val CONTINUE_DAYS = 21L
 
     /** Whether the window of [alarm] that starts on [date] covers [now]. */
     private fun runsAt(alarm: Alarm, date: LocalDate, now: LocalDateTime): Boolean {

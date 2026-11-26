@@ -98,4 +98,22 @@ class TimetableImportTest {
         val afterBreak = fall.copy(from = LocalDate.of(2026, 12, 14), until = LocalDate.of(2026, 12, 18))
         assertEquals(1, TimetableImport.merge(listOf(fall, afterBreak)).size)
     }
+
+    @Test
+    fun tooManyAlarms_isRefusedBeforeAdding() {
+        val now = java.time.LocalDateTime.of(2026, 9, 1, 12, 0)
+        // 30 classes on all 5 weekdays: 30 x 5 x 3 = 450 alarms, exactly the budget.
+        val many = TimetableImport.merge((1..30).map { i ->
+            ParsedClass("C$i", LocalTime.of(8, 0).plusMinutes(i.toLong()), LocalTime.of(9, 0), java.time.DayOfWeek.entries.take(5).toSet(),
+                LocalDate.of(2026, 9, 7), LocalDate.of(2026, 12, 4))
+        })
+        val all = many.map { it.key }.toSet()
+        assertNull(TimetableImport.budgetNote(many, all, emptyList(), now))
+        // One existing snoozer on a single day tips it over, and the note says how much room is left.
+        val existing = listOf(Alarm(1, 7, 0, 8, 0, listOf(FRIDAY), work = "Work"))
+        assertEquals("That's more than Snoozer can keep at once: there's room for 149 more class days. Untick some classes.",
+            TimetableImport.budgetNote(many, all, existing, now))
+        // Switched-off and ended snoozers keep no alarms.
+        assertNull(TimetableImport.budgetNote(many, all, existing.map { it.copy(isEnabled = false) }, now))
+    }
 }

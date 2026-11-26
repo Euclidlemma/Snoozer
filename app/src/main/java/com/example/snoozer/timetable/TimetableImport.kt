@@ -6,6 +6,7 @@ import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.dayPickers.WeekUi
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /**
  * Pure steps between a parsed file and saved snoozers, kept apart from the ViewModel so they
@@ -84,6 +85,25 @@ object TimetableImport {
                 alreadyAdded = alreadyAdded(c, existing),
             )
         }
+
+    /**
+     * Android lets an app hold 500 pending alarms, and each class day takes three (heads-up, mute,
+     * unmute). Imports keep the total under this, leaving room for edits.
+     */
+    const val ALARM_BUDGET = 450
+
+    /** Alarms these snoozers keep set: three per day, for every one that's on and not over. */
+    fun alarmsUsed(alarms: List<Alarm>, now: LocalDateTime): Int =
+        alarms.filter { it.isEnabled && !AlarmTime.hasEnded(it, now) }.sumOf { it.daysOfWeek.distinct().size * 3 }
+
+    /** Why the ticked classes can't all be added (too many alarms), or null when they fit. */
+    fun budgetNote(candidates: List<Candidate>, checked: Set<String>, existing: List<Alarm>, now: LocalDateTime): String? {
+        val adding = alarmsUsed(toAlarms(candidates, checked, existing, Category.Study), now)
+        val used = alarmsUsed(existing, now)
+        if (used + adding <= ALARM_BUDGET) return null
+        val left = ((ALARM_BUDGET - used) / 3).coerceAtLeast(0)
+        return "That's more than Snoozer can keep at once: there's room for $left more class days. Untick some classes."
+    }
 
     /** "3 skipped: 2 all-day, 1 not weekly", in [SkipReason] order; null when nothing was skipped. */
     fun skippedText(skipped: Map<SkipReason, Int>): String? {

@@ -237,9 +237,13 @@ private fun DoodleCheckBox(checked: Boolean, ink: Color, seed: Int) {
 @Composable
 private fun AddBar(state: ImportUiState.Ready, onAdd: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(Spacing.M)) {
+        if (state.limitNote != null) {
+            Text(state.limitNote, style = SnoozerTheme.type.body, color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = Spacing.S))
+        }
         DoodleButton(
             onClick = onAdd,
-            enabled = state.addCount > 0 && !state.saving,
+            enabled = state.addCount > 0 && !state.saving && state.limitNote == null,
             modifier = Modifier.fillMaxWidth(),
             containerColor = SnoozerTheme.colors.bell,
             contentColor = Color(0xFF2E2B26),
