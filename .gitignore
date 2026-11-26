@@ -18,3 +18,6 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+
+# Signed builds from Android Studio (Build > Generate Signed App Bundle).
+/app/release/
