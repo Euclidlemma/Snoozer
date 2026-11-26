@@ -28,6 +28,7 @@ import com.example.snoozer.onboarding.decideFirstLaunch
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.util.ScheduleStamp
 import com.example.snoozer.timetable.ImportTimetableScreen
+import com.example.snoozer.report.WeeklyReportScreen
 import com.example.snoozer.timetable.openImport
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.lifecycleScope
@@ -108,6 +109,10 @@ class MainActivity : ComponentActivity() {
 
                         composable(Routes.DayPicker.route) {
                             DayPickerMain(navController = navController)
+                        }
+
+                        composable(Routes.WeeklyReport.route) {
+                            WeeklyReportScreen(navController)
                         }
 
                         // A calendar file's classes, before they're added.

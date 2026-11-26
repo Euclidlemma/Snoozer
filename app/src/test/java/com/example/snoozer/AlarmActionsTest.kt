@@ -6,6 +6,9 @@ import com.example.snoozer.alarm.AlarmDao
 import com.example.snoozer.alarm.AlarmRepository
 import com.example.snoozer.alarm.Logger
 import com.example.snoozer.alarm.QuietLevel
+import com.example.snoozer.alarm.QuietStretch
+import com.example.snoozer.alarm.QuietStretchDao
+import com.example.snoozer.alarm.RoomQuietLog
 import com.example.snoozer.alarm.Reminders
 import com.example.snoozer.alarm.Ringer
 import com.example.snoozer.alarm.WindowScheduler
@@ -50,6 +53,8 @@ class AlarmActionsTest {
     /** Records every ringer change: a level, or "restore". */
     private class FakeRinger(var allowed: Boolean = true) : Ringer {
         val calls = mutableListOf<String>()
+        var turnedUp = false
+        override fun isLouderThan(level: QuietLevel) = turnedUp
         override fun quiet(level: QuietLevel) { calls += level.name }
         override fun restore() { calls += "restore" }
         override fun canChange() = allowed
@@ -61,6 +66,16 @@ class AlarmActionsTest {
         override fun canShow() = visible
         override fun show(alarm: Alarm, minutesUntilStart: Int) { shown += alarm.id to minutesUntilStart }
         override fun cancel(alarmId: Int) { cancelled += alarmId }
+    }
+
+    /** The real log's rules over an in-memory table. */
+    private class FakeStretchDao : QuietStretchDao {
+        val rows = mutableListOf<QuietStretch>()
+        override suspend fun insert(stretch: QuietStretch): Long { val s = stretch.copy(id = rows.size + 1L); rows += s; return s.id }
+        override suspend fun update(stretch: QuietStretch) { rows.replaceAll { if (it.id == stretch.id) stretch else it } }
+        override suspend fun open(): QuietStretch? = rows.lastOrNull { it.endMillis == null }
+        override fun observeSince(fromMillis: Long): Flow<List<QuietStretch>> = flowOf(rows.toList())
+        override suspend fun deleteEndedBefore(millis: Long) { rows.removeAll { it.endMillis != null && it.endMillis!! < millis } }
     }
 
     private class FixedTime(var at: LocalDateTime) : TimeSource {
@@ -75,7 +90,8 @@ class AlarmActionsTest {
     // 2026-11-16 is a Monday.
     private val time = FixedTime(LocalDateTime.of(2026, 11, 16, 11, 0))
     private val warnings = mutableListOf<String>()
-    private val actions = AlarmActions(AlarmRepository(dao), scheduler, ringer, reminders, time, Logger { warnings += it })
+    private val stretches = FakeStretchDao()
+    private val actions = AlarmActions(AlarmRepository(dao), scheduler, ringer, reminders, time, Logger { warnings += it }, RoomQuietLog(stretches))
 
     private fun at(hour: Int, minute: Int = 0) = LocalDateTime.of(2026, 11, 16, hour, minute)
     private fun alarm(id: Int, sh: Int, eh: Int, category: String, enabled: Boolean = true) =
@@ -193,5 +209,76 @@ class AlarmActionsTest {
         actions.delete(a)
         actions.setEnabled(2, false)
         assertEquals(listOf(1, 2), reminders.cancelled)
+    }
+
+    // ---- The quiet log behind the weekly report ----
+
+    private fun local(ms: Long) = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+
+    @Test
+    fun quietLog_followsTheRinger_throughAHandover() = runBlocking {
+        // Work 09-17 with Study 10-12 inside it.
+        val work = alarm(1, 9, 17, "Work")
+        val study = alarm(2, 10, 12, "Study")
+        saved(work, study)
+        time.at = at(9); actions.onMuteFired(1)
+        time.at = at(10); actions.onMuteFired(2)
+        time.at = at(12); actions.onUnmuteFired(2, MONDAY)
+        time.at = at(17); actions.onUnmuteFired(1, MONDAY)
+        assertEquals(
+            listOf(Triple("Work", at(9), at(10)), Triple("Study", at(10), at(12)), Triple("Work", at(12), at(17))),
+            stretches.rows.map { Triple(it.category, local(it.startMillis), local(it.endMillis!!)) },
+        )
+        assertTrue(stretches.rows.none { it.louder || it.missed })
+    }
+
+    @Test
+    fun quietLog_sameLevelAgain_continuesTheStretch() = runBlocking {
+        val work = alarm(1, 9, 17, "Work")
+        saved(work)
+        time.at = at(9); actions.onMuteFired(1)
+        // An edit while it runs re-applies the same level: still one stretch.
+        time.at = at(11); actions.update(work, work.copy(work = "Study")); actions.update(work.copy(work = "Study"), work)
+        assertEquals(listOf("Work", "Study", "Work"), stretches.rows.map { it.category })
+        time.at = at(12); actions.onMuteFired(1)
+        assertEquals(3, stretches.rows.size)
+    }
+
+    @Test
+    fun quietLog_marksTurnedUp_andMissedAccess() = runBlocking {
+        val study = alarm(1, 9, 11, "Study")
+        saved(study)
+        time.at = at(9); actions.onMuteFired(1)
+        ringer.turnedUp = true // the user turned the sound back on mid-window
+        time.at = at(11); actions.onUnmuteFired(1, MONDAY)
+        assertTrue(stretches.rows.single().louder)
+        // Without Do Not Disturb access the stretch is logged as missed, not as quiet time.
+        stretches.rows.clear(); ringer.turnedUp = false; ringer.allowed = false
+        time.at = at(9); actions.onMuteFired(1)
+        assertTrue(stretches.rows.single().missed)
+    }
+
+    @Test
+    fun rescheduleAll_afterAMissedUnmute_catchesUpTheRingerAndTheLog() = runBlocking {
+        // Study 09-11 muted at 09:00; the phone was off at 11:00, so its unmute never fired.
+        val study = alarm(1, 9, 11, "Study")
+        saved(study)
+        time.at = at(9); actions.onMuteFired(1)
+        ringer.calls.clear()
+        time.at = at(13); actions.rescheduleAll()
+        assertEquals(listOf("restore"), ringer.calls)
+        assertEquals(at(13), local(stretches.rows.single().endMillis!!))
+    }
+
+    @Test
+    fun rescheduleAll_whenItAgrees_leavesTheRingerAlone() = runBlocking {
+        // Mid-window, the user turned the sound up by hand; an app update must not undo that.
+        val work = alarm(1, 9, 17, "Work")
+        saved(work)
+        time.at = at(9); actions.onMuteFired(1)
+        ringer.calls.clear()
+        time.at = at(12); actions.rescheduleAll()
+        assertEquals(emptyList<String>(), ringer.calls)
+        assertEquals(null, stretches.rows.single().endMillis)
     }
 }

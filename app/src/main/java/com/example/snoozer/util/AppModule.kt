@@ -3,6 +3,7 @@ package com.example.snoozer.util
 import android.content.Context
 import com.example.snoozer.alarm.AlarmDao
 import com.example.snoozer.alarm.AlarmDatabase
+import com.example.snoozer.alarm.QuietStretchDao
 import com.example.snoozer.alarm.AlarmRepository
 import dagger.Module
 import dagger.Provides
@@ -25,6 +26,9 @@ object AppModule {
     fun provideAlarmDao(db: AlarmDatabase): AlarmDao {
         return db.alarmDao()
     }
+
+    @Provides
+    fun provideQuietStretchDao(db: AlarmDatabase): QuietStretchDao = db.quietStretchDao()
 
     @Provides
     fun provideAlarmRepository(alarmDao: AlarmDao): AlarmRepository {

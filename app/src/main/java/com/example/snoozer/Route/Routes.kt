@@ -17,6 +17,9 @@ sealed class Routes(val route: String) {
     }
     data object HowItWorks : Routes("howItWorks")
 
+    /** Last week's quiet time, for Work and for Study. */
+    data object WeeklyReport : Routes("weeklyReport")
+
     data object DayPicker : Routes("DayPicker")
 
     /** The import preview for a calendar file; [ARG_URI] is the file's content:// address. */

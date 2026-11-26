@@ -24,6 +24,7 @@ class SystemRinger @Inject constructor(@ApplicationContext private val context: 
     override fun restore() = RingerController.restore(context)
     override fun canChange(): Boolean =
         context.getSystemService(NotificationManager::class.java).isNotificationPolicyAccessGranted
+    override fun isLouderThan(level: QuietLevel): Boolean = RingerController.isLouderThan(context, level)
 }
 
 class SystemReminders @Inject constructor(@ApplicationContext private val context: Context) : Reminders {
@@ -45,4 +46,5 @@ abstract class SystemHooksModule {
     @Binds abstract fun bindRinger(impl: SystemRinger): Ringer
     @Binds abstract fun bindReminders(impl: SystemReminders): Reminders
     @Binds abstract fun bindLogger(impl: AndroidLogger): Logger
+    @Binds abstract fun bindQuietLog(impl: com.example.snoozer.alarm.RoomQuietLog): com.example.snoozer.alarm.QuietLog
 }

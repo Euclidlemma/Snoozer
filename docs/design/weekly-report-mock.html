@@ -1,0 +1,324 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Snoozer: weekly report</title>
+<style>
+@font-face{font-family:Gaegu;src:url(../../app/src/main/res/font/gaegu_regular.ttf);font-weight:400}
+@font-face{font-family:Gaegu;src:url(../../app/src/main/res/font/gaegu_bold.ttf);font-weight:700}
+*{box-sizing:border-box;margin:0}
+body{background:#E8E2D4;font-family:Gaegu,cursive;color:#2E2B26;padding:26px 30px}
+h1{font-size:34px;margin-bottom:4px}
+h2{font-size:26px;margin:26px 0 10px}
+.note{font-size:18px;color:#5A5449;max-width:1500px;line-height:1.25}
+.row{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px;width:320px}
+.cap{font-size:21px;font-weight:700;text-align:center}
+.sub{font-size:15.5px;color:#5A5449;text-align:center;line-height:1.2}
+.ok{color:#2E7D32}.no{color:#C2185B}
+/* phones: dark "board" theme, like the Fold3 screenshots */
+.phone{width:320px;height:620px;background:#2A2D2F;color:#EDEAE2;border:3px solid #2E2B26;border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:12px 12px 0}
+.phone.light{background:#FAF6EC;color:#2E2B26}
+.sk{border:2px solid #EDEAE2;border-radius:18px 14px 20px 13px/14px 20px 13px 18px}
+.light .sk{border-color:#2E2B26}
+.skl{border:1.5px solid #A8A398;border-radius:16px 12px 18px 12px/12px 18px 12px 16px}
+.hy{background:repeating-linear-gradient(-55deg,#E8C55A 0 6px,#c9a744 6px 8px);color:#2E2B26}
+.hb{background:repeating-linear-gradient(-55deg,#2F4B63 0 6px,#3f6585 6px 8px);color:#DCEBF8}
+.hl{background:repeating-linear-gradient(-55deg,#4E3B57 0 6px,#6a5076 6px 8px);color:#F0E0F5}
+.pic{background:#F3F0E8;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.c{font-size:14px;color:#C9C5BB;line-height:1.2}.light .c{color:#5A5449}
+.t{font-size:22px;font-weight:700;line-height:1.05}
+/* week screen pieces */
+.status{display:flex;gap:8px;align-items:center;padding:8px}
+.status .pic{width:58px;height:58px;border-radius:50%;flex:none}
+.q{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex:none}
+.chips{display:flex;gap:6px;align-items:center;margin-top:8px}
+.chip{padding:4px 10px;font-size:15px;font-weight:700}
+.chip.on{background:repeating-linear-gradient(-55deg,#444A4E 0 6px,#58606a 6px 8px)}
+.strip{display:flex;justify-content:space-around;margin:14px 0 6px;font-size:15px;font-weight:700;color:#C9C5BB}
+.card{margin:6px 0;padding:8px;display:flex;gap:10px;align-items:center}
+.card .pic{width:46px;height:46px;border-radius:10px;flex:none}
+.fab{position:absolute;right:14px;bottom:16px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700}
+.ghost{opacity:.35}
+.tap{position:absolute;border-radius:50%;border:2.5px dashed #C2185B;pointer-events:none}
+.zone{position:absolute;left:0;right:0;bottom:0;height:200px;background:linear-gradient(to top,rgba(194,24,91,.28),rgba(194,24,91,0));pointer-events:none}
+.zone span{position:absolute;bottom:84px;left:12px;font-size:13px;color:#ffb3cf;font-weight:700}
+.tagr{position:absolute;font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#fff;background:#C2185B;padding:2px 7px;border-radius:9px;z-index:5}
+/* the entry: a report strip */
+.entry{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;min-height:48px;position:relative}
+.entry .ico{width:30px;height:30px;flex:none}
+.entry .go{margin-left:auto;font-size:22px;font-weight:700}
+.dot{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:#E8C55A;border:2px solid #2A2D2F;animation:ping 1.8s ease-in-out infinite}
+@keyframes ping{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+
+/* ---- report screen ---- */
+.rtop{display:flex;align-items:center;gap:10px;font-size:15px}
+.back{padding:3px 10px;font-weight:700;font-size:15px;background:#444A4E}
+.scroll{overflow:hidden;flex:1;display:flex;flex-direction:column;gap:10px;padding-top:10px}
+.hero{display:flex;align-items:center;gap:12px;padding:10px 12px;position:relative;overflow:hidden}
+.hero .pic{width:78px;height:78px;border-radius:50%;flex:none;background:#E8C55A}
+.big{font-size:44px;font-weight:700;line-height:.95}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:15px;font-weight:700;padding:1px 8px;border-radius:10px;margin-top:4px}
+.up{background:rgba(143,188,230,.18);color:#8FBCE6}
+.down{background:rgba(232,197,90,.18);color:#E8C55A}
+.bob{animation:bob 2.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
+.zz{position:absolute;font-size:20px;font-weight:700;color:#D3A9DE;animation:zz 2.6s infinite}
+@keyframes zz{0%{transform:translate(0,8px);opacity:0}30%{opacity:1}100%{transform:translate(12px,-22px);opacity:0}}
+/* ring */
+.ringrow{display:flex;gap:10px;align-items:center}
+.ring{width:132px;height:132px;flex:none;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:#C9C5BB}
+.ring .center b{font-size:22px;color:#EDEAE2}
+.seg{fill:none;stroke-width:16;stroke-linecap:round}
+.work{stroke:#8FBCE6}.study{stroke:#D3A9DE}
+.draw1{stroke-dasharray:0 400;animation:draw1 1.4s cubic-bezier(.3,.7,.3,1) .3s forwards}
+.draw2{stroke-dasharray:0 400;animation:draw2 1.1s cubic-bezier(.3,.7,.3,1) 1.5s forwards}
+@keyframes draw1{to{stroke-dasharray:var(--w) 400}}
+@keyframes draw2{to{stroke-dasharray:var(--s) 400}}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:15px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1.5px solid #EDEAE2}
+/* category cards */
+.cats{display:flex;gap:8px}
+.cat{flex:1;padding:8px;display:flex;flex-direction:column;gap:4px;opacity:0;transform:translateY(14px);animation:rise .6s ease-out forwards}
+.cat .pic{width:52px;height:52px;border-radius:10px}
+.cat .h{font-size:26px;font-weight:700;line-height:1}
+.cat .s{font-size:13px;opacity:.9}
+@keyframes rise{to{opacity:1;transform:none}}
+/* bars */
+.bars{padding:8px 10px}
+.bwrap{display:flex;justify-content:space-between;align-items:flex-end;height:96px;margin-top:6px}
+.bcol{display:flex;flex-direction:column;align-items:center;gap:3px;width:28px;position:relative}
+.stack{width:18px;display:flex;flex-direction:column-reverse;transform-origin:bottom;transform:scaleY(0);animation:grow .7s cubic-bezier(.3,.8,.3,1.2) forwards}
+.stack .w{background:#8FBCE6;border-radius:0 0 4px 4px}.stack .st{background:#D3A9DE;border-radius:4px 4px 0 0}
+.stack .w:only-child,.stack .st:only-child{border-radius:4px}
+@keyframes grow{to{transform:scaleY(1)}}
+.bcol .d{font-size:13px;color:#C9C5BB}
+.star{position:absolute;top:-22px;font-size:17px;color:#E8C55A;opacity:0;animation:pop .4s ease-out 2.6s forwards}
+@keyframes pop{0%{opacity:0;transform:scale(.3)}70%{transform:scale(1.3)}100%{opacity:1;transform:scale(1)}}
+/* highlights */
+.hls{display:flex;gap:6px}
+.hlt{flex:1;padding:6px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;font-size:12.5px;line-height:1.1;opacity:0;animation:rise .5s ease-out forwards}
+.hlt svg{width:28px;height:28px}
+.hlt b{font-size:15px}
+.foot{font-size:13px;color:#C9C5BB;text-align:center;padding:4px 0 10px;display:flex;align-items:center;justify-content:center;gap:6px}
+.replay{font-family:Gaegu,cursive;font-size:18px;font-weight:700;background:#EDE4D0;border:2px solid #2E2B26;border-radius:14px 10px 15px 10px;padding:4px 14px;cursor:pointer}
+.spec{font-size:16.5px;line-height:1.3;max-width:520px}
+.spec li{margin:4px 0}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}.draw1{stroke-dasharray:var(--w) 400}.draw2{stroke-dasharray:var(--s) 400}.cat,.hlt,.star{opacity:1;transform:none}.stack{transform:none}}
+</style></head><body>
+
+<h1>Weekly report</h1>
+<p class="note">How long Snoozer actually kept the phone quiet last week, for Work and for Study. A new report appears every <b>Monday at 00:00</b> and covers Monday 00:00 to Sunday 24:00 of the week just finished. One button on the week screen opens it.</p>
+
+<h2>1 · Where the button goes</h2>
+<div class="row">
+
+ <!-- A: recommended -->
+ <div class="col">
+  <div class="phone" id="phA">
+   <div style="display:flex;gap:8px">
+    <div class="sk hy status" style="flex:1"><div class="pic sk" style="border-color:#2E2B26"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:52px"></div>
+     <div><div style="font-size:13px">Next quiet time</div><div class="t">00:33 Fri</div><div style="font-size:13px">Work · Vibrate · in 1 day</div></div></div>
+    <div class="q sk" style="background:#303437">?</div>
+   </div>
+   <!-- the entry: replaces the plain "This week · Work 4h" caption -->
+   <div class="entry skl" style="background:#303437">
+    <svg class="ico" viewBox="0 0 30 30"><path d="M4 26h22" stroke="#EDEAE2" stroke-width="2.2" stroke-linecap="round"/><rect x="6" y="15" width="5" height="10" rx="1.5" fill="#8FBCE6" stroke="#EDEAE2" stroke-width="1.5"/><rect x="13" y="9" width="5" height="16" rx="1.5" fill="#D3A9DE" stroke="#EDEAE2" stroke-width="1.5"/><rect x="20" y="12" width="5" height="13" rx="1.5" fill="#8FBCE6" stroke="#EDEAE2" stroke-width="1.5"/></svg>
+    <div><div style="font-size:16px;font-weight:700">Last week · 14h 20m quiet</div><div class="c">Work 9h 50m · Study 4h 30m</div></div>
+    <div class="go">›</div>
+    <div class="dot" title="new on Monday"></div>
+   </div>
+   <div class="chips"><div class="chip sk on">Week</div><div class="chip sk">Month</div><div style="margin-left:auto;font-size:14px" class="chip sk">Import timetable</div></div>
+   <div class="strip"><span>M</span><span>T</span><span style="color:#EDEAE2">W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+   <div class="card sk hb"><div class="pic"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:44px"></div><div><div style="font-size:13px">Work · Vibrate</div><div class="t">09:00 – 17:00</div></div></div>
+   <div class="card sk hl"><div class="pic"><img src="../../app/src/main/res/drawable-nodpi/illus_study.png" style="width:44px"></div><div><div style="font-size:13px">MATH 101 · Study</div><div class="t">19:00 – 21:00</div></div></div>
+   <div class="fab sk hy">+</div>
+   <div class="zone"><span>thumb's resting zone</span></div>
+  </div>
+  <div class="cap ok">A · Report strip under the status card ✓</div>
+  <div class="sub">It replaces the grey "This week · Work 4h" line, so it reads as the week's numbers, near the top where the eye lands first. It's a full-width 48dp strip with a "›" and a yellow dot on Mondays when a new report is in. It's far from the + button, the switches and the swipeable pages, so a thumb resting at the bottom won't hit it.</div>
+ </div>
+
+ <!-- B -->
+ <div class="col">
+  <div class="phone">
+   <div style="display:flex;gap:6px">
+    <div class="sk hy status" style="flex:1"><div class="pic sk" style="border-color:#2E2B26;width:50px;height:50px"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:46px"></div>
+     <div><div style="font-size:12px">Next quiet time</div><div class="t" style="font-size:19px">00:33 Fri</div></div></div>
+    <div style="display:flex;flex-direction:column;gap:4px"><div class="q sk" style="background:#303437">?</div><div class="q sk" style="background:#303437"><svg viewBox="0 0 30 30" width="24"><rect x="6" y="15" width="5" height="10" fill="#8FBCE6"/><rect x="13" y="9" width="5" height="16" fill="#D3A9DE"/><rect x="20" y="12" width="5" height="13" fill="#8FBCE6"/></svg></div></div>
+   </div>
+   <div class="tap" style="width:56px;height:96px;right:6px;top:8px;border-radius:24px"></div>
+   <div class="c" style="margin-top:8px">This week · Work 4h 1m</div>
+   <div class="chips"><div class="chip sk on">Week</div><div class="chip sk">Month</div></div>
+   <div class="card sk hb ghost" style="margin-top:20px"><div class="pic"></div><div class="t">09:00 – 17:00</div></div>
+  </div>
+  <div class="cap no">B · Icon next to "?"</div>
+  <div class="sub">Two small round icons stacked together are easy to mix up: you reach for "?" and get the report. An unlabeled chart icon also says little.</div>
+ </div>
+
+ <!-- C -->
+ <div class="col">
+  <div class="phone">
+   <div class="sk hy status ghost"><div class="t" style="font-size:19px">00:33 Fri</div></div>
+   <div class="card sk hb ghost" style="margin-top:20px"><div class="pic"></div><div class="t">09:00 – 17:00</div></div>
+   <div class="card sk hl ghost"><div class="pic"></div><div class="t">19:00 – 21:00</div></div>
+   <div style="position:absolute;left:14px;bottom:22px;padding:8px 14px;font-weight:700;font-size:16px" class="sk">📊 Report</div>
+   <div class="fab sk hy">+</div>
+   <div class="tap" style="width:300px;height:80px;left:8px;bottom:6px;border-radius:30px"></div>
+   <div class="zone"><span>thumb's resting zone</span></div>
+  </div>
+  <div class="cap no">C · Button at the bottom, beside +</div>
+  <div class="sub">Very visible, but it sits right where the thumb rests and next to +, so it gets tapped while reaching for +. It also covers the last card.</div>
+ </div>
+
+ <div class="spec">
+  <div class="cap" style="text-align:left">Why A</div>
+  <ul>
+   <li><b>Easy to spot:</b> top third of the screen, full width, a small bar-chart icon, real numbers ("14h 20m quiet") that invite a tap.</li>
+   <li><b>Hard to hit by accident:</b> 8dp or more from the status card, "?" and the Week/Month chips. Nothing else in that row, and no swipe area under it (the day pager starts lower). A plain tap opens a screen that only shows numbers, so a mistaken tap costs one Back.</li>
+   <li><b>Tells you when there's news:</b> a yellow dot from Monday 00:00 until the report is opened.</li>
+   <li><b>Screen readers:</b> "Last week's report: 14 hours 20 minutes quiet. Button."</li>
+   <li><b>First week:</b> "Your first report arrives Monday" (not tappable yet), so the strip is never empty.</li>
+  </ul>
+ </div>
+</div>
+
+<h2>2 · The report screen <button class="replay" onclick="replay()">▶ Replay animations</button></h2>
+<div class="row" id="reports">
+
+ <div class="col">
+  <div class="phone">
+   <div class="rtop"><div class="back sk">← Back</div><div><div style="font-size:19px;font-weight:700">Weekly report</div><div class="c">Mon 17 – Sun 23 Nov</div></div></div>
+   <div class="scroll">
+    <!-- hero -->
+    <div class="hero sk hy">
+     <div class="pic sk bob" style="border-color:#2E2B26"><img src="../../app/src/main/res/drawable-nodpi/illus_guard.png" style="width:74px;margin-top:8px"></div>
+     <span class="zz" style="left:70px;top:8px">z</span><span class="zz" style="left:80px;top:2px;animation-delay:1.2s">z</span>
+     <div>
+      <div style="font-size:14px">Your phone stayed quiet for</div>
+      <div class="big"><span class="count" data-to="860">0h</span></div>
+      <div class="delta" style="background:rgba(46,43,38,.12);color:#2E2B26">▲ 2h 10m more than the week before</div>
+     </div>
+    </div>
+    <!-- ring + legend -->
+    <div class="ringrow">
+     <div class="ring">
+      <svg viewBox="0 0 132 132" width="132" height="132">
+       <circle cx="66" cy="66" r="52" fill="none" stroke="#3A3E41" stroke-width="16"/>
+       <!-- circumference 326.7: work 590/860 = 68.6% = 224; study 270/860 = 31.4% = 102 -->
+       <circle class="seg work draw1" style="--w:216" cx="66" cy="66" r="52"/>
+       <circle class="seg study draw2" style="--s:94;stroke-dashoffset:-228" cx="66" cy="66" r="52"/>
+      </svg>
+      <div class="center"><b>69%</b>Work</div>
+     </div>
+     <div class="legend">
+      <div><i style="background:#8FBCE6"></i><b>Work</b> 9h 50m</div>
+      <div><i style="background:#D3A9DE"></i><b>Study</b> 4h 30m</div>
+      <div class="c" style="margin-top:4px">Planned 16h · kept 90%</div>
+     </div>
+    </div>
+    <!-- category cards -->
+    <div class="cats">
+     <div class="cat sk hb" style="animation-delay:.9s">
+      <div style="display:flex;gap:8px;align-items:center"><div class="pic"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:50px"></div><div style="font-size:15px;font-weight:700">Work<br><span style="font-size:12px;font-weight:400">vibrate</span></div></div>
+      <div class="h"><span class="count" data-to="590">0h</span></div>
+      <div class="s">5 sessions · ▲ 1h 40m</div>
+     </div>
+     <div class="cat sk hl" style="animation-delay:1.1s">
+      <div style="display:flex;gap:8px;align-items:center"><div class="pic"><img src="../../app/src/main/res/drawable-nodpi/illus_study.png" style="width:50px"></div><div style="font-size:15px;font-weight:700">Study<br><span style="font-size:12px;font-weight:400">silent</span></div></div>
+      <div class="h"><span class="count" data-to="270">0h</span></div>
+      <div class="s">3 sessions · ▲ 30m</div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <div class="cap">Top of the report</div>
+  <div class="sub">The guard dozes while the total counts up from 0, and the ring draws Work, then Study. The two cards rise in. ▲ / ▼ compare with the week before.</div>
+ </div>
+
+ <div class="col">
+  <div class="phone">
+   <div class="scroll" style="padding-top:0">
+    <!-- daily bars -->
+    <div class="bars sk" style="background:#303437">
+     <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:17px">Day by day</b><span class="c">quiet hours</span></div>
+     <div class="bwrap" id="bars"></div>
+    </div>
+    <!-- highlights -->
+    <div class="hls">
+     <div class="hlt sk" style="background:#303437;animation-delay:2.2s">
+      <svg viewBox="0 0 28 28"><path d="M8 4h12v5a6 6 0 0 1-12 0z" fill="#E8C55A" stroke="#EDEAE2" stroke-width="1.6"/><path d="M8 6H4c0 3 2 5 4 5M20 6h4c0 3-2 5-4 5M14 15v5M9 24h10" stroke="#EDEAE2" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+      <span>Longest stretch</span><b>2h 40m</b><span class="c">Work · Wed</span></div>
+     <div class="hlt sk" style="background:#303437;animation-delay:2.4s">
+      <svg viewBox="0 0 28 28"><rect x="4" y="6" width="20" height="18" rx="3" fill="none" stroke="#EDEAE2" stroke-width="1.6"/><path d="M4 11h20M9 3v5M19 3v5" stroke="#EDEAE2" stroke-width="1.6" stroke-linecap="round"/><path d="M10 17l3 3 5-6" stroke="#8FBCE6" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <span>Quietest day</span><b>Thu</b><span class="c">4h 10m</span></div>
+     <div class="hlt sk" style="background:#303437;animation-delay:2.6s">
+      <svg viewBox="0 0 28 28"><path d="M14 3c2 5 7 7 7 13a7 7 0 0 1-14 0c0-4 3-5 3-9 2 2 3 3 4 6 1-3 0-6 0-10z" fill="#D3A9DE" stroke="#EDEAE2" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Study days</span><b>3 of 7</b><span class="c">Mon · Wed · Thu</span></div>
+    </div>
+    <!-- missed note: honest about what didn't happen -->
+    <div class="skl" style="padding:8px 10px;display:flex;gap:8px;align-items:center;font-size:14px;background:#2E3134">
+     <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 3l10 18H2z" fill="none" stroke="#E8C55A" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v5M12 18v.5" stroke="#E8C55A" stroke-width="2" stroke-linecap="round"/></svg>
+     <div>1h 40m planned but not quiet: you turned the sound back on during Tue's Work.</div>
+    </div>
+    <div class="foot"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="#C9C5BB" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="#C9C5BB" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>Next report Monday 00:00 · in 3 days</div>
+    <!-- earlier weeks -->
+    <div class="skl" style="padding:8px 10px;background:#2E3134">
+     <b style="font-size:16px">Earlier weeks</b>
+     <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:4px"><span>10 – 16 Nov</span><span>12h 10m</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:14px"><span>3 – 9 Nov</span><span>13h 05m</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:14px"><span>27 Oct – 2 Nov</span><span>9h 30m</span></div>
+    </div>
+   </div>
+  </div>
+  <div class="cap">Further down</div>
+  <div class="sub">Bars grow in one after another, and a star pops on the quietest day. Three highlight badges, an honest line about planned time that wasn't quiet, when the next report comes, and the last few weeks.</div>
+ </div>
+
+ <div class="col">
+  <div class="phone">
+   <div class="rtop"><div class="back sk">← Back</div><div><div style="font-size:19px;font-weight:700">Weekly report</div><div class="c">Your first week</div></div></div>
+   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:0 16px">
+    <div class="pic sk bob" style="width:140px;height:140px;border-radius:50%;background:#E8C55A;border-color:#2E2B26;position:relative"><img src="../../app/src/main/res/drawable-nodpi/illus_guard.png" style="width:132px;margin-top:14px"></div>
+    <div class="t">Your first report arrives Monday</div>
+    <div class="c" style="font-size:16px">Snoozer is counting this week's quiet time now. On Monday at 00:00 you'll see how much you got for Work and for Study.</div>
+    <div class="skl" style="padding:8px 14px;font-size:15px;background:#2E3134">So far this week: <b>3h 20m</b></div>
+   </div>
+  </div>
+  <div class="cap">Before the first Monday</div>
+  <div class="sub">Never an empty chart: it says when the report comes and how much has been counted so far.</div>
+ </div>
+
+ <div class="spec">
+  <div class="cap" style="text-align:left">How it works</div>
+  <ul>
+   <li><b>Counted time is time actually quiet,</b> not planned: Snoozer writes down each stretch it really held the phone on vibrate or silent (start, end, Work or Study). If the sound is turned back on, Do Not Disturb access is missing, or a snoozer is switched off, that time isn't counted. The "planned but not quiet" line says how much was missed.</li>
+   <li><b>When Work and Study overlap,</b> the stretch counts for the one that set the level (the quieter one), so the total never counts an hour twice.</li>
+   <li><b>The week</b> is Monday 00:00 to Sunday 24:00 on the phone's clock. At Monday 00:00 the finished week is frozen into a report; the screen shows the newest, and "Earlier weeks" keeps 8. Nothing leaves the phone.</li>
+   <li><b>Motion:</b> count-up numbers, the ring drawing in, cards rising, bars growing in turn, a star popping, the guard dozing. With "Remove animations" on, everything shows at its final state.</li>
+   <li><b>Icons:</b> new doodle icons for the bar chart, trophy, calendar check, flame, warning and clock, in the same pencil style as the rest.</li>
+  </ul>
+ </div>
+</div>
+
+<script>
+// Daily bars: Work + Study minutes per day; the quietest day gets a star.
+const days=[["M",120,90],["T",60,0],["W",160,60],["T",130,120],["F",120,0],["S",0,0],["S",0,0]];
+function bars(){
+  const max=Math.max(...days.map(d=>d[1]+d[2]));const best=days.findIndex(d=>d[1]+d[2]===max);
+  document.getElementById('bars').innerHTML=days.map((d,i)=>{
+    const h=v=>Math.round(v/max*80);
+    return `<div class="bcol">${i===best?'<span class="star">★</span>':''}<div class="stack" style="animation-delay:${1.6+i*.12}s">${d[1]?`<div class="w" style="height:${h(d[1])}px"></div>`:''}${d[2]?`<div class="st" style="height:${h(d[2])}px"></div>`:''}</div><span class="d">${d[0]}</span></div>`}).join('');
+}
+// Count-up numbers ("14h 20m").
+function fmt(m){m=Math.round(m);return Math.floor(m/60)+'h'+(m%60?' '+String(m%60).padStart(2,'0')+'m':'')}
+function counts(){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.count').forEach(el=>{
+    const to=+el.dataset.to;if(reduce){el.textContent=fmt(to);return}
+    const t0=performance.now()+300,dur=1400;
+    (function step(t){const p=Math.min(1,Math.max(0,(t-t0)/dur));el.textContent=fmt(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(step)})(t0);
+  });
+}
+function replay(){const r=document.getElementById('reports');const c=r.cloneNode(true);r.replaceWith(c);bars();counts()}
+bars();counts();
+</script>
+</body></html>

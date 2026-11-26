@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hand-drawn doodle icon: three bars on a baseline (the weekly report).
+     Drawn in black and tinted at runtime (Icon tint), so it follows light/dark mode. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M3.2,20.6 C9.1,20.4 14.9,20.5 20.8,20.4" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2"/>
+    <path android:pathData="M5.4,20.2 L5.5,13.2 C6.7,13.1 7.9,13.2 9.1,13.1 L9.2,20.2" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="1.9"/>
+    <path android:pathData="M10.3,20.2 L10.4,6.9 C11.6,6.8 12.8,6.9 14,6.8 L14.1,20.2" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="1.9"/>
+    <path android:pathData="M15.2,20.2 L15.3,10.4 C16.5,10.3 17.7,10.4 18.9,10.3 L19,20.2" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="1.9"/>
+    <path android:pathData="M11,8 L11.1,19.5" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeAlpha="0.45" android:strokeWidth="1.1"/>
+</vector>
