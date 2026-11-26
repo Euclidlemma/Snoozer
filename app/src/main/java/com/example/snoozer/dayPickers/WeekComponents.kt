@@ -260,7 +260,7 @@ fun TimelineItem(
                 Row(
                     modifier = Modifier.padding(top = Spacing.XS),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.M),
+                    horizontalArrangement = Arrangement.spacedBy(CardArtGap),
                 ) {
                     DoodleIllustration(
                         image = card.category.illustration,
@@ -399,3 +399,6 @@ fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier, 
 
 /** The Work or Study drawing on each snoozer card. */
 private val CardArtSize = 72.dp
+
+/** Room between the drawing and the times, so the left of the card doesn't feel crowded. */
+private val CardArtGap = 32.dp
