@@ -76,10 +76,29 @@ object WeeklyReport {
                 val ms = overlap(start, end, bounds[d], bounds[d + 1])
                 if (ms > 0) dayMs[d].merge(category, ms, Long::plus)
             }
-            sessions.merge(category, 1, Int::plus)
-            val startDay = localDate(maxOf(start, weekFrom), zone)
-            if (longest == null || inWeek > longest.first) longest = Triple(inWeek, category, startDay)
-            if (s.louder) turnedUp += category to startDay
+            if (s.louder) turnedUp += category to localDate(maxOf(start, weekFrom), zone)
+        }
+        // Sessions and the longest stretch go by quiet runs: stretches back to back (a handover,
+        // say Work 9-10, Study 10-12, Work 12-17) are one run, and each category counts once per
+        // run, from its first start to its last end there. So that day is one 8h Work session and
+        // one 2h Study session, not two Work sessions.
+        val quiet = stretches.filter { !it.missed }
+            .map { it to clip(it.startMillis, minOf(it.endMillis ?: nowMillis, nowMillis), weekFrom, weekTo) }
+            .filter { (_, span) -> span != null }
+            .map { (s, span) -> s.categoryValue to span!! }
+            .sortedBy { it.second.first }
+        val runs = mutableListOf<MutableList<Pair<Category, Pair<Long, Long>>>>()
+        for (part in quiet) {
+            val run = runs.lastOrNull()
+            if (run != null && part.second.first <= run.maxOf { it.second.second } + JOIN_MS) run += part else runs += mutableListOf(part)
+        }
+        for (run in runs) {
+            for ((category, parts) in run.groupBy { it.first }) {
+                sessions.merge(category, 1, Int::plus)
+                val from = parts.minOf { it.second.first }
+                val span = parts.maxOf { it.second.second } - from
+                if (longest == null || span > longest.first) longest = Triple(span, category, localDate(from, zone))
+            }
         }
         return Week(
             monday = monday,
@@ -241,6 +260,16 @@ object WeeklyReport {
         val m = millis(date, zone)
         return stretches.any { it.startMillis < m }
     }
+
+    /** [start]..[end] cut to [from]..[to], or null when they don't meet. */
+    private fun clip(start: Long, end: Long, from: Long, to: Long): Pair<Long, Long>? {
+        val s = maxOf(start, from)
+        val e = minOf(end, to)
+        return if (e > s) s to e else null
+    }
+
+    /** Stretches this close count as back to back (the log writes them in the same moment). */
+    private const val JOIN_MS = 60_000L
 
     private fun overlap(start: Long, end: Long, from: Long, to: Long): Long = (minOf(end, to) - maxOf(start, from)).coerceAtLeast(0)
 

@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -515,20 +514,18 @@ fun ReportStrip(strip: ReportStripUi, onClick: () -> Unit, modifier: Modifier = 
             containerColor = scheme.surface,
             contentColor = scheme.onSurface,
             borderColor = scheme.outline,
-            modifier = Modifier.fillMaxWidth().clearAndSetSemantics {
-                contentDescription = strip.description
-                role = androidx.compose.ui.semantics.Role.Button
-            },
+            // The button keeps its own semantics (click, role); its content speaks as one line.
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(painterResource(R.drawable.ic_doodle_chart), contentDescription = null, modifier = Modifier.size(26.dp))
             Spacer(Modifier.width(Spacing.S))
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f).clearAndSetSemantics { contentDescription = strip.description }) {
                 Text(strip.title, style = SnoozerTheme.type.label)
                 if (strip.detail != null) {
                     Text(strip.detail, style = SnoozerTheme.type.caption, color = scheme.onSurfaceVariant)
                 }
             }
-            Text("›", style = SnoozerTheme.type.title)
+            Text("›", style = SnoozerTheme.type.title, modifier = Modifier.clearAndSetSemantics {})
         }
         if (strip.isNew) {
             Box(

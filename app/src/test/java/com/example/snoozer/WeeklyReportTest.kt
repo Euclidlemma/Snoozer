@@ -41,7 +41,11 @@ class WeeklyReportTest {
         assertEquals(630, r.totalMinutes)
         assertEquals("2h 30m more than the week before", r.change!!.text)
         assertEquals("▼ 2h", r.work.change)
-        assertEquals("2 sessions", r.work.sessions)
+        // Work 09-17 with Study inside is one 8h Work session, not two.
+        assertEquals("1 session", r.work.sessions)
+        assertEquals("2 sessions", r.study.sessions)
+        assertEquals("8h", r.highlights.first().value)
+        assertEquals("Work · Mon", r.highlights.first().detail)
         assertEquals(listOf(360 + 120, 0, 0, 150, 0, 0, 0), r.days.map { it.totalMinutes })
         assertTrue(r.days[0].isQuietest)
         // Earlier weeks: only those Snoozer was already logging (9 - 15 Nov).
