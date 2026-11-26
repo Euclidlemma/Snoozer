@@ -9,8 +9,10 @@ import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.QuietStatus
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 /** Everything the week screen shows, already formatted. Built by [WeekUi.build]. */
@@ -21,6 +23,8 @@ data class WeekUiState(
     val days: List<DayUi>,
     /** "This week · Work 32h · Study 6h", or null when no switched-on window is planned. */
     val weeklyTotals: String?,
+    /** How many snoozers are past their last date (imported classes after the term). */
+    val endedCount: Int = 0,
 )
 
 @Immutable
@@ -61,6 +65,8 @@ data class DayUi(
 data class AlarmCardUi(
     val id: Int,
     val category: Category,
+    /** "MATH 101" for an imported class; null for most snoozers. */
+    val name: String? = null,
     /** How quiet this window makes the phone (from its category). */
     val level: QuietLevel,
     val start: String,
@@ -75,6 +81,10 @@ data class AlarmCardUi(
     val enabled: Boolean,
     /** Muting the phone right now (because of this day's occurrence). */
     val activeNow: Boolean,
+    /** "Until 4 Dec", "Starts 14 Sep" or "Ended 4 Dec" for a snoozer with dates; null otherwise. */
+    val dateNote: String? = null,
+    /** Past its last date: it won't quiet the phone again. */
+    val ended: Boolean = false,
 )
 
 /** Pure mapping from saved alarms to [WeekUiState]; no Android types, so it is unit-tested. */
@@ -87,19 +97,26 @@ object WeekUi {
     fun build(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): WeekUiState = WeekUiState(
         status = status(alarms, now, canMute),
         days = DayOfWeek.entries.map { day(it, alarms, now, canMute) },
-        weeklyTotals = weeklyTotalsLine(weeklyMinutes(alarms)),
+        weeklyTotals = weeklyTotalsLine(weeklyMinutes(alarms, weekOf = now.toLocalDate())),
+        endedCount = alarms.count { AlarmTime.hasEnded(it, now) },
     )
 
     /**
      * Planned quiet minutes per category over a week, from switched-on windows only. Each
      * window counts toward the day it starts (an overnight one too), and overlaps within a
      * category on the same day count once. Categories with nothing planned are left out.
+     * With [weekOf], only the windows that run in that date's week (Monday to Sunday) count, so
+     * classes before or after their term are left out.
      */
-    fun weeklyMinutes(alarms: List<Alarm>): Map<Category, Int> {
+    fun weeklyMinutes(alarms: List<Alarm>, weekOf: LocalDate? = null): Map<Category, Int> {
         val enabled = alarms.filter { it.isEnabled }
+        val monday = weekOf?.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         return Category.entries.associateWith { category ->
             val ofCategory = enabled.filter { it.category == category }
-            DayOfWeek.entries.sumOf { day -> quietMinutes(ofCategory.filter { day in it.daysOfWeek }) }
+            DayOfWeek.entries.sumOf { day ->
+                val date = monday?.plusDays(day.value - 1L)
+                quietMinutes(ofCategory.filter { if (date == null) day in it.daysOfWeek else AlarmTime.startsOn(it, date) })
+            }
         }.filterValues { it > 0 }
     }
 
@@ -160,10 +177,11 @@ object WeekUi {
             .filter { day in it.daysOfWeek }
             .sortedWith(compareBy({ it.startHour }, { it.startMinute }, { it.id }))
         val isToday = day == now.dayOfWeek
-        val enabled = onDay.filter { it.isEnabled }
+        // Ended classes stay listed (dimmed, "Ended 4 Dec") but don't count toward the day.
+        val enabled = onDay.filter { it.isEnabled && !AlarmTime.hasEnded(it, now) }
         val summary = when {
             onDay.isEmpty() -> null
-            enabled.isEmpty() -> "${count(onDay.size)} · all off"
+            enabled.isEmpty() -> "${count(onDay.size)} · all off or ended"
             else -> "${count(enabled.size)} · ${AlarmTime.formatDuration(quietMinutes(enabled))} quiet"
         }
         return DayUi(
@@ -176,9 +194,10 @@ object WeekUi {
         )
     }
 
-    private fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
+    fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
         id = alarm.id,
         category = alarm.category,
+        name = alarm.name?.takeIf { it.isNotBlank() },
         level = alarm.category.quietLevel,
         start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute),
         end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute),
@@ -188,7 +207,17 @@ object WeekUi {
         repeatText = repeatText(alarm.daysOfWeek),
         enabled = alarm.isEnabled,
         activeNow = canMute && alarm.isEnabled && occurrenceActive(alarm, day, now),
+        dateNote = dateNote(alarm, now),
+        ended = AlarmTime.hasEnded(alarm, now),
     )
+
+    /** "Ended 4 Dec", "Starts 14 Sep" or "Until 4 Dec"; null for a snoozer without dates. */
+    fun dateNote(alarm: Alarm, now: LocalDateTime): String? = when {
+        AlarmTime.hasEnded(alarm, now) -> "Ended ${AlarmTime.formatDate(alarm.untilDate!!)}"
+        AlarmTime.notStartedYet(alarm, now) -> "Starts ${AlarmTime.formatDate(alarm.fromDate!!)}"
+        alarm.untilDate != null -> "Until ${AlarmTime.formatDate(alarm.untilDate)}"
+        else -> null
+    }
 
     /**
      * Whether the occurrence that starts on [day] covers [now]. Checking the day matters for

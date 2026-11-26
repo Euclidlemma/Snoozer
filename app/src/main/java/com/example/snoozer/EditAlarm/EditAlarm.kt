@@ -1,5 +1,12 @@
 package com.example.snoozer.EditAlarm
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
 import android.app.TimePickerDialog
 import android.text.format.DateFormat
 import android.content.res.Configuration
@@ -115,6 +122,8 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
                 onEndChange = viewModel::onEndChange,
                 onToggleDay = viewModel::onToggleDay,
                 onPreset = viewModel::onPreset,
+                onName = viewModel::onName,
+                onClearDates = viewModel::onClearDates,
                 onSave = viewModel::save,
                 // The edit screen stays underneath, so the half-filled form is still here on return.
                 onHowItWorks = { navController.navigateFrom(lifecycleOwner, Routes.HowItWorks.route) },
@@ -167,6 +176,8 @@ fun EditContent(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
     onHowItWorks: () -> Unit = {},
+    onName: (String) -> Unit = {},
+    onClearDates: () -> Unit = {},
 ) {
     // Top bar, scrollable middle and save bar stacked in a column, so the middle can
     // never slide under the Save button on small screens or with large font sizes.
@@ -183,6 +194,8 @@ fun EditContent(
             WhatHappensPanel(state.explanation, onHowItWorks = onHowItWorks)
             WhenCard(state = state, onStartChange = onStartChange, onEndChange = onEndChange)
             RepeatCard(days = state.days, preset = state.preset, onToggleDay = onToggleDay, onPreset = onPreset)
+            NameCard(name = state.name, onName = onName)
+            if (state.dates != null) DatesCard(dates = state.dates, onClear = onClearDates)
         }
         SaveBar(isNew = state.isNew, error = state.error, onSave = onSave)
     }
@@ -492,5 +505,55 @@ private fun NewSnoozerPreview() {
             onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
             onToggleDay = {}, onPreset = {}, onSave = {},
         )
+    }
+}
+
+/** An optional name ("MATH 101"), shown on the week card and in the heads-up. */
+@Composable
+private fun NameCard(name: String, onName: (String) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    DoodleSection(title = "Name", seed = 95) {
+        BasicTextField(
+            value = name,
+            onValueChange = onName,
+            singleLine = true,
+            textStyle = SnoozerTheme.type.body.copy(color = scheme.onSurface),
+            cursorBrush = SolidColor(scheme.onSurface),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = "Name, optional" },
+            decorationBox = { field ->
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .sketchyBorder(scheme.outline, width = 1.5.dp, wobble = DoodleDefaults.WobbleLight, seed = 96)
+                        .padding(horizontal = Spacing.M, vertical = Spacing.S),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (name.isEmpty()) {
+                        Text("Optional, e.g. MATH 101", style = SnoozerTheme.type.body, color = scheme.onSurfaceVariant)
+                    }
+                    field()
+                }
+            },
+        )
+    }
+}
+
+/** For a snoozer with dates (an imported class): when it runs, and a way to make it weekly for good. */
+@Composable
+private fun DatesCard(dates: String, onClear: () -> Unit) {
+    DoodleSection(title = "Dates", seed = 97) {
+        Text(dates, style = SnoozerTheme.type.headline)
+        Text(
+            "Snoozer only quiets your phone between these dates.",
+            style = SnoozerTheme.type.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        DoodleButton(onClick = onClear, seed = 98, wobble = DoodleDefaults.WobbleLight, containerColor = Color.Transparent) {
+            Text("Repeat every week instead")
+        }
     }
 }

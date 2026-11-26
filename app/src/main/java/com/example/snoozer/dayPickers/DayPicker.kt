@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,12 +32,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,6 +54,8 @@ import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.QuietLevel
+import com.example.snoozer.ui.doodle.DoodleButton
+import com.example.snoozer.ui.doodle.DoodleChip
 import com.example.snoozer.ui.doodle.DoodleDefaults
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
@@ -59,6 +66,8 @@ import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.openDndSettings
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.YearMonth
 import java.time.LocalDateTime
 
 /** The week screen. State comes from [DayPickerViewModel]. */
@@ -108,7 +117,10 @@ fun DayPickerMain(
     }
 }
 
-/** Stateless body of the week screen: status card, week strip, and one timeline page per day. */
+/**
+ * Stateless body of the week screen: status card, then the Week or Month view. Week is the
+ * week strip with one timeline page per day; Month is [MonthContent].
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WeekContent(
@@ -120,6 +132,13 @@ fun WeekContent(
     modifier: Modifier = Modifier,
     onAllowAccess: () -> Unit = {},
     onHelp: () -> Unit = {},
+    view: WeekView = WeekView.Week,
+    month: MonthUiState? = null,
+    onView: (WeekView) -> Unit = {},
+    onMonth: (YearMonth) -> Unit = {},
+    onSelectDate: (LocalDate) -> Unit = {},
+    onImport: () -> Unit = {},
+    onRemoveEnded: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxSize()) {
@@ -138,21 +157,92 @@ fun WeekContent(
                 modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
             )
         }
-        Spacer(Modifier.height(Spacing.S))
-        WeekStrip(
-            days = state.days,
-            selected = pagerState.currentPage,
-            onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
+        ViewBar(view = view, onView = onView, onImport = onImport)
+        if (state.endedCount > 0) EndedNotice(state.endedCount, onRemoveEnded)
+        if (view == WeekView.Month && month != null) {
+            MonthContent(
+                state = month,
+                onMonth = onMonth,
+                onSelect = onSelectDate,
+                onCardClick = onCardClick,
+                onToggle = onToggle,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            WeekStrip(
+                days = state.days,
+                selected = pagerState.currentPage,
+                onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
+            )
+            DoodleDivider(modifier = Modifier.padding(horizontal = Spacing.M), seed = 21)
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+                DayPage(day = state.days[page], onCardClick = onCardClick, onToggle = onToggle, onAdd = onAdd, onImport = onImport)
+            }
+        }
+    }
+}
+
+/** Week | Month on the left, "Import timetable" on the right. */
+@Composable
+private fun ViewBar(view: WeekView, onView: (WeekView) -> Unit, onImport: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.M, vertical = Spacing.S),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+    ) {
+        Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.XS)) {
+            WeekView.entries.forEachIndexed { i, v ->
+                DoodleChip(
+                    selected = v == view,
+                    onClick = { onView(v) },
+                    label = v.name,
+                    seed = 740 + i,
+                    wobble = DoodleDefaults.WobbleLight,
+                    modifier = Modifier.semantics { role = Role.Tab },
+                )
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        DoodleButton(
+            onClick = onImport,
+            seed = 742,
+            wobble = DoodleDefaults.WobbleLight,
+            containerColor = Color.Transparent,
+        ) {
+            Icon(painterResource(R.drawable.ic_doodle_import), contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(Spacing.XS))
+            Text("Import timetable")
+        }
+    }
+}
+
+/** "2 classes have ended" after a term, with a way to clear them out. */
+@Composable
+private fun EndedNotice(count: Int, onRemove: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.M)
+            .padding(bottom = Spacing.S)
+            .doodleFill(MaterialTheme.colorScheme.surface, wobble = DoodleDefaults.WobbleLight, seed = 745)
+            .sketchyBorder(MaterialTheme.colorScheme.outline, width = 1.5.dp, wobble = DoodleDefaults.WobbleLight, seed = 745)
+            .padding(start = Spacing.M, end = Spacing.XS, top = Spacing.XS, bottom = Spacing.XS),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (count == 1) "1 class has ended." else "$count classes have ended.",
+            style = SnoozerTheme.type.body,
+            modifier = Modifier.weight(1f),
         )
-        DoodleDivider(modifier = Modifier.padding(horizontal = Spacing.M), seed = 21)
-        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
-            DayPage(day = state.days[page], onCardClick = onCardClick, onToggle = onToggle, onAdd = onAdd)
+        DoodleButton(onClick = onRemove, seed = 746, wobble = DoodleDefaults.WobbleLight, containerColor = Color.Transparent,
+            borderColor = Color.Transparent) {
+            Text(if (count == 1) "Remove it" else "Remove them")
         }
     }
 }
 
 @Composable
-private fun DayPage(day: DayUi, onCardClick: (Int) -> Unit, onToggle: (Int, Boolean) -> Unit, onAdd: () -> Unit) {
+private fun DayPage(day: DayUi, onCardClick: (Int) -> Unit, onToggle: (Int, Boolean) -> Unit, onAdd: () -> Unit, onImport: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         // Bottom padding keeps the last card clear of the floating + button.
@@ -160,7 +250,7 @@ private fun DayPage(day: DayUi, onCardClick: (Int) -> Unit, onToggle: (Int, Bool
     ) {
         item(key = "header") { DayHeader(day, Modifier.padding(bottom = Spacing.M)) }
         if (day.cards.isEmpty()) {
-            item(key = "empty") { EmptyDay(dayName = day.name, onAdd = onAdd) }
+            item(key = "empty") { EmptyDay(dayName = day.name, onAdd = onAdd, onImport = onImport) }
         } else {
             itemsIndexed(day.cards, key = { _, card -> card.id }) { index, card ->
                 TimelineItem(

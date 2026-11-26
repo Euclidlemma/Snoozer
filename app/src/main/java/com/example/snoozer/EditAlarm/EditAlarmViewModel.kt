@@ -121,6 +121,8 @@ class EditAlarmViewModel @Inject constructor(
     fun onToggleDay(day: DayOfWeek) = edit { it.toggleDay(day) }
     fun onPreset(preset: RepeatPreset) = edit { it.withPreset(preset) }
     fun onCategory(category: Category) = edit { it.switchCategory(category, isNew, fromDay) }
+    fun onName(name: String) = edit { it.withName(name) }
+    fun onClearDates() = edit { it.clearDates() }
 
     fun save() {
         val current = form.value ?: return

@@ -378,6 +378,8 @@ private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
             "Tap + on the week screen to plan a quiet time. Pick Work or Study; you can change it anytime."
         }
     )
+    // Students can skip typing classes in one by one.
+    PageNote("Have a class timetable? \"Import timetable\" on the week screen adds every class at once, until the term ends.")
     Spacer(Modifier.height(Spacing.S))
 }
 

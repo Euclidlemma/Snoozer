@@ -124,6 +124,10 @@ object AlarmTime {
     fun durationMinutes(alarm: Alarm): Int =
         Math.floorMod(endMinuteOfDay(alarm) - startMinuteOfDay(alarm), MINUTES_PER_DAY)
 
+    /** "4 Dec": day and short month, the way dates read on cards and in the calendar. */
+    fun formatDate(date: LocalDate): String =
+        "${date.dayOfMonth} ${date.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH)}"
+
     /** "09:05" style 24-hour time. */
     fun formatTime(hour: Int, minute: Int): String = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
 
