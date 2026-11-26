@@ -1,0 +1,172 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Snoozer: a snoozer on one date</title>
+<style>
+@font-face{font-family:Gaegu;src:url(../../app/src/main/res/font/gaegu_regular.ttf);font-weight:400}
+@font-face{font-family:Gaegu;src:url(../../app/src/main/res/font/gaegu_bold.ttf);font-weight:700}
+*{box-sizing:border-box;margin:0}
+body{background:#E8E2D4;font-family:Gaegu,cursive;color:#2E2B26;padding:26px 30px}
+h1{font-size:34px;margin-bottom:4px}h2{font-size:26px;margin:24px 0 10px}
+.note{font-size:18px;color:#5A5449;max-width:1400px;line-height:1.25}
+.row{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px;width:320px}
+.cap{font-size:21px;font-weight:700;text-align:center}.sub{font-size:15.5px;color:#5A5449;text-align:center;line-height:1.2}
+.phone{width:320px;height:660px;background:#2A2D2F;color:#EDEAE2;border:3px solid #2E2B26;border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;gap:9px;padding:12px}
+.sk{border:2px solid #EDEAE2;border-radius:18px 14px 20px 13px/14px 20px 13px 18px}
+.skl{border:1.5px solid #A8A398;border-radius:16px 12px 18px 12px/12px 18px 12px 16px}
+.sec{background:#303437;padding:10px}.sec>b{font-size:19px;display:block;margin-bottom:6px}
+.seg{display:flex;gap:6px;margin-bottom:8px}.seg div{flex:1;text-align:center;padding:5px 4px;font-weight:700;font-size:15px}
+.on{background:repeating-linear-gradient(-55deg,#444A4E 0 6px,#58606a 6px 8px)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}.chips span{padding:3px 8px;font-size:14px;font-weight:700}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:14px}
+.cal .h{color:#C9C5BB;font-size:12px}.cal .d{padding:5px 0;border-radius:50%}
+.cal .past{color:#6b6e70}.cal .out{color:#55585a}.cal .today{outline:1.5px solid #EDEAE2;outline-offset:-2px}
+.cal .sel{background:#E8C55A;color:#2E2B26;font-weight:700}
+.mh{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:17px;margin-bottom:4px}
+.hb{background:repeating-linear-gradient(-55deg,#2F4B63 0 6px,#3f6585 6px 8px);color:#DCEBF8}
+.hl{background:repeating-linear-gradient(-55deg,#4E3B57 0 6px,#6a5076 6px 8px);color:#F0E0F5}
+.c{font-size:13.5px;color:#C9C5BB}.t{font-size:22px;font-weight:700}
+.top{display:flex;align-items:center;gap:8px;font-weight:700}.top .b{padding:3px 10px;font-size:15px;background:#444A4E}
+.save{margin-top:auto;text-align:center;padding:8px;font-weight:700;font-size:18px;background:repeating-linear-gradient(-55deg,#444A4E 0 6px,#58606a 6px 8px)}
+.arrow{font-size:30px;align-self:center;margin-top:280px}
+.fab{position:absolute;right:14px;bottom:16px;width:52px;height:52px;border-radius:50%;background:repeating-linear-gradient(-55deg,#E8C55A 0 6px,#c9a744 6px 8px);color:#2E2B26;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700}
+.ring{position:absolute;right:8px;bottom:10px;width:64px;height:64px;border-radius:50%;border:3px dashed #C2185B}
+.card{padding:8px;display:flex;gap:8px;align-items:center}.card .pic{width:40px;height:40px;border-radius:9px;background:#F3F0E8;flex:none}
+.tagx{display:inline-block;font-size:12px;padding:1px 7px;border:1.5px solid currentColor;border-radius:9px;margin-right:4px}
+</style></head><body>
+<h1>A snoozer on one date</h1>
+<p class="note">Today a snoozer repeats every week. This adds a second kind: <b>one date only</b> ("Fri 4 Dec, 13:00–15:00, Study"), picked on a small calendar in the new-snoozer screen. Under the hood it's a snoozer whose first and last date are the same day, so the alarms, the status card, the month marks and the weekly report already handle it. Only the screens change.</p>
+
+<h2>1 · The new-snoozer screen: "Every week" or "One date"</h2>
+<div class="row">
+ <div class="col">
+  <div class="phone">
+   <div class="top"><span class="b sk">← Back</span>New snoozer</div>
+   <div class="sec skl"><b>When</b><div class="t">13:00 – 15:00</div><div class="c">Quiet for 2h</div></div>
+   <div class="sec skl"><b>Repeat</b>
+    <div class="seg"><div class="sk on">Every week</div><div class="sk">One date</div></div>
+    <div class="chips"><span class="sk">Mon</span><span class="sk">Tue</span><span class="sk">Wed</span><span class="sk">Thu</span><span class="sk on">Fri</span><span class="sk">Sat</span><span class="sk">Sun</span></div>
+    <div class="chips" style="margin-top:6px"><span class="sk">Weekdays</span><span class="sk">Weekends</span><span class="sk">Every day</span></div>
+   </div>
+   <div class="save sk">Save snoozer</div>
+  </div>
+  <div class="cap">Every week (as today)</div>
+  <div class="sub">The Repeat card gets a two-way switch at the top. "Every week" keeps the weekday chips and presets exactly as they are.</div>
+ </div>
+ <div class="col">
+  <div class="phone">
+   <div class="top"><span class="b sk">← Back</span>New snoozer</div>
+   <div class="sec skl"><b>When</b><div class="t">13:00 – 15:00</div><div class="c">Quiet for 2h on Fri 4 Dec</div></div>
+   <div class="sec skl"><b>Repeat</b>
+    <div class="seg"><div class="sk">Every week</div><div class="sk on">One date</div></div>
+    <div class="mh"><span>‹</span><span>December 2026</span><span>›</span></div>
+    <div class="cal">
+     <div class="h">M</div><div class="h">T</div><div class="h">W</div><div class="h">T</div><div class="h">F</div><div class="h">S</div><div class="h">S</div>
+     <div class="d out">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d sel">4</div><div class="d">5</div><div class="d">6</div>
+     <div class="d">7</div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div><div class="d">12</div><div class="d">13</div>
+     <div class="d">14</div><div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div><div class="d">19</div><div class="d">20</div>
+     <div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d">26</div><div class="d">27</div>
+     <div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d out">1</div><div class="d out">2</div><div class="d out">3</div>
+    </div>
+    <div class="c" style="margin-top:6px">Only on Friday 4 December. It won't repeat.</div>
+   </div>
+   <div class="save sk">Save snoozer</div>
+  </div>
+  <div class="cap">One date</div>
+  <div class="sub">A month calendar in the same doodle style as the Month view: swipe or ‹ › for other months, past days faded and not tappable, today circled, the picked day in yellow. The summary under "When" names the date.</div>
+ </div>
+ <div class="col">
+  <div class="phone">
+   <div class="top"><span class="b sk">← Back</span>New snoozer</div>
+   <div class="sec skl"><b>When</b><div class="t">09:00 – 10:00</div><div class="c">Quiet for 1h on today, Wed 25 Nov</div></div>
+   <div class="sec skl"><b>Repeat</b>
+    <div class="seg"><div class="sk">Every week</div><div class="sk on">One date</div></div>
+    <div class="mh"><span style="opacity:.3">‹</span><span>November 2026</span><span>›</span></div>
+    <div class="cal">
+     <div class="h">M</div><div class="h">T</div><div class="h">W</div><div class="h">T</div><div class="h">F</div><div class="h">S</div><div class="h">S</div>
+     <div class="d past">23</div><div class="d past">24</div><div class="d sel today">25</div><div class="d">26</div><div class="d">27</div><div class="d">28</div><div class="d">29</div>
+     <div class="d">30</div><div class="d out">1</div><div class="d out">2</div><div class="d out">3</div><div class="d out">4</div><div class="d out">5</div><div class="d out">6</div>
+    </div>
+   </div>
+   <div style="font-size:15px;color:#ffb3cf;text-align:center">That time has already passed today.</div>
+   <div class="save sk" style="opacity:.4">Save snoozer</div>
+  </div>
+  <div class="cap">Can't be in the past</div>
+  <div class="sub">Earlier months can't be opened and past days can't be picked. If today is picked and the end time has already gone by, Save explains why it's off.</div>
+ </div>
+</div>
+
+<h2>2 · Where "+" starts</h2>
+<div class="row">
+ <div class="col">
+  <div class="phone">
+   <div class="chips"><span class="sk">Week</span><span class="sk on">Month</span></div>
+   <div class="mh" style="margin-top:6px"><span>‹</span><span>December 2026</span><span>›</span></div>
+   <div class="cal">
+    <div class="h">M</div><div class="h">T</div><div class="h">W</div><div class="h">T</div><div class="h">F</div><div class="h">S</div><div class="h">S</div>
+    <div class="d out">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d sel">4</div><div class="d">5</div><div class="d">6</div>
+    <div class="d">7</div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div><div class="d">12</div><div class="d">13</div>
+   </div>
+   <div style="font-size:19px;font-weight:700;margin-top:8px">Friday 4 December</div>
+   <div class="c">Nothing mutes your phone that day.</div>
+   <div class="fab sk">+</div><div class="ring"></div>
+  </div>
+  <div class="cap">Month view, a day picked → +</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="col">
+  <div class="phone">
+   <div class="top"><span class="b sk">← Back</span>New snoozer</div>
+   <div class="sec skl"><b>Repeat</b>
+    <div class="seg"><div class="sk">Every week</div><div class="sk on">One date</div></div>
+    <div class="mh"><span>‹</span><span>December 2026</span><span>›</span></div>
+    <div class="cal">
+     <div class="d out">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d sel">4</div><div class="d">5</div><div class="d">6</div>
+    </div>
+    <div class="c" style="margin-top:6px">Only on Friday 4 December.</div>
+   </div>
+  </div>
+  <div class="cap">…opens on "One date", 4 Dec picked</div>
+  <div class="sub">The picked day comes along. Switching to "Every week" there starts on Fridays, so nothing is lost either way.</div>
+ </div>
+ <div class="col">
+  <div class="phone">
+   <div class="chips"><span class="sk on">Week</span><span class="sk">Month</span></div>
+   <div style="display:flex;justify-content:space-around;margin:10px 0;font-weight:700;color:#C9C5BB"><span>M</span><span>T</span><span>W</span><span>T</span><span style="color:#EDEAE2;text-decoration:underline">F</span><span>S</span><span>S</span></div>
+   <div class="top" style="font-size:19px">Friday</div>
+   <div class="fab sk">+</div><div class="ring"></div>
+  </div>
+  <div class="cap">Week view → + opens "Every week"</div>
+  <div class="sub">Unchanged: it starts on the weekday being viewed (Friday here).</div>
+ </div>
+</div>
+
+<h2>3 · After saving</h2>
+<div class="row">
+ <div class="col">
+  <div class="phone">
+   <div class="mh"><span>‹</span><span>December 2026</span><span>›</span></div>
+   <div class="cal"><div class="h">M</div><div class="h">T</div><div class="h">W</div><div class="h">T</div><div class="h">F</div><div class="h">S</div><div class="h">S</div>
+    <div class="d out">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d sel">4<br><span style="color:#D3A9DE">●</span></div><div class="d">5</div><div class="d">6</div></div>
+   <div style="font-size:19px;font-weight:700;margin-top:8px">Friday 4 December</div>
+   <div class="card sk hl"><div class="pic"></div><div><div><span class="tagx">Study · Silent</span><span class="tagx">once</span></div><div class="t">13:00 – 15:00</div><div class="c" style="color:#F0E0F5">Only on Fri 4 Dec</div></div></div>
+  </div>
+  <div class="cap">In Month: a mark on that day only</div>
+ </div>
+ <div class="col">
+  <div class="phone">
+   <div style="display:flex;justify-content:space-around;margin:4px 0 10px;font-weight:700;color:#C9C5BB"><span>M</span><span>T</span><span>W</span><span>T</span><span style="color:#EDEAE2;text-decoration:underline">F</span><span>S</span><span>S</span></div>
+   <div class="top" style="font-size:19px">Friday</div>
+   <div class="card sk hb"><div class="pic"></div><div><div class="c" style="color:#DCEBF8">Work · Vibrate</div><div class="t">09:00 – 17:00</div><div class="c" style="color:#DCEBF8">M T W T F</div></div></div>
+   <div class="c" style="text-align:center;margin-top:8px">(the Fri 4 Dec snoozer shows here only in the week of 30 Nov – 6 Dec)</div>
+  </div>
+  <div class="cap">In Week: only in its own week</div>
+  <div class="sub">Week pages show the week you're in. A date-only snoozer appears there only during its week, so it doesn't sit on every Friday forever.</div>
+ </div>
+ <div class="col">
+  <div class="phone">
+   <div class="sec skl" style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px">1 snoozer has ended.</span><span style="font-weight:700">Remove it</span></div>
+   <div class="c" style="margin-top:6px">Once its date has passed it counts as ended, like a finished class, and the same notice clears it away. Its quiet time stays in the weekly report.</div>
+  </div>
+  <div class="cap">Afterwards</div>
+ </div>
+</div>
+</body></html>

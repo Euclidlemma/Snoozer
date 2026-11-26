@@ -83,6 +83,8 @@ import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.ui.theme.Spacing
 import java.time.DayOfWeek
+import java.time.LocalDate
+import androidx.compose.ui.semantics.role
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -124,6 +126,8 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
                 onPreset = viewModel::onPreset,
                 onName = viewModel::onName,
                 onClearDates = viewModel::onClearDates,
+                onOneDateMode = viewModel::onOneDateMode,
+                onPickDate = viewModel::onPickDate,
                 onSave = viewModel::save,
                 // The edit screen stays underneath, so the half-filled form is still here on return.
                 onHowItWorks = { navController.navigateFrom(lifecycleOwner, Routes.HowItWorks.route) },
@@ -178,6 +182,8 @@ fun EditContent(
     onHowItWorks: () -> Unit = {},
     onName: (String) -> Unit = {},
     onClearDates: () -> Unit = {},
+    onOneDateMode: (Boolean) -> Unit = {},
+    onPickDate: (LocalDate) -> Unit = {},
 ) {
     // Top bar, scrollable middle and save bar stacked in a column, so the middle can
     // never slide under the Save button on small screens or with large font sizes.
@@ -193,7 +199,11 @@ fun EditContent(
             CategoryToggle(selected = state.category, onSelect = onCategory)
             WhatHappensPanel(state.explanation, onHowItWorks = onHowItWorks)
             WhenCard(state = state, onStartChange = onStartChange, onEndChange = onEndChange)
-            RepeatCard(days = state.days, preset = state.preset, onToggleDay = onToggleDay, onPreset = onPreset)
+            RepeatCard(
+                days = state.days, preset = state.preset, onToggleDay = onToggleDay, onPreset = onPreset,
+                oneDate = state.oneDate, oneDateText = state.oneDateText, today = state.today,
+                onOneDateMode = onOneDateMode, onPickDate = onPickDate,
+            )
             NameCard(name = state.name, onName = onName)
             if (state.dates != null) DatesCard(dates = state.dates, onClear = onClearDates)
         }
@@ -407,8 +417,34 @@ private fun RepeatCard(
     preset: RepeatPreset?,
     onToggleDay: (DayOfWeek) -> Unit,
     onPreset: (RepeatPreset) -> Unit,
+    oneDate: LocalDate? = null,
+    oneDateText: String? = null,
+    today: LocalDate? = null,
+    onOneDateMode: (Boolean) -> Unit = {},
+    onPickDate: (LocalDate) -> Unit = {},
 ) {
     DoodleSection(title = "Repeat", seed = 93) {
+        // Every week (weekday chips) or One date (a calendar). Picking one keeps the other's
+        // choices, so switching back and forth loses nothing.
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+            listOf(false to "Every week", true to "One date").forEachIndexed { i, (isOne, label) ->
+                DoodleChip(
+                    selected = (oneDate != null) == isOne,
+                    onClick = { onOneDateMode(isOne) },
+                    label = label,
+                    seed = 940 + i,
+                    wobble = DoodleDefaults.WobbleLight,
+                    modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                )
+            }
+        }
+        if (oneDate != null && today != null) {
+            OneDateCalendar(selected = oneDate, today = today, onPick = onPickDate)
+            if (oneDateText != null) {
+                Text(oneDateText, style = SnoozerTheme.type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            return@DoodleSection
+        }
         // FlowRow wraps the chips onto two lines on narrow phones instead of scrolling sideways.
         FlowRow(
             modifier = Modifier.fillMaxWidth(),

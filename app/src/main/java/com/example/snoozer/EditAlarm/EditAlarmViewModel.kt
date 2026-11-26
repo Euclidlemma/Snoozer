@@ -9,6 +9,8 @@ import com.example.snoozer.alarm.AlarmActions
 import com.example.snoozer.alarm.AlarmRepository
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.util.PermissionChecker
+import com.example.snoozer.util.TimeSource
+import java.time.LocalDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -35,6 +37,7 @@ class EditAlarmViewModel @Inject constructor(
     private val repository: AlarmRepository,
     private val actions: AlarmActions,
     private val permissionChecker: PermissionChecker,
+    private val timeSource: TimeSource,
 ) : ViewModel() {
 
     // Whether reminders can be shown, so the "What happens" panel doesn't promise a heads-up
@@ -49,8 +52,16 @@ class EditAlarmViewModel @Inject constructor(
     private val alarmId: Int? = savedStateHandle.get<Int>(Routes.EditAlarm.ARG_ID)?.takeIf { it >= 0 }
     private val isNew = alarmId == null
 
-    /** The day page a new snoozer was opened from, if any. Comes from the route. */
-    private val fromDay: DayOfWeek? =
+    /**
+     * The day picked in the Month view, for a new snoozer on that date only. Comes from the
+     * route; a day already past becomes today (a snoozer can't be set in the past).
+     */
+    private val fromDate: LocalDate? =
+        savedStateHandle.get<String>(Routes.EditAlarm.ARG_DATE)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?.let { maxOf(it, timeSource.now().toLocalDate()) }
+
+    /** The day page a new snoozer was opened from, if any (or the picked date's weekday). */
+    private val fromDay: DayOfWeek? = fromDate?.dayOfWeek ?:
         savedStateHandle.get<Int>(Routes.EditAlarm.ARG_DAY)?.takeIf { it in 1..7 }?.let(DayOfWeek::of)
 
     // Kept in SavedStateHandle so a half-filled form survives the process being killed. Stored
@@ -67,10 +78,12 @@ class EditAlarmViewModel @Inject constructor(
     private var busy = false
 
     /** Null while the saved snoozer is loading. */
-    val uiState: StateFlow<EditUiState?> = combine(form, original, permissions) { f, o, p ->
+    // The clock keeps "That time has already passed today" current while the screen is open.
+    val uiState: StateFlow<EditUiState?> = combine(form, original, permissions, timeSource.minuteTicks) { f, o, p, now ->
         if (f == null || o == null) null
-        else EditUi.describe(f, o, isNew, permissions = p)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        else EditUi.describe(f, o, isNew, permissions = p, now = now)
+    // Only while the screen is shown (the clock stops 5s after it's covered or left).
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
         // Both or neither: a form without its original can't tell what changed.
@@ -86,7 +99,7 @@ class EditAlarmViewModel @Inject constructor(
     private suspend fun load() {
         val loaded = try {
             if (alarmId == null) {
-                EditForm.new(fromDay)
+                EditForm.new(fromDay, date = fromDate).notInThePast(timeSource.now())
             } else {
                 repository.getAlarmById(alarmId)?.let(EditForm::from)
             }
@@ -121,12 +134,36 @@ class EditAlarmViewModel @Inject constructor(
     fun onToggleDay(day: DayOfWeek) = edit { it.toggleDay(day) }
     fun onPreset(preset: RepeatPreset) = edit { it.withPreset(preset) }
     fun onCategory(category: Category) = edit { it.switchCategory(category, isNew, fromDay) }
+
+    /**
+     * "One date" or "Every week". Switching to one date with none picked yet offers the next
+     * day on one of the chosen weekdays whose window is still ahead (else today or tomorrow).
+     */
+    fun onOneDateMode(oneDate: Boolean) = edit { f ->
+        when {
+            !oneDate -> f.repeatWeekly()
+            f.oneDate != null -> f
+            else -> {
+                val now = timeSource.now()
+                val today = now.toLocalDate()
+                // The user's times stay as they are: today only if that window is still ahead.
+                fun ahead(d: LocalDate) = d != today || f.withOneDate(d).notInThePast(now) == f.withOneDate(d)
+                val next = (0L..7L).map { today.plusDays(it) }.firstOrNull { it.dayOfWeek in f.days && ahead(it) }
+                    ?: if (ahead(today)) today else today.plusDays(1)
+                f.withOneDate(next)
+            }
+        }
+    }
+
+    fun onPickDate(date: LocalDate) = edit { it.withOneDate(date) }
     fun onName(name: String) = edit { it.withName(name) }
     fun onClearDates() = edit { it.clearDates() }
 
     fun save() {
         val current = form.value ?: return
-        if (busy || uiState.value?.canSave != true) return
+        val saved = original.value ?: return
+        // Checked fresh, not from uiState (which may be paused), with the time as of this tap.
+        if (busy || !EditUi.describe(current, saved, isNew, now = timeSource.now()).canSave) return
         // The screen only leaves after the write finishes; leaving clears this ViewModel and
         // would cancel a write still in flight.
         runWrite(failure = "Couldn't save. Your changes are still here; try again.") {

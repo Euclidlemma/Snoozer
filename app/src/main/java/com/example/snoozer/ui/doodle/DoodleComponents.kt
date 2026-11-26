@@ -263,12 +263,15 @@ fun DoodleChip(
         color = Color.Transparent,
         contentColor = colors.onSurface,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier
-                .defaultMinSize(minWidth = 48.dp, minHeight = 40.dp)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        )
+        // Centered, for chips stretched wider than their label (Every week / One date).
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 48.dp, minHeight = 40.dp)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+        }
     }
 }

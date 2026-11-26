@@ -5,6 +5,7 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
+import com.example.snoozer.alarm.oneDate
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -77,7 +78,8 @@ object MonthUi {
         val days = generateSequence(first) { it.plusDays(1) }.takeWhile { !it.isAfter(last) }.toList()
         val cells = days.map { date ->
             val starting = enabled.filter { AlarmTime.startsOn(it, date) }
-            val endingNames = enabled.filter { it.untilDate == date && !continues(it, enabled) }.map(::label)
+            // A one-date snoozer has no "last day" to mark: it is that day.
+            val endingNames = enabled.filter { it.untilDate == date && it.oneDate == null && !continues(it, enabled) }.map(::label)
             val work = starting.any { it.category == Category.Work }
             val study = starting.any { it.category == Category.Study }
             DayCellUi(
@@ -106,7 +108,7 @@ object MonthUi {
         val onDay = alarms
             .filter { AlarmTime.startsOn(it, date) }
             .sortedWith(compareBy({ it.startHour }, { it.startMinute }, { it.id }))
-        val notes = alarms.filter { it.isEnabled }.flatMap { a ->
+        val notes = alarms.filter { it.isEnabled && it.oneDate == null }.flatMap { a ->
             listOfNotNull(
                 if (a.fromDate == date) "First ${label(a)} class" else null,
                 if (a.untilDate == date && !continues(a, alarms)) "Last ${label(a)} class" else null,

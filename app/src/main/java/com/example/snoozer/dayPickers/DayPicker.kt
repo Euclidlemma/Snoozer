@@ -98,9 +98,15 @@ fun DayPickerMain(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
 
     // A new snoozer starts on the day being viewed: the week page, or the day picked in Month.
+    // In Month, a new snoozer is for the picked date only ("One date", that day selected); in Week
+    // it repeats every week, starting on the day being viewed.
     val createOnCurrentDay = {
-        val day = if (view == WeekView.Month) month?.selected?.date?.dayOfWeek else null
-        navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.create(day ?: DayOfWeek.of(pagerState.currentPage + 1)))
+        val picked = if (view == WeekView.Month) month?.selected?.date else null
+        navController.navigateFrom(
+            lifecycleOwner,
+            if (picked != null) Routes.EditAlarm.createOn(picked)
+            else Routes.EditAlarm.create(DayOfWeek.of(pagerState.currentPage + 1)),
+        )
     }
 
     // The picker's result arrives while this screen is still coming back to the front, so it
@@ -146,9 +152,9 @@ fun DayPickerMain(
         val count = state?.endedCount ?: 0
         DoodleAlertDialog(
             onDismissRequest = { confirmRemove = false },
-            title = if (count == 1) "Remove the ended class?" else "Remove $count ended classes?",
+            title = if (count == 1) "Remove the ended snoozer?" else "Remove $count ended snoozers?",
             text = (if (count == 1) "It's past its last date and won't quiet your phone again." else "They're past their last date and won't quiet your phone again.") +
-                " You can import the next term's timetable anytime.",
+                (if (count == 1) " Its" else " Their") + " quiet time stays in the weekly report.",
             confirmLabel = "Remove",
             onConfirm = {
                 confirmRemove = false
@@ -284,7 +290,7 @@ private fun EndedNotice(count: Int, onRemove: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            if (count == 1) "1 class has ended." else "$count classes have ended.",
+            if (count == 1) "1 snoozer has ended." else "$count snoozers have ended.",
             style = SnoozerTheme.type.body,
             modifier = Modifier.weight(1f),
         )
