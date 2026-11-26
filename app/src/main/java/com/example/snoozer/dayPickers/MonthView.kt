@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -247,6 +248,8 @@ private fun DayCell(cell: DayCellUi, onClick: () -> Unit, modifier: Modifier = M
                     else -> scheme.onSurfaceVariant
                 },
                 modifier = Modifier
+                    // Days from the months around it fill the grid; faded, so this month stands out.
+                    .alpha(if (cell.inMonth) 1f else 0.35f)
                     .then(if (cell.isSelected) Modifier.highlighter(SnoozerTheme.colors.highlighter) else Modifier)
                     .padding(horizontal = 4.dp),
             )

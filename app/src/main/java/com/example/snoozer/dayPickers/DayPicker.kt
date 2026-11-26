@@ -66,6 +66,12 @@ import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.openDndSettings
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.example.snoozer.timetable.openImport
+import com.example.snoozer.timetable.rememberTimetablePicker
+import com.example.snoozer.ui.doodle.DoodleAlertDialog
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.LocalDateTime
@@ -78,17 +84,25 @@ fun DayPickerMain(
     viewModel: DayPickerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val view by viewModel.weekView.collectAsStateWithLifecycle()
+    val month by viewModel.monthState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(initialPage = viewModel.initialPage, pageCount = { 7 })
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
+    var confirmRemove by rememberSaveable { mutableStateOf(false) }
 
     // Do Not Disturb access can be revoked in Settings while the app is in the background.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
 
-    // A new snoozer starts on the day being viewed.
+    // A new snoozer starts on the day being viewed: the week page, or the day picked in Month.
     val createOnCurrentDay = {
-        navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.create(DayOfWeek.of(pagerState.currentPage + 1)))
+        val day = if (view == WeekView.Month) month?.selected?.date?.dayOfWeek else null
+        navController.navigateFrom(lifecycleOwner, Routes.EditAlarm.create(day ?: DayOfWeek.of(pagerState.currentPage + 1)))
     }
+
+    // The picker's result arrives while this screen is still coming back to the front, so it
+    // navigates directly (navigateFrom would see it not yet resumed). One result, one screen.
+    val pickTimetable = rememberTimetablePicker { uri -> navController.openImport(uri) }
 
     Scaffold(
         floatingActionButton = {
@@ -111,9 +125,33 @@ fun DayPickerMain(
                 onAdd = createOnCurrentDay,
                 onAllowAccess = context::openDndSettings,
                 onHelp = { navController.navigateFrom(lifecycleOwner, Routes.HowItWorks.route) },
+                view = view,
+                month = month,
+                onView = viewModel::onView,
+                onMonth = viewModel::onMonth,
+                onSelectDate = viewModel::onSelectDate,
+                onImport = pickTimetable,
+                onRemoveEnded = { confirmRemove = true },
                 modifier = Modifier.padding(padding),
             )
         }
+    }
+
+    if (confirmRemove) {
+        val count = state?.endedCount ?: 0
+        DoodleAlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = if (count == 1) "Remove the ended class?" else "Remove $count ended classes?",
+            text = (if (count == 1) "It's past its last date and won't quiet your phone again." else "They're past their last date and won't quiet your phone again.") +
+                " You can import the next term's timetable anytime.",
+            confirmLabel = "Remove",
+            onConfirm = {
+                confirmRemove = false
+                viewModel.removeEnded()
+            },
+            dismissLabel = "Keep",
+            destructive = true,
+        )
     }
 }
 

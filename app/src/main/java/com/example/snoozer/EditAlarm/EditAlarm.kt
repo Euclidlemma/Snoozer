@@ -546,7 +546,10 @@ private fun NameCard(name: String, onName: (String) -> Unit) {
 @Composable
 private fun DatesCard(dates: String, onClear: () -> Unit) {
     DoodleSection(title = "Dates", seed = 97) {
-        Text(dates, style = SnoozerTheme.type.headline)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+            Icon(painterResource(R.drawable.ic_doodle_calendar), contentDescription = null, modifier = Modifier.size(24.dp))
+            Text(dates, style = SnoozerTheme.type.headline)
+        }
         Text(
             "Snoozer only quiets your phone between these dates.",
             style = SnoozerTheme.type.body,

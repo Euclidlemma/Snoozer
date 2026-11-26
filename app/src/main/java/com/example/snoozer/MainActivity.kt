@@ -1,5 +1,7 @@
 package com.example.snoozer
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -24,6 +27,8 @@ import com.example.snoozer.onboarding.OnboardingStore
 import com.example.snoozer.onboarding.decideFirstLaunch
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.util.ScheduleStamp
+import com.example.snoozer.timetable.ImportTimetableScreen
+import com.example.snoozer.timetable.openImport
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -51,8 +56,14 @@ class MainActivity : ComponentActivity() {
                 scheduleStamp.markDone()
             }
         }
+        // Opened with a calendar file ("Open with Snoozer" from Files, mail or the browser): show
+        // its import preview over the start screen. Only on a fresh start; after a rotation or
+        // process death the back stack already has it.
+        val openedFile: Uri? = if (savedInstanceState == null) calendarFileIn(intent) else null
         setContent {
             val navController = rememberNavController()
+
+            LaunchedEffect(Unit) { openedFile?.let(navController::openImport) }
 
             // One theme for every screen. The Surface gives all screens the theme's
             // background and default text color, so nothing falls back to black-on-dark.
@@ -99,6 +110,16 @@ class MainActivity : ComponentActivity() {
                             DayPickerMain(navController = navController)
                         }
 
+                        // A calendar file's classes, before they're added.
+                        composable(
+                            Routes.ImportTimetable.route,
+                            arguments = listOf(navArgument(Routes.ImportTimetable.ARG_URI) {
+                                type = NavType.StringType; defaultValue = ""
+                            }),
+                        ) {
+                            ImportTimetableScreen(navController)
+                        }
+
                         composable(
                             Routes.EditAlarm.route,
                             arguments = listOf(
@@ -114,6 +135,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    /** The calendar file this activity was opened with, if any. */
+    private fun calendarFileIn(intent: Intent?): Uri? =
+        intent?.takeIf { it.action == Intent.ACTION_VIEW }?.data?.takeIf { it.scheme == "content" }
 
     /** Onboarding for new people (and until a started one is finished), Home otherwise. See [decideFirstLaunch]. */
     private fun startRoute(): String = when (decideFirstLaunch(onboarding)) {

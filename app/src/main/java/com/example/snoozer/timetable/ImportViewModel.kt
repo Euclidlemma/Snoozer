@@ -1,7 +1,7 @@
 package com.example.snoozer.timetable
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -40,7 +40,7 @@ class TimetableReadException(message: String) : Exception(message)
 class TimetableFileReader @Inject constructor(@ApplicationContext private val context: Context) {
     fun read(uri: String): String {
         val stream = try {
-            context.contentResolver.openInputStream(Uri.parse(uri))
+            context.contentResolver.openInputStream(uri.toUri())
         } catch (e: Exception) {
             // FileNotFound, a permission that lapsed (after the app was closed), a bad URI.
             Log.w(TAG, "Could not open $uri", e)
