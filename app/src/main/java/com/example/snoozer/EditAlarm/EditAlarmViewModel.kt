@@ -8,6 +8,7 @@ import com.example.snoozer.Route.Routes
 import com.example.snoozer.alarm.AlarmActions
 import com.example.snoozer.alarm.AlarmRepository
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.util.PermissionChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -33,7 +34,16 @@ class EditAlarmViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: AlarmRepository,
     private val actions: AlarmActions,
+    private val permissionChecker: PermissionChecker,
 ) : ViewModel() {
+
+    // Whether reminders can be shown, so the "What happens" panel doesn't promise a heads-up
+    // that won't come. Re-read when the screen resumes (e.g. back from Settings).
+    private val permissions = MutableStateFlow(permissionChecker.check())
+
+    fun refreshPermissions() {
+        permissions.value = permissionChecker.check()
+    }
 
     /** The snoozer being edited, or null when creating one. Comes from the route. */
     private val alarmId: Int? = savedStateHandle.get<Int>(Routes.EditAlarm.ARG_ID)?.takeIf { it >= 0 }
@@ -57,8 +67,9 @@ class EditAlarmViewModel @Inject constructor(
     private var busy = false
 
     /** Null while the saved snoozer is loading. */
-    val uiState: StateFlow<EditUiState?> = combine(form, original) { f, o ->
-        if (f == null || o == null) null else EditUi.describe(f, o, isNew)
+    val uiState: StateFlow<EditUiState?> = combine(form, original, permissions) { f, o, p ->
+        if (f == null || o == null) null
+        else EditUi.describe(f, o, isNew, permissions = p)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {

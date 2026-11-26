@@ -18,6 +18,7 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.ReminderText
 import com.example.snoozer.alarm.category
+import com.example.snoozer.alarm.hasQuietReminder
 
 /**
  * Posts the "starts in 5 minutes" reminders. One channel per category, so people can turn
@@ -38,10 +39,18 @@ object ReminderNotifier {
             PackageManager.PERMISSION_GRANTED
         if (!granted || !NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
         val manager = context.getSystemService(NotificationManager::class.java)
-        return listOf(CHANNEL_STUDY, CHANNEL_WORK).any { id ->
-            val channel = manager.getNotificationChannel(id)
-            channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
-        }
+        return Category.entries.any { channelOn(manager, it) }
+    }
+
+    /** The categories whose reminder channel the user turned off in Android's settings. */
+    fun channelsOff(context: Context): Set<Category> {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return Category.entries.filterNot { channelOn(manager, it) }.toSet()
+    }
+
+    private fun channelOn(manager: NotificationManager, category: Category): Boolean {
+        val channel = manager.getNotificationChannel(channelFor(category))
+        return channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
     }
 
     /** Removes a shown reminder for this window (deleted, switched off, edited or started). */
@@ -68,7 +77,7 @@ object ReminderNotifier {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text.body))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(
-                if (alarm.category == Category.Study) NotificationCompat.PRIORITY_DEFAULT
+                if (!alarm.category.hasQuietReminder) NotificationCompat.PRIORITY_DEFAULT
                 else NotificationCompat.PRIORITY_LOW
             )
             .setContentIntent(open)

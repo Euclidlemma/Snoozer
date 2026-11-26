@@ -3,9 +3,11 @@ package com.example.snoozer.dayPickers
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -16,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -23,10 +26,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,8 +49,11 @@ import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.QuietLevel
+import com.example.snoozer.ui.doodle.DoodleDefaults
 import com.example.snoozer.ui.doodle.DoodleDivider
 import com.example.snoozer.ui.doodle.DoodleFab
+import com.example.snoozer.ui.doodle.doodleFill
+import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.openDndSettings
@@ -89,6 +101,7 @@ fun DayPickerMain(
                 onToggle = viewModel::onToggle,
                 onAdd = createOnCurrentDay,
                 onAllowAccess = context::openDndSettings,
+                onHelp = { navController.navigateFrom(lifecycleOwner, Routes.HowItWorks.route) },
                 modifier = Modifier.padding(padding),
             )
         }
@@ -106,14 +119,17 @@ fun WeekContent(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     onAllowAccess: () -> Unit = {},
+    onHelp: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxSize()) {
-        StatusCard(
-            state.status,
-            onAllowAccess = onAllowAccess,
-            modifier = Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
-        )
+        Row(
+            Modifier.padding(start = Spacing.M, end = Spacing.M, top = Spacing.S),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+        ) {
+            StatusCard(state.status, onAllowAccess = onAllowAccess, modifier = Modifier.weight(1f))
+            HelpButton(onHelp)
+        }
         if (state.weeklyTotals != null) {
             Text(
                 state.weeklyTotals,
@@ -207,6 +223,35 @@ private fun StatusCardStatesPreview() {
             StatusCard(StatusUi.Next(time = "13:00", day = "today", category = Category.Work, level = QuietLevel.Vibrate, startsIn = "in 3h 40m"))
             StatusCard(StatusUi.NothingScheduled)
             StatusCard(StatusUi.NoAccess)
+        }
+    }
+}
+
+/**
+ * A small round "?" next to the status card. Opens "How Snoozer works" (the onboarding pages
+ * in help mode). 48dp touch target, drawn as a 40dp pencil circle.
+ */
+@Composable
+private fun HelpButton(onClick: () -> Unit) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(onClickLabel = "Open how Snoozer works", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "How Work and Study work" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.size(40.dp)
+                .doodleFill(MaterialTheme.colorScheme.secondaryContainer, cornerRadius = DoodleDefaults.Round,
+                    wobble = DoodleDefaults.WobbleLight, seed = 500)
+                .sketchyBorder(ink, width = 1.5.dp, cornerRadius = DoodleDefaults.Round,
+                    wobble = DoodleDefaults.WobbleLight, seed = 500),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Hidden from screen readers: the button already says what it does.
+            Text("?", style = SnoozerTheme.type.title, color = ink, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }

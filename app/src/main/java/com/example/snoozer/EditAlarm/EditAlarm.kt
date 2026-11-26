@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -52,8 +53,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.example.snoozer.Route.Routes
+import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.Route.leaveEditScreen
 import com.example.snoozer.R
 import com.example.snoozer.alarm.Category
@@ -77,6 +82,9 @@ import java.util.Locale
 @Composable
 fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
+    // Notifications may be allowed in Settings meanwhile; the panel's heads-up line follows.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshPermissions() }
     val context = LocalContext.current
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -108,6 +116,8 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
                 onToggleDay = viewModel::onToggleDay,
                 onPreset = viewModel::onPreset,
                 onSave = viewModel::save,
+                // The edit screen stays underneath, so the half-filled form is still here on return.
+                onHowItWorks = { navController.navigateFrom(lifecycleOwner, Routes.HowItWorks.route) },
                 modifier = Modifier.padding(padding),
             )
         }
@@ -156,6 +166,7 @@ fun EditContent(
     onPreset: (RepeatPreset) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    onHowItWorks: () -> Unit = {},
 ) {
     // Top bar, scrollable middle and save bar stacked in a column, so the middle can
     // never slide under the Save button on small screens or with large font sizes.
@@ -169,6 +180,7 @@ fun EditContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.M),
         ) {
             CategoryToggle(selected = state.category, onSelect = onCategory)
+            WhatHappensPanel(state.explanation, onHowItWorks = onHowItWorks)
             WhenCard(state = state, onStartChange = onStartChange, onEndChange = onEndChange)
             RepeatCard(days = state.days, preset = state.preset, onToggleDay = onToggleDay, onPreset = onPreset)
         }

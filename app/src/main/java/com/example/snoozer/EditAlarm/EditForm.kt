@@ -4,7 +4,10 @@ import androidx.compose.runtime.Immutable
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.alarm.CategoryExplanation
+import com.example.snoozer.alarm.explain
 import com.example.snoozer.alarm.category
+import com.example.snoozer.util.Permissions
 import java.time.DayOfWeek
 
 /** Where a new snoozer of a category starts: its usual time and days. */
@@ -136,12 +139,33 @@ data class EditUiState(
     /** Why the form can't be saved yet, shown next to the Save button. */
     val error: String?,
     val hasChanges: Boolean,
+    /** What the chosen category does, for the "What happens" panel. Same source as onboarding. */
+    val explanation: CategoryExplanation,
 ) {
     val canSave: Boolean get() = error == null
 }
 
 object EditUi {
-    fun describe(form: EditForm, original: EditForm, isNew: Boolean): EditUiState {
+    /**
+     * The panel's explanation, with the heads-up line telling the truth about [permissions].
+     * Each category has its own reminder channel, which can be off on its own. Setup only grants
+     * the app-wide permission (Android 13+); a channel turned off is fixed in Android's settings.
+     */
+    fun explainFor(category: Category, permissions: Permissions?): CategoryExplanation {
+        if (permissions == null) return category.explain(remindersOn = true)
+        return category.explain(
+            remindersOn = permissions.notifications && category !in permissions.reminderChannelsOff,
+            setupHasNotifications = permissions.notificationsApply && permissions.reminderChannelsOff.isEmpty(),
+        )
+    }
+
+    fun describe(
+        form: EditForm,
+        original: EditForm,
+        isNew: Boolean,
+        /** Null assumes reminders can be shown (previews and tests that don't care). */
+        permissions: Permissions? = null,
+    ): EditUiState {
         val probe = form.toNewAlarm()
         val minutes = AlarmTime.durationMinutes(probe)
         val end = AlarmTime.formatTime(form.endHour, form.endMinute)
@@ -166,6 +190,7 @@ object EditUi {
             error = error,
             // A new snoozer always counts as changed, so backing out asks before discarding it.
             hasChanges = isNew || form != original,
+            explanation = explainFor(form.category, permissions),
         )
     }
 }

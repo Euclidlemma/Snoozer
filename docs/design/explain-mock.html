@@ -1,0 +1,245 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Snoozer: explaining Work and Study</title>
+<style>
+@font-face{font-family:Gaegu;src:url(../../app/src/main/res/font/gaegu_regular.ttf);font-weight:400}
+@font-face{font-family:Gaegu;src:url(../../app/src/main/res/font/gaegu_bold.ttf);font-weight:700}
+*{box-sizing:border-box;margin:0}
+body{background:#E8E2D4;font-family:Gaegu,cursive;color:#2E2B26;padding:26px 30px}
+h1{font-size:34px;margin-bottom:4px}
+h2{font-size:26px;margin:22px 0 10px}
+.note{font-size:18px;color:#5A5449;max-width:1500px}
+.row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px;width:300px}
+.cap{font-size:20px;font-weight:700;text-align:center}
+.sub{font-size:15px;color:#5A5449;text-align:center;line-height:1.15}
+.phone{width:300px;height:620px;background:#FAF6EC;border:3px solid #2E2B26;border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.sk{border:2px solid #2E2B26;border-radius:18px 14px 20px 13px/14px 20px 13px 18px}
+.skl{border:1.5px solid #6B6457;border-radius:16px 12px 18px 12px/12px 18px 12px 16px}
+.hb{background:repeating-linear-gradient(-55deg,#C9DDF0 0 6px,#aac7e3 6px 8px)}
+.hl{background:repeating-linear-gradient(-55deg,#E3D0EA 0 6px,#d0b6da 6px 8px)}
+.hy{background:repeating-linear-gradient(-55deg,#F2C94C 0 6px,#e4b937 6px 8px)}
+.pic{background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.btn{background:#EDE4D0;padding:3px 12px;font-size:18px;font-weight:700;display:inline-block}
+.cta{background:repeating-linear-gradient(-55deg,#EDE4D0 0 6px,#c9d3dc 6px 8px);text-align:center;padding:9px;font-size:21px;font-weight:700}
+.t{font-size:24px;font-weight:700;line-height:1.05}.b{font-size:17px;line-height:1.2}.c{font-size:14px;color:#5A5449;line-height:1.2}
+.pager{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.dots{display:flex;gap:7px;justify-content:center}.dots i{width:9px;height:9px;border-radius:50%;border:1.5px solid #2E2B26}.dots i.on{background:#2E2B26}
+.top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 0;font-size:17px;color:#5A5449}
+.tag{position:absolute;font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#fff;background:#C2185B;padding:2px 7px;border-radius:9px;z-index:5}
+/* mini phone used inside the explainer pages */
+.mini{width:92px;height:150px;border:2.5px solid #2E2B26;border-radius:16px;background:#fff;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.mini .ico{font-size:30px;line-height:1}
+.buzz{animation:buzz 1.6s infinite}
+@keyframes buzz{0%,55%,100%{transform:translateX(0) rotate(0)}60%{transform:translateX(-3px) rotate(-3deg)}65%{transform:translateX(3px) rotate(3deg)}70%{transform:translateX(-3px) rotate(-2deg)}75%{transform:translateX(3px) rotate(2deg)}80%{transform:translateX(0)}}
+.waves::before,.waves::after{content:"";position:absolute;top:44%;width:14px;height:34px;border:2.5px solid #5B8DB8;border-color:transparent #5B8DB8 transparent transparent;border-radius:50%;animation:wave 1.6s infinite;opacity:0}
+.waves::before{right:-20px}.waves::after{left:-20px;transform:scaleX(-1)}
+@keyframes wave{0%,55%{opacity:0}62%,80%{opacity:1}100%{opacity:0}}
+.zz{position:absolute;top:-8px;right:-14px;font-size:22px;font-weight:700;color:#A57BB0;animation:zz 2.4s infinite}
+@keyframes zz{0%{transform:translate(0,6px);opacity:0}30%{opacity:1}100%{transform:translate(10px,-18px);opacity:0}}
+.bob{animation:bob 2.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+/* timeline page */
+.tl{position:relative;height:118px;margin:4px 6px}
+.bar{position:absolute;height:34px;white-space:nowrap;display:flex;align-items:center;padding-left:8px;font-size:15px;font-weight:700}
+.head{position:absolute;top:-6px;bottom:-6px;width:3px;background:#C2185B;border-radius:2px;animation:head 7s linear infinite}
+.head::after{content:"now";position:absolute;top:-18px;left:-12px;font-size:13px;color:#C2185B;font-weight:700}
+@keyframes head{0%{left:0%}100%{left:100%}}
+.chip{position:relative;height:36px;width:168px;margin:6px auto 0}
+.chip span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;opacity:0}
+.c1{animation:c1 7s linear infinite}.c2{animation:c2 7s linear infinite}.c3{animation:c3 7s linear infinite}.c4{animation:c4 7s linear infinite}
+@keyframes c1{0%,6%{opacity:1}7%,100%{opacity:0}}
+@keyframes c2{0%,6%{opacity:0}7%,31%{opacity:1}32%,100%{opacity:0}}
+@keyframes c3{0%,31%{opacity:0}32%,56%{opacity:1}57%,100%{opacity:0}}
+@keyframes c4{0%,56%{opacity:0}57%,93%{opacity:1}94%,100%{opacity:0}}
+/* notification page */
+.shade{position:absolute;left:8px;right:8px;top:8px;background:#fff;border:2px solid #2E2B26;border-radius:12px;padding:6px 8px;font-family:Arial,sans-serif;font-size:11px;line-height:1.25;animation:drop 4.5s ease-in-out -1.6s infinite;box-shadow:0 2px 0 #2E2B26}
+.shade b{font-size:12px}
+@keyframes drop{0%,12%{transform:translateY(-130%)}25%,80%{transform:translateY(0)}93%,100%{transform:translateY(-130%)}}
+/* spotlight */
+.spot{position:absolute;border-radius:50%;border:3px dashed #C2185B;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.6}}
+.dim{position:absolute;inset:0;background:rgba(46,43,38,.55)}
+.bubble{position:absolute;background:#FFFDF7;border:2px solid #2E2B26;border-radius:14px 10px 16px 10px;padding:6px 10px;font-size:17px;line-height:1.15;font-weight:700}
+/* edit screen explanation */
+.what{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.line{display:flex;gap:8px;align-items:flex-start;font-size:16px;line-height:1.15}
+.line .i{width:22px;flex:none;text-align:center;font-size:17px}
+.fade{animation:fade .6s ease-out both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:16px;margin-top:6px}
+.legend span{display:flex;gap:6px;align-items:center}
+</style></head><body>
+
+<h1>Explaining Work and Study</h1>
+<p class="note">Two places teach the difference. <b>A.</b> A short onboarding (5 pages) that first-time users see before Home; the same pages open from a new "?" button on the week screen. <b>B.</b> A "What happens" panel on the edit screen that changes with the chosen category. Pink tags mark what's new. Everything moves gently (open this file in a browser to see the motion); all animations respect the system "remove animations" setting.</p>
+
+<h2>A. Onboarding, first run (swipe or Next; Skip on every page)</h2>
+<div class="row">
+
+ <div class="col"><div class="phone">
+  <div class="top"><span></span><span>Skip</span></div>
+  <div style="display:flex;flex-direction:column;align-items:center;padding:34px 18px 0;gap:14px">
+   <div class="sk pic bob" style="width:180px;height:180px;border-radius:50%;background:#F2C94C"><img src="../../app/src/main/res/drawable-nodpi/illus_guard.png" style="width:172px;margin-top:12px"></div>
+   <div class="t" style="font-size:32px;letter-spacing:2px">SNOOZER</div>
+   <div class="b" style="text-align:center">Your phone's bodyguard. Pick when you want quiet, and Snoozer mutes it for you, every week.</div>
+  </div>
+  <div class="pager"><div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div><div class="sk cta">Next</div></div>
+ </div><div class="cap">1 · Welcome</div><div class="sub">The guard bobs gently. One sentence on what the app does.</div></div>
+
+ <div class="col"><div class="phone">
+  <div class="top"><span>‹ Back</span><span>Skip</span></div>
+  <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:10px">
+   <div class="t">Two kinds of quiet</div>
+   <div style="display:flex;gap:10px">
+    <div class="sk hb" style="flex:1;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:6px">
+     <div class="pic skl" style="width:84px;height:84px;border-radius:10px"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:80px"></div>
+     <div style="font-size:19px;font-weight:700;color:#1F3346">Work</div>
+     <div class="mini buzz waves" style="width:70px;height:110px"><div class="ico">📳</div><div style="font-size:13px;font-weight:700">bzz bzz</div></div>
+     <div style="font-size:15px;text-align:center;color:#1F3346;line-height:1.1">Vibrate. Calls still buzz.</div>
+    </div>
+    <div class="sk hl" style="flex:1;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:6px">
+     <div class="pic skl" style="width:84px;height:84px;border-radius:10px"><img src="../../app/src/main/res/drawable-nodpi/illus_study.png" style="width:80px"></div>
+     <div style="font-size:19px;font-weight:700;color:#3A2244">Study</div>
+     <div class="mini" style="width:70px;height:110px;background:#F1EADB"><div class="zz">z</div><div class="ico">🔕</div><div style="font-size:13px;font-weight:700">silence</div></div>
+     <div style="font-size:15px;text-align:center;color:#3A2244;line-height:1.1">Fully silent. Only alarms ring.</div>
+    </div>
+   </div>
+  </div>
+  <div class="pager"><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></div><div class="sk cta">Next</div></div>
+ </div><div class="cap">2 · Two kinds of quiet</div><div class="sub">The Work phone shakes with buzz waves every second or so; the Study phone stays still with a sleepy "z".</div></div>
+
+ <div class="col"><div class="phone">
+  <div class="top"><span>‹ Back</span><span>Skip</span></div>
+  <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:8px">
+   <div class="t">When they overlap, the quieter one wins</div>
+   <div class="c">Study inside Work: silent for the study part, back to vibrate after.</div>
+   <div class="tl">
+    <div class="bar sk hb" style="left:0;right:0;top:14px">Work 9–17</div>
+    <div class="bar sk hl" style="left:22%;width:40%;top:62px;white-space:nowrap">Study 10–12</div>
+    <div class="head"></div>
+   </div>
+   <div class="chip sk" style="background:#fff">
+    <span class="c1">🔔 Normal</span><span class="c2">📳 Vibrate</span><span class="c3">🔕 Silent</span><span class="c4">📳 Vibrate</span>
+   </div>
+   <div class="c" style="text-align:center">If your phone is already silent, Snoozer never makes it louder.</div>
+  </div>
+  <div class="pager"><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></div><div class="sk cta">Next</div></div>
+ </div><div class="cap">3 · Overlaps</div><div class="sub">A "now" line sweeps across the day (7s loop); the ringer chip flips Normal → Vibrate → Silent → Vibrate as it crosses.</div></div>
+
+ <div class="col"><div class="phone">
+  <div class="top"><span>‹ Back</span><span>Skip</span></div>
+  <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:10px">
+   <div class="t">A heads-up first</div>
+   <div class="c">5 minutes before a quiet time starts. Optional; you can turn it off.</div>
+   <div class="sk" style="height:150px;position:relative;overflow:hidden;background:#2A2D2F;border-radius:16px">
+    <div class="shade"><b>🔔 Snoozer · now</b><br><b>Study starts in 5 minutes</b><br>Your phone goes fully silent at 19:00 until 21:00.</div>
+   </div>
+   <div class="line"><span class="i">🔔</span><span><b>Study:</b> a normal notice with sound</span></div>
+   <div class="line"><span class="i">🔈</span><span><b>Work:</b> a quiet notice, no sound</span></div>
+  </div>
+  <div class="pager"><div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i></div><div class="sk cta">Next</div></div>
+ </div><div class="cap">4 · Reminders</div><div class="sub">The notice slides down into the mock phone, holds, slides away.</div></div>
+
+ <div class="col"><div class="phone">
+  <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;filter:saturate(.9)">
+   <div class="sk hy" style="height:64px"></div>
+   <div style="display:flex;justify-content:space-around;font-size:18px;font-weight:700"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+   <div class="sk hb" style="height:86px;padding:8px"><span class="btn skl" style="font-size:13px;background:#fff">Work · Vibrate</span><div style="font-size:22px;font-weight:700">09:00 – 17:00</div></div>
+   <div class="sk hl" style="height:86px;padding:8px"><span class="btn skl" style="font-size:13px;background:#fff">Study · Silent</span><div style="font-size:22px;font-weight:700">19:00 – 21:00</div></div>
+  </div>
+  <div class="dim"></div>
+  <div class="sk" style="position:absolute;right:16px;bottom:92px;width:52px;height:52px;background:#F2C94C;z-index:3;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700">+</div>
+  <div class="spot" style="right:6px;bottom:82px;width:72px;height:72px"></div>
+  <div class="bubble" style="right:20px;bottom:166px;width:200px">Tap + to plan your first quiet time. Start with Work or Study.</div>
+  <div class="pager" style="background:transparent"><div class="dots"><i></i><i></i><i></i><i></i><i class="on"></i></div><div class="sk cta" style="background:#F2C94C">Get started</div></div>
+ </div><div class="cap">5 · Where things are</div><div class="sub">A dimmed mock of the week screen with a pulsing circle on "+". "Get started" goes to Home's Setup.</div></div>
+</div>
+
+<h2>A'. The same pages from the week screen ("?" button)</h2>
+<div class="row">
+ <div class="col"><div class="phone">
+  <span class="tag" style="right:10px;top:4px">new "?"</span>
+  <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+   <div style="display:flex;gap:8px;align-items:flex-start">
+    <div class="sk hy" style="flex:1;padding:8px 10px;display:flex;gap:8px;align-items:center">
+     <div class="sk pic" style="width:50px;height:50px;border-radius:50%;flex:none"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:48px"></div>
+     <div><div style="font-size:13px">Next quiet time</div><div style="font-size:22px;font-weight:700;line-height:1">09:00 Mon</div><div style="font-size:13px">Work · Vibrate · in 12h</div></div>
+    </div>
+    <div class="sk" style="width:40px;height:40px;border-radius:50%;background:#EDE4D0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex:none">?</div>
+   </div>
+   <div class="c">This week · Work 40h · Study 4h</div>
+   <div style="display:flex;justify-content:space-around;font-size:18px;font-weight:700"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+   <div style="border-top:1.5px solid #6B6457"></div>
+   <div class="t" style="font-size:22px">Monday</div>
+   <div class="sk hb" style="height:86px;padding:8px"><span class="btn skl" style="font-size:13px;background:#fff">Work · Vibrate</span><div style="font-size:22px;font-weight:700">09:00 – 17:00</div></div>
+  </div>
+ </div><div class="cap">Week screen</div><div class="sub">A small "?" next to the status card. It opens the pages above as a full-screen sheet, starting at page 2, with a close button instead of Skip.</div></div>
+
+ <div class="col"><div class="phone">
+  <div class="top"><span style="font-size:22px">✕</span><span>How it works</span></div>
+  <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:10px;opacity:.95">
+   <div class="t">Two kinds of quiet</div>
+   <div class="c">(page 2 above, then 3, 4, 5)</div>
+   <div style="display:flex;gap:10px">
+    <div class="sk hb" style="flex:1;height:250px"></div><div class="sk hl" style="flex:1;height:250px"></div>
+   </div>
+  </div>
+  <div class="pager"><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></div><div class="sk cta">Next</div></div>
+ </div><div class="cap">Opened from "?"</div><div class="sub">Same component; only the entry point and the close button differ.</div></div>
+</div>
+
+<h2>B. On the edit screen: what the chosen category does</h2>
+<div class="row">
+ <div class="col"><div class="phone">
+  <div style="padding:10px 12px;display:flex;flex-direction:column;gap:9px">
+   <div style="display:flex;align-items:center;gap:8px"><span class="btn sk" style="font-size:16px">← Back</span><span class="t" style="font-size:20px;flex:1">New snoozer</span></div>
+   <div style="display:flex;gap:8px">
+    <div class="sk hb" style="flex:1;padding:6px;display:flex;flex-direction:column;align-items:center;border-width:2.5px"><div class="pic skl" style="width:96px;height:96px;border-radius:10px"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:92px"></div><div style="font-size:18px;font-weight:700;color:#1F3346">Work ✓</div><div style="font-size:13px;color:#1F3346">Phone on vibrate</div></div>
+    <div class="skl" style="flex:1;padding:6px;display:flex;flex-direction:column;align-items:center;background:#FFFDF7"><div class="pic" style="width:96px;height:96px;border-radius:10px"><img src="../../app/src/main/res/drawable-nodpi/illus_study.png" style="width:92px;opacity:.55"></div><div style="font-size:18px;font-weight:700;color:#5A5449">Study</div><div style="font-size:13px;color:#5A5449">Phone fully silent</div></div>
+   </div>
+   <div class="skl fade" style="background:#EEF4FA;position:relative">
+    <span class="tag" style="right:8px;top:-10px">new</span>
+    <div class="what">
+     <div style="font-size:17px;font-weight:700;color:#1F3346">During Work</div>
+     <div class="line"><span class="i">📳</span><span>Your phone vibrates instead of ringing.</span></div>
+     <div class="line"><span class="i">📞</span><span>Calls and messages still buzz.</span></div>
+     <div class="line"><span class="i">🔈</span><span>A quiet heads-up before it starts.</span></div>
+     <div style="font-size:15px;text-decoration:underline;color:#3E6E99">How Work and Study differ</div>
+    </div>
+   </div>
+   <div class="skl" style="padding:8px 10px;background:#FFFDF7"><div class="t" style="font-size:19px">When</div><div style="font-size:24px;font-weight:700">09:00 – 17:00</div><div class="c">Quiet for 8h</div></div>
+  </div>
+ </div><div class="cap">Work chosen</div><div class="sub">A panel right under the two cards, tinted with the chosen category. The link opens the "How it works" pages.</div></div>
+
+ <div class="col"><div class="phone">
+  <div style="padding:10px 12px;display:flex;flex-direction:column;gap:9px">
+   <div style="display:flex;align-items:center;gap:8px"><span class="btn sk" style="font-size:16px">← Back</span><span class="t" style="font-size:20px;flex:1">New snoozer</span></div>
+   <div style="display:flex;gap:8px">
+    <div class="skl" style="flex:1;padding:6px;display:flex;flex-direction:column;align-items:center;background:#FFFDF7"><div class="pic" style="width:96px;height:96px;border-radius:10px"><img src="../../app/src/main/res/drawable-nodpi/illus_work.png" style="width:92px;opacity:.55"></div><div style="font-size:18px;font-weight:700;color:#5A5449">Work</div><div style="font-size:13px;color:#5A5449">Phone on vibrate</div></div>
+    <div class="sk hl" style="flex:1;padding:6px;display:flex;flex-direction:column;align-items:center;border-width:2.5px"><div class="pic skl" style="width:96px;height:96px;border-radius:10px"><img src="../../app/src/main/res/drawable-nodpi/illus_study.png" style="width:92px"></div><div style="font-size:18px;font-weight:700;color:#3A2244">Study ✓</div><div style="font-size:13px;color:#3A2244">Phone fully silent</div></div>
+   </div>
+   <div class="skl fade" style="background:#F6EEF8">
+    <div class="what">
+     <div style="font-size:17px;font-weight:700;color:#3A2244">During Study</div>
+     <div class="line"><span class="i">🔕</span><span>Fully silent: no ring, no vibration.</span></div>
+     <div class="line"><span class="i">⏰</span><span>Alarms still ring.</span></div>
+     <div class="line"><span class="i">🔔</span><span>A heads-up 5 minutes before it starts.</span></div>
+     <div style="font-size:15px;text-decoration:underline;color:#3E6E99">How Work and Study differ</div>
+    </div>
+   </div>
+   <div class="skl" style="padding:8px 10px;background:#FFFDF7"><div class="t" style="font-size:19px">When</div><div style="font-size:24px;font-weight:700">19:00 – 21:00</div><div class="c">Quiet for 2h</div></div>
+  </div>
+ </div><div class="cap">Study chosen</div><div class="sub">Tapping the other card swaps the panel with a short fade, so the difference is seen at the moment of choosing.</div></div>
+
+ <div class="col" style="width:420px;align-items:flex-start;padding-top:10px">
+  <div class="cap" style="text-align:left">Notes</div>
+  <div class="b" style="line-height:1.35">
+   • Onboarding shows once (a saved "seen" flag); Skip and "Get started" both set it.<br>
+   • Pages are one component used in two places: first run (Skip, ends at Setup) and "?" (close button, starts at page 2).<br>
+   • Animations are short loops in Compose (rotation/offset/alpha), off when the phone's "remove animations" setting is on; screen readers get the same text without motion.<br>
+   • The mock phones and the week-screen spotlight are drawn with the same doodle shapes, not screenshots, so they follow light and dark mode.<br>
+   • The edit panel's wording comes from one place (QuietLevel / Category), so it can't drift from what the app actually does.<br>
+   • Icons above are placeholders for doodle icons in the app.
+  </div>
+ </div>
+</div>
+</body></html>

@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import com.example.snoozer.alarm.Category
 import com.example.snoozer.receiver.ReminderNotifier
 import dagger.Binds
 import dagger.Module
@@ -24,6 +25,8 @@ data class Permissions(
     val notifications: Boolean = true,
     /** Notifications only need granting on Android 13+; older versions allow them by default. */
     val notificationsApply: Boolean = false,
+    /** Categories whose own reminder channel is off in Android's settings (Setup can't turn it back on). */
+    val reminderChannelsOff: Set<Category> = emptySet(),
 )
 
 /** Reads permission state; an interface so ViewModels can be tested with fixed answers. */
@@ -46,6 +49,7 @@ class SystemPermissionChecker @Inject constructor(
             exactAlarmsApplies = needsExactGrant,
             notifications = ReminderNotifier.canNotify(context),
             notificationsApply = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+            reminderChannelsOff = ReminderNotifier.channelsOff(context),
         )
     }
 }

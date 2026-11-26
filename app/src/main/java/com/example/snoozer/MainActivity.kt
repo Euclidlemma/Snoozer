@@ -17,15 +17,40 @@ import com.example.snoozer.EditAlarm.EditAlarmScreen
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.dayPickers.DayPickerMain
 import com.example.snoozer.home.HomeScreen
+import com.example.snoozer.alarm.AlarmActions
+import com.example.snoozer.onboarding.FirstLaunch
+import com.example.snoozer.onboarding.OnboardingScreen
+import com.example.snoozer.onboarding.OnboardingStore
+import com.example.snoozer.onboarding.decideFirstLaunch
 import com.example.snoozer.ui.theme.SnoozerTheme
+import com.example.snoozer.util.ScheduleStamp
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @Inject lateinit var onboarding: OnboardingStore
+    @Inject lateinit var actions: AlarmActions
+    @Inject lateinit var scheduleStamp: ScheduleStamp
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Picked once, before anything is drawn, so Home never flashes ahead of onboarding.
+        val startRoute = startRoute()
+        // Snoozers restored from a backup arrive without their system alarms (Android sends no
+        // broadcast for a restore). The stamp is missing then, so re-create them all, once, off
+        // the main thread. Normal opens skip it.
+        if (savedInstanceState == null && scheduleStamp.needsFullReschedule()) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                actions.rescheduleAll()
+                scheduleStamp.markDone()
+            }
+        }
         setContent {
             val navController = rememberNavController()
 
@@ -38,9 +63,36 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // Each screen gets its own ViewModel (hiltViewModel() inside the screen),
                     // scoped to its back stack entry.
-                    NavHost(navController = navController, startDestination = Routes.Home.route) {
+                    NavHost(navController = navController, startDestination = startRoute) {
                         composable(Routes.Home.route) {
                             HomeScreen(navController = navController)
+                        }
+
+                        // First run: when done, Home replaces the pages (Back won't return to them).
+                        composable(
+                            Routes.Onboarding.route,
+                            arguments = listOf(navArgument(Routes.Onboarding.ARG_MODE) {
+                                defaultValue = Routes.Onboarding.MODE_FIRST_RUN
+                            }),
+                        ) {
+                            OnboardingScreen(onExit = {
+                                navController.navigate(Routes.Home.route) {
+                                    popUpTo(Routes.Onboarding.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            })
+                        }
+
+                        // The same pages for help: when done, back to whoever opened them.
+                        composable(
+                            Routes.HowItWorks.route,
+                            arguments = listOf(navArgument(Routes.Onboarding.ARG_MODE) {
+                                defaultValue = Routes.Onboarding.MODE_HELP
+                            }),
+                        ) {
+                            OnboardingScreen(onExit = {
+                                navController.popBackStack(Routes.HowItWorks.route, inclusive = true)
+                            })
                         }
 
                         composable(Routes.DayPicker.route) {
@@ -61,5 +113,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** Onboarding for new people (and until a started one is finished), Home otherwise. See [decideFirstLaunch]. */
+    private fun startRoute(): String = when (decideFirstLaunch(onboarding)) {
+        FirstLaunch.ShowOnboarding -> Routes.Onboarding.route
+        FirstLaunch.MarkSeenQuietly, FirstLaunch.GoHome -> Routes.Home.route
     }
 }

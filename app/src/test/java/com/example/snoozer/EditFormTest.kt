@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import com.example.snoozer.util.Permissions
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.DayOfWeek.FRIDAY
@@ -135,6 +136,14 @@ class EditFormTest {
     }
 
     @Test
+    fun explanation_followsTheChosenCategory() {
+        assertEquals(Category.Work, EditUi.describe(base, base, isNew = false).explanation.category)
+        val study = base.copy(category = Category.Study)
+        assertEquals(Category.Study, EditUi.describe(study, base, isNew = false).explanation.category)
+        assertEquals("During Study", EditUi.describe(study, base, isNew = false).explanation.title)
+    }
+
+    @Test
     fun encode_roundTrips() {
         val forms = listOf(
             base,
@@ -162,5 +171,21 @@ class EditFormTest {
     fun newForm_preselectsTheDayItCameFrom() {
         assertEquals(listOf(WEDNESDAY), EditForm.new(WEDNESDAY).days)
         assertEquals(DayOfWeek.entries.take(5), EditForm.new(null).days)   // the category's usual days
+    }
+
+    @Test
+    fun panelHeadsUpLine_followsThatCategorysOwnChannel() {
+        val on = Permissions(dnd = true, exactAlarms = true, exactAlarmsApplies = true, notifications = true, notificationsApply = true)
+        val studyOff = on.copy(reminderChannelsOff = setOf(Category.Study))
+        // Only Study's channel is off: Work still promises its heads-up, Study says it's off
+        // and points to Android's settings (Setup can't turn a channel back on).
+        assertEquals("A quiet heads-up before it starts.", EditUi.explainFor(Category.Work, studyOff).lines.last().text)
+        assertEquals("Heads-up is off: turn on Snoozer's notifications in Android settings to get one.",
+            EditUi.explainFor(Category.Study, studyOff).lines.last().text)
+        // App-wide permission missing on Android 13+: Setup can fix it.
+        assertEquals("Heads-up is off: allow notifications in Setup to get one.",
+            EditUi.explainFor(Category.Study, on.copy(notifications = false)).lines.last().text)
+        // No permissions known (previews): assume on.
+        assertEquals("A heads-up 5 minutes before it starts.", EditUi.explainFor(Category.Study, null).lines.last().text)
     }
 }
