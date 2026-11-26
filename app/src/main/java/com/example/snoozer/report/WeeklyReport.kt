@@ -118,7 +118,7 @@ object WeeklyReport {
         val next = nextReport(now)
         // Nothing logged before this week: there's no finished week to report yet.
         if (!startedBefore(stretches, thisWeek, zone)) {
-            return ReportUiState.FirstWeek(AlarmTime.formatDuration(week(stretches, thisWeek, nowMillis, zone).totalMinutes), next)
+            return ReportUiState.FirstWeek(soFar(week(stretches, thisWeek, nowMillis, zone).totalMinutes), next)
         }
         val monday = thisWeek.minusWeeks(1)
         val last = week(stretches, monday, nowMillis, zone)
@@ -157,12 +157,12 @@ object WeeklyReport {
         val thisWeek = weekStart(now.toLocalDate())
         val nowMillis = millis(now, zone)
         if (!startedBefore(stretches, thisWeek, zone)) {
-            val soFar = AlarmTime.formatDuration(week(stretches, thisWeek, nowMillis, zone).totalMinutes)
+            val soFar = soFar(week(stretches, thisWeek, nowMillis, zone).totalMinutes)
             return ReportStripUi(
                 title = "Your first report arrives Monday",
                 detail = "So far this week: $soFar",
                 isNew = false,
-                description = "Weekly report. Your first report arrives Monday. So far this week: $soFar quiet.",
+                description = "Weekly report. Your first report arrives Monday. So far this week: $soFar.",
             )
         }
         val last = week(stretches, thisWeek.minusWeeks(1), nowMillis, zone)
@@ -232,6 +232,9 @@ object WeeklyReport {
         }
         return out
     }
+
+    /** "3h 20m quiet", or "nothing yet" before anything is counted. */
+    private fun soFar(minutes: Int): String = if (minutes == 0) "nothing yet" else "${AlarmTime.formatDuration(minutes)} quiet"
 
     /** "Next report Monday 00:00 · in 3 days" (or "· tomorrow"). */
     fun nextReport(now: LocalDateTime): String {

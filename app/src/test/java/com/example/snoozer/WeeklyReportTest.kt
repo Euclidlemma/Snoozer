@@ -79,7 +79,7 @@ class WeeklyReportTest {
     @Test
     fun aStretchStillGoing_countsUpToNow_andTheFirstWeekSaysSo() {
         val first = WeeklyReport.build(listOf(s(Category.Work, t(25, 9), null)), now, zone)
-        assertEquals(ReportUiState.FirstWeek("1h", "Next report Monday 00:00 · in 5 days"), first)
+        assertEquals(ReportUiState.FirstWeek("1h quiet", "Next report Monday 00:00 · in 5 days"), first)
         val strip = WeeklyReport.strip(listOf(s(Category.Work, t(25, 9), null)), now, zone, seenWeek = null)
         assertEquals("Your first report arrives Monday", strip.title)
         assertFalse(strip.isNew)

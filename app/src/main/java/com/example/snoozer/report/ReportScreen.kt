@@ -495,7 +495,7 @@ private fun ReportPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun FirstWeekPreview() {
-    SnoozerTheme { ReportContent(ReportUiState.FirstWeek("3h 20m", "Next report Monday 00:00 · in 3 days"), onBack = {}) }
+    SnoozerTheme { ReportContent(ReportUiState.FirstWeek("3h 20m quiet", "Next report Monday 00:00 · in 3 days"), onBack = {}) }
 }
 
 /**
