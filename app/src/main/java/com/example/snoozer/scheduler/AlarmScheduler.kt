@@ -55,10 +55,22 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
         // `day` is always the window's start day. An overnight window unmutes the day after,
         // and a window starting just after midnight reminds the day before.
         val reminder = AlarmTime.reminderTime(alarm, day)
-        val trigger = when (kind) {
+        val weekly = when (kind) {
             Kind.REMIND -> AlarmTime.nextTrigger(reminder.day, reminder.hour, reminder.minute, ZonedDateTime.now())
             Kind.MUTE -> AlarmTime.nextTrigger(day, alarm.startHour, alarm.startMinute, ZonedDateTime.now())
             Kind.UNMUTE -> AlarmTime.nextTrigger(AlarmTime.endDay(alarm, day), alarm.endHour, alarm.endMinute, ZonedDateTime.now())
+        }
+        // Keep to the snoozer's dates: wait for its first window, and set nothing after its last.
+        // The offset is from this alarm's day to the day its window starts.
+        val startOffset = when (kind) {
+            Kind.MUTE -> 0L
+            Kind.UNMUTE -> if (AlarmTime.isOvernight(alarm)) -1L else 0L
+            Kind.REMIND -> if (reminder.day == day) 0L else 1L
+        }
+        val trigger = AlarmTime.withinDates(alarm, weekly, startOffset)
+        if (trigger == null) {
+            cancel(alarm, day, kind) // past the last date: nothing more to set
+            return
         }
         val triggerMillis = trigger.toInstant().toEpochMilli()
         val pendingIntent = pendingIntent(alarm, day, kind)

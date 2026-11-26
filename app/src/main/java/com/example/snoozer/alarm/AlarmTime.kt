@@ -1,6 +1,7 @@
 package com.example.snoozer.alarm
 
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -68,18 +69,55 @@ object AlarmTime {
         return minutesBetween(now, start)
     }
 
-    /** Whether [now] falls inside any of this alarm's weekly mute windows. */
+    /** Whether [date] is inside the alarm's dates ([Alarm.fromDate] to [Alarm.untilDate], each optional). */
+    fun inDates(alarm: Alarm, date: LocalDate): Boolean =
+        (alarm.fromDate == null || !date.isBefore(alarm.fromDate)) &&
+            (alarm.untilDate == null || !date.isAfter(alarm.untilDate))
+
+    /** Whether a window of [alarm] starts on [date]: one of its days, and inside its dates. */
+    fun startsOn(alarm: Alarm, date: LocalDate): Boolean = date.dayOfWeek in alarm.daysOfWeek && inDates(alarm, date)
+
+    /**
+     * Whether [now] falls inside one of this alarm's mute windows. An overnight window that
+     * started the day before counts, including one that started on its last date.
+     */
     fun isActiveAt(alarm: Alarm, now: LocalDateTime): Boolean {
         val start = startMinuteOfDay(alarm)
         val end = endMinuteOfDay(alarm)
         val minute = now.hour * 60 + now.minute
-        val today = now.dayOfWeek
+        val today = now.toLocalDate()
         return when {
-            start < end -> today in alarm.daysOfWeek && minute >= start && minute < end
-            start > end -> (today in alarm.daysOfWeek && minute >= start) ||
-                    (today.minus(1) in alarm.daysOfWeek && minute < end)
+            start < end -> startsOn(alarm, today) && minute >= start && minute < end
+            start > end -> (startsOn(alarm, today) && minute >= start) ||
+                    (startsOn(alarm, today.minusDays(1)) && minute < end)
             else -> false
         }
+    }
+
+    /** Past its last date, with nothing still running: it won't quiet the phone again. */
+    fun hasEnded(alarm: Alarm, now: LocalDateTime): Boolean =
+        alarm.untilDate != null && now.toLocalDate().isAfter(alarm.untilDate) && !isActiveAt(alarm, now)
+
+    /** Its first date is still ahead. */
+    fun notStartedYet(alarm: Alarm, now: LocalDateTime): Boolean =
+        alarm.fromDate != null && now.toLocalDate().isBefore(alarm.fromDate)
+
+    /**
+     * Moves a weekly [trigger] into the alarm's dates. The window it belongs to starts
+     * [startOffsetDays] after the trigger's date (an overnight unmute is a day after its start,
+     * so -1; a reminder just before midnight is a day before, so +1). A trigger before the first
+     * date moves on by whole weeks to the first window; one past the last date gives null.
+     */
+    fun withinDates(alarm: Alarm, trigger: ZonedDateTime, startOffsetDays: Long): ZonedDateTime? {
+        var t = trigger
+        val from = alarm.fromDate
+        val firstStart = t.toLocalDate().plusDays(startOffsetDays)
+        if (from != null && firstStart.isBefore(from)) {
+            // plusWeeks keeps the wall-clock time, so a daylight-saving change in between is fine.
+            t = t.plusWeeks((ChronoUnit.DAYS.between(firstStart, from) + 6) / 7)
+        }
+        val until = alarm.untilDate
+        return if (until != null && t.toLocalDate().plusDays(startOffsetDays).isAfter(until)) null else t
     }
 
     /** How long the window lasts, in minutes. Overnight windows wrap past midnight; equal times give 0. */
@@ -149,15 +187,19 @@ object AlarmTime {
     /**
      * Concrete windows from yesterday (an overnight one may still be running) to a week ahead,
      * which covers the current and next quiet time for any weekly schedule. A run of merged
-     * windows longer than that is cut at the end of the range.
+     * windows longer than that is cut at the end of the range. A snoozer whose first date is
+     * further ahead (a term that starts next month) gets its first week instead, so the next
+     * quiet time is still found.
      */
     private fun occurrences(alarms: List<Alarm>, now: LocalDateTime): List<Window> {
         val today = now.toLocalDate()
         return alarms
             .filter { it.isEnabled && durationMinutes(it) > 0 }
             .flatMap { alarm ->
-                (-1L..7L).map { today.plusDays(it) }
-                    .filter { it.dayOfWeek in alarm.daysOfWeek }
+                val from = alarm.fromDate
+                val base = if (from != null && from.isAfter(today)) from else today
+                (-1L..7L).map { base.plusDays(it) }
+                    .filter { startsOn(alarm, it) }
                     .map { date ->
                         // Both ends are wall-clock times, exactly when the scheduler fires the
                         // mute and unmute. Adding the duration to the start instead would land
@@ -196,13 +238,15 @@ data class ReminderText(val title: String, val body: String) {
             val start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute)
             val end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute)
             val endsTomorrow = if (AlarmTime.isOvernight(alarm)) " tomorrow" else ""
+            // A named snoozer (an imported class) says its name: "MATH 101 starts in 5 minutes".
+            val name = alarm.name?.takeIf { it.isNotBlank() }
             return when (alarm.category) {
                 Category.Study -> ReminderText(
-                    "Study starts in $inMinutes",
+                    "${name ?: "Study"} starts in $inMinutes",
                     "Your phone goes fully silent at $start until $end$endsTomorrow.",
                 )
                 Category.Work -> ReminderText(
-                    "Work starts at $start",
+                    "${name ?: "Work"} starts at $start",
                     "Your phone goes on vibrate until $end$endsTomorrow.",
                 )
             }

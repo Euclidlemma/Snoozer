@@ -56,6 +56,34 @@ class AlarmActions @Inject constructor(
         if (wasRunning != nowRunning || (nowRunning && levelChanged)) applyQuiet()
     }
 
+    /**
+     * Saves several windows at once (a timetable import) and schedules them. The ringer is
+     * decided once at the end, so a class running right now quiets the phone straight away.
+     * Returns how many were saved.
+     */
+    suspend fun createAll(alarms: List<Alarm>): Int = lock.withLock {
+        var anyRunning = false
+        alarms.forEach { alarm ->
+            val saved = alarm.copy(id = repository.insertAlarm(alarm).toInt())
+            scheduler.scheduleAlarm(saved)
+            if (isRunning(saved)) anyRunning = true
+        }
+        if (anyRunning) applyQuiet()
+        alarms.size
+    }
+
+    /** Deletes several windows at once (ended classes), handing the ringer over once at the end. */
+    suspend fun deleteAll(alarms: List<Alarm>) = lock.withLock {
+        var anyRunning = false
+        alarms.forEach { alarm ->
+            if (isRunning(alarm)) anyRunning = true
+            repository.deleteAlarm(alarm)
+            scheduler.cancelAlarm(alarm)
+            reminders.cancel(alarm.id)
+        }
+        if (anyRunning) applyQuiet()
+    }
+
     suspend fun delete(alarm: Alarm) = lock.withLock {
         repository.deleteAlarm(alarm)
         scheduler.cancelAlarm(alarm)
