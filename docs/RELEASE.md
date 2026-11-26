@@ -27,6 +27,20 @@ The bundle is `app/build/outputs/bundle/release/app-release.aab`, signed with th
 Raise `versionCode` in `app/build.gradle.kts` for every upload (Play refuses a number it has
 seen), and `versionName` as you like ("1.0.1").
 
+## Database migration tests
+
+When the database changes, raise `version` in `AlarmDatabase`, add a `Migration` to
+`MIGRATIONS`, commit the new `app/schemas/.../<version>.json`, and extend `MigrationTest`.
+Run the tests on an **emulator only**: Gradle's `connectedAndroidTest` installs on every
+attached device and uninstalls the app afterwards, which would delete a phone's snoozers.
+
+```powershell
+.\gradlew assembleDebug assembleDebugAndroidTest
+adb -s emulator-5554 install -r -t app\build\outputs\apk\debug\app-debug.apk
+adb -s emulator-5554 install -r -t app\build\outputs\apk\androidTest\debug\app-debug-androidTest.apk
+adb -s emulator-5554 shell am instrument -w -e class com.example.snoozer.MigrationTest com.inseokim.snoozer.test/androidx.test.runner.AndroidJUnitRunner
+```
+
 ## Trying the shrunk build on a phone without the upload key
 
 ```powershell

@@ -79,6 +79,9 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// The migration tests build each old database from its exported schema.
+android.sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -106,6 +109,7 @@ dependencies {
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
