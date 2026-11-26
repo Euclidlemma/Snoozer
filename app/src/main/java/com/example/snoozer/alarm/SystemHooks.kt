@@ -11,6 +11,12 @@ interface WindowScheduler {
     fun scheduleAlarm(alarm: Alarm)
     fun scheduleAlarmWithDay(alarm: Alarm, day: DayOfWeek)
     fun cancelAlarm(alarm: Alarm)
+
+    /**
+     * Whether the system still holds this window's alarms. False after a force stop (from
+     * Settings, or Android hibernating an app nobody opened for months), which cancels them all.
+     */
+    fun isScheduled(alarm: Alarm): Boolean
 }
 
 /** The phone's ringer. */

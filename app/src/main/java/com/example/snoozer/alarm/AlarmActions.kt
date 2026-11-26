@@ -164,6 +164,24 @@ class AlarmActions @Inject constructor(
     }
 
     /**
+     * On opening the app: if any switched-on window that isn't over has lost its alarms (a
+     * force stop, or Android hibernating Snoozer because it wasn't opened for months), set them
+     * all again and catch the ringer up. Cheap when nothing is missing, so it runs on every open.
+     * Returns whether anything had to be re-set.
+     */
+    suspend fun ensureScheduled(): Boolean {
+        val now = timeSource.now()
+        val missing = lock.withLock {
+            repository.getAllAlarmsDirect().any { it.isEnabled && !AlarmTime.hasEnded(it, now) && !scheduler.isScheduled(it) }
+        }
+        if (missing) {
+            logger.warn("Alarms were missing (force stop or hibernation); setting them again")
+            rescheduleAll()
+        }
+        return missing
+    }
+
+    /**
      * Re-creates every window's alarms (after a reboot, an update or a clock change).
      */
     suspend fun rescheduleAll() = lock.withLock {

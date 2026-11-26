@@ -67,6 +67,7 @@ import com.example.snoozer.util.Permissions
 import com.example.snoozer.util.openDndSettings
 import com.example.snoozer.util.openExactAlarmSettings
 import com.example.snoozer.util.openBatterySettings
+import com.example.snoozer.util.openUnusedAppSettings
 import com.example.snoozer.util.openNotificationSettings
 import com.example.snoozer.util.notificationAsk
 import com.example.snoozer.util.refusedForGood
@@ -101,6 +102,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         onAllowDnd = context::openDndSettings,
         onAllowExactAlarms = context::openExactAlarmSettings,
         onAllowBattery = context::openBatterySettings,
+        onKeepWhenUnused = context::openUnusedAppSettings,
         onAllowNotifications = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val permission = Manifest.permission.POST_NOTIFICATIONS
@@ -146,6 +148,7 @@ fun HomeContent(
     onOpenWeek: () -> Unit,
     onAllowNotifications: () -> Unit = {},
     onAllowBattery: () -> Unit = {},
+    onKeepWhenUnused: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().systemBarsPadding()) {
@@ -192,6 +195,16 @@ fun HomeContent(
                     onAllow = onAllowBattery,
                     seed = 130,
                 )
+                if (state.permissions.keptWhenUnusedApplies) {
+                    PermissionRow(
+                        title = "Keep running when unused",
+                        description = "Recommended. Phones pause apps you haven't opened for a few months, which would stop Snoozer. " +
+                            "Turn off \"Manage app if unused\" (on some phones: \"Pause app activity if unused\").",
+                        granted = state.permissions.keptWhenUnused,
+                        onAllow = onKeepWhenUnused,
+                        seed = 133,
+                    )
+                }
             }
         }
         Column(
@@ -321,7 +334,7 @@ private fun HomeReadyPreview() {
 private fun HomeFirstRunPreview() {
     SnoozerTheme {
         HomeContent(
-            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true, batteryUnrestricted = false)),
+            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true, batteryUnrestricted = false, keptWhenUnused = false, keptWhenUnusedApplies = true)),
             onAllowDnd = {}, onAllowExactAlarms = {}, onOpenWeek = {},
         )
     }

@@ -51,10 +51,16 @@ class MainActivity : ComponentActivity() {
         // Snoozers restored from a backup arrive without their system alarms (Android sends no
         // broadcast for a restore). The stamp is missing then, so re-create them all, once, off
         // the main thread. Normal opens skip it.
-        if (savedInstanceState == null && scheduleStamp.needsFullReschedule()) {
+        if (savedInstanceState == null) {
             lifecycleScope.launch(Dispatchers.IO) {
-                actions.rescheduleAll()
-                scheduleStamp.markDone()
+                if (scheduleStamp.needsFullReschedule()) {
+                    actions.rescheduleAll()
+                    scheduleStamp.markDone()
+                } else {
+                    // A force stop (Settings, or Android hibernating an app not opened for months)
+                    // wipes the alarms and nothing tells the app; check, and re-set them if so.
+                    actions.ensureScheduled()
+                }
             }
         }
         // Opened with a calendar file ("Open with Snoozer" from Files, mail or the browser): show
