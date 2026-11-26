@@ -8,9 +8,10 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Alarm::class], version = 3, exportSchema = true)
+@Database(entities = [Alarm::class, QuietStretch::class], version = 4, exportSchema = true)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
+    abstract fun quietStretchDao(): QuietStretchDao
 
     companion object {
         @Volatile
@@ -34,13 +35,25 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        // v4: the log of quiet stretches behind the weekly report. Matches the entity exactly
+        // (no SQL defaults), which Room checks on open.
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `quiet_stretches` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`startMillis` INTEGER NOT NULL, `endMillis` INTEGER, `category` TEXT NOT NULL, " +
+                        "`louder` INTEGER NOT NULL, `missed` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AlarmDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlarmDatabase::class.java,
                     "alarm_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
                 INSTANCE = instance
                 instance
             }

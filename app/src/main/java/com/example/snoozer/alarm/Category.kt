@@ -11,6 +11,9 @@ enum class Category(val label: String) {
     companion object {
         /** Reads the stored text. Anything unknown counts as [Work], as the colors always did. */
         fun from(stored: String): Category = entries.firstOrNull { it.label == stored } ?: Work
+
+        /** The category whose level this is (each level belongs to one category). */
+        fun forLevel(level: QuietLevel): Category = entries.first { it.quietLevel == level }
     }
 }
 

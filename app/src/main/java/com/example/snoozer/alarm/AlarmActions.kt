@@ -1,9 +1,11 @@
 package com.example.snoozer.alarm
 
 import com.example.snoozer.util.TimeSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.DayOfWeek
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +26,7 @@ class AlarmActions @Inject constructor(
     private val reminders: Reminders,
     private val timeSource: TimeSource,
     private val logger: Logger,
+    private val quietLog: QuietLog,
 ) {
     private val lock = Mutex()
 
@@ -176,7 +179,27 @@ class AlarmActions @Inject constructor(
      * under [lock] by every change above, so they all follow the same rules.
      */
     private suspend fun applyQuiet(excludingId: Int? = null) {
-        val level = AlarmTime.quietLevelAt(repository.getAllAlarmsDirect(), timeSource.now(), excludingId)
+        val now = timeSource.now()
+        val level = AlarmTime.quietLevelAt(repository.getAllAlarmsDirect(), now, excludingId)
+        // Before touching the ringer: was the stretch now ending turned up by hand meanwhile?
+        val louder = try {
+            quietLog.open()?.takeIf { !it.missed }?.let { ringer.isLouderThan(it.categoryValue.quietLevel) } ?: false
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+        val canChange = ringer.canChange()
         if (level == null) ringer.restore() else ringer.quiet(level)
+        // The weekly report's record. A failed write never stops the ringer change above.
+        val at = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        try {
+            if (level == null) quietLog.stop(at, louder)
+            else quietLog.quiet(Category.forLevel(level), missed = !canChange, at = at, louder = louder)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("Quiet log not written: ${e.message}")
+        }
     }
 }

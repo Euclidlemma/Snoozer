@@ -23,6 +23,12 @@ interface Ringer {
 
     /** Whether Snoozer may change the ringer at all (Do Not Disturb access). */
     fun canChange(): Boolean
+
+    /**
+     * Whether the ringer is louder now than Snoozer set it for [level]: someone turned the
+     * sound back up by hand. False when Snoozer hasn't changed the ringer.
+     */
+    fun isLouderThan(level: QuietLevel): Boolean
 }
 
 /** The "starts in 5 minutes" notices. */

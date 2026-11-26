@@ -46,6 +46,18 @@ object RingerController {
         setMode(audio, mode)
     }
 
+    /**
+     * Whether the ringer is louder than what [mute] set for [level] (the user turned it up).
+     * Ringer modes go silent (0) < vibrate (1) < normal (2). False if Snoozer hasn't muted.
+     */
+    fun isLouderThan(context: Context, level: QuietLevel): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!prefs.contains(KEY_SAVED_MODE)) return false
+        val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val expected = level.ringerModeFor(prefs.getInt(KEY_SAVED_MODE, AudioManager.RINGER_MODE_NORMAL))
+        return audio.ringerMode > expected
+    }
+
     // Changing to/from silent needs Do Not Disturb access, which the user can revoke at
     // any time. Without it AudioManager throws SecurityException.
     private fun hasDndAccess(context: Context): Boolean {
