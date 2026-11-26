@@ -112,6 +112,29 @@ data class EditForm(
     fun withOneDate(date: LocalDate) = copy(oneDate = date)
 
     /**
+     * For a one-date snoozer today whose window has already ended (Work's usual 09-17 picked
+     * at 22:00): the same length from the next whole hour instead, so a new snoozer opens ready
+     * to save. Past midnight that moves to tomorrow. Anything else is returned unchanged.
+     */
+    fun notInThePast(now: LocalDateTime): EditForm {
+        val date = oneDate ?: return this
+        if (date != now.toLocalDate()) return this
+        val start = startHour * 60 + startMinute
+        val end = endHour * 60 + endMinute
+        if (end < start) return this // overnight: runs into tomorrow, still ahead
+        if (now.hour * 60 + now.minute < end) return this
+        val length = (end - start).coerceAtLeast(60)
+        val next = now.toLocalDate().atTime(now.hour, 0).plusHours(1)
+        val finish = next.plusMinutes(length.toLong())
+        return copy(
+            oneDate = next.toLocalDate(),
+            days = listOf(next.dayOfWeek),
+            startHour = next.hour, startMinute = 0,
+            endHour = finish.hour, endMinute = finish.minute,
+        )
+    }
+
+    /**
      * Back to "Every week". If no weekdays are picked, the one date's weekday is, so the
      * snoozer keeps the day the user had in mind.
      */

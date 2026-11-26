@@ -82,7 +82,8 @@ class EditAlarmViewModel @Inject constructor(
     val uiState: StateFlow<EditUiState?> = combine(form, original, permissions, timeSource.minuteTicks) { f, o, p, now ->
         if (f == null || o == null) null
         else EditUi.describe(f, o, isNew, permissions = p, now = now)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    // Only while the screen is shown (the clock stops 5s after it's covered or left).
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
         // Both or neither: a form without its original can't tell what changed.
@@ -98,7 +99,7 @@ class EditAlarmViewModel @Inject constructor(
     private suspend fun load() {
         val loaded = try {
             if (alarmId == null) {
-                EditForm.new(fromDay, date = fromDate)
+                EditForm.new(fromDay, date = fromDate).notInThePast(timeSource.now())
             } else {
                 repository.getAlarmById(alarmId)?.let(EditForm::from)
             }
@@ -136,15 +137,19 @@ class EditAlarmViewModel @Inject constructor(
 
     /**
      * "One date" or "Every week". Switching to one date with none picked yet offers the next
-     * day (from today) on one of the chosen weekdays, or today.
+     * day on one of the chosen weekdays whose window is still ahead (else today or tomorrow).
      */
     fun onOneDateMode(oneDate: Boolean) = edit { f ->
         when {
             !oneDate -> f.repeatWeekly()
             f.oneDate != null -> f
             else -> {
-                val today = timeSource.now().toLocalDate()
-                val next = (0L..6L).map { today.plusDays(it) }.firstOrNull { it.dayOfWeek in f.days } ?: today
+                val now = timeSource.now()
+                val today = now.toLocalDate()
+                // The user's times stay as they are: today only if that window is still ahead.
+                fun ahead(d: LocalDate) = d != today || f.withOneDate(d).notInThePast(now) == f.withOneDate(d)
+                val next = (0L..7L).map { today.plusDays(it) }.firstOrNull { it.dayOfWeek in f.days && ahead(it) }
+                    ?: if (ahead(today)) today else today.plusDays(1)
                 f.withOneDate(next)
             }
         }
@@ -156,7 +161,9 @@ class EditAlarmViewModel @Inject constructor(
 
     fun save() {
         val current = form.value ?: return
-        if (busy || uiState.value?.canSave != true) return
+        val saved = original.value ?: return
+        // Checked fresh, not from uiState (which may be paused), with the time as of this tap.
+        if (busy || !EditUi.describe(current, saved, isNew, now = timeSource.now()).canSave) return
         // The screen only leaves after the write finishes; leaving clears this ViewModel and
         // would cancel a write still in flight.
         runWrite(failure = "Couldn't save. Your changes are still here; try again.") {

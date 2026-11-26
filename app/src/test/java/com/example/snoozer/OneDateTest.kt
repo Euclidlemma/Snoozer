@@ -115,4 +115,26 @@ class OneDateTest {
         assertTrue(dec.selected.notes.isEmpty())
         assertFalse(dec.weeks.flatten().single { it.date == LocalDate.of(2026, 12, 11) }.work)
     }
+
+    @Test
+    fun aNewSnoozerForToday_startsAtTheNextHourOnceTheUsualWindowIsOver() {
+        val late = LocalDateTime.of(2026, 11, 25, 22, 4)
+        // Work's usual 09-17 is over at 22:04: 23:00 for the same 8h (into tomorrow).
+        val f = EditForm.new(null, Category.Work, date = late.toLocalDate()).notInThePast(late)
+        assertEquals(listOf(23, 0, 7, 0), listOf(f.startHour, f.startMinute, f.endHour, f.endMinute))
+        assertEquals(late.toLocalDate(), f.oneDate)
+        assertNull(EditUi.describe(f, f, isNew = true, now = late).error)
+        // Still ahead, another day, or overnight: unchanged.
+        val morning = LocalDateTime.of(2026, 11, 25, 8, 0)
+        val g = EditForm.new(null, Category.Work, date = morning.toLocalDate())
+        assertEquals(g, g.notInThePast(morning))
+        val h = EditForm.new(null, Category.Work, date = dec4)
+        assertEquals(h, h.notInThePast(late))
+        // After 23:00 the next hour is tomorrow, and the date moves with it.
+        val veryLate = LocalDateTime.of(2026, 11, 25, 23, 30)
+        val k = EditForm.new(null, Category.Study, date = veryLate.toLocalDate()).notInThePast(veryLate)
+        assertEquals(LocalDate.of(2026, 11, 26), k.oneDate)
+        assertEquals(listOf(java.time.DayOfWeek.THURSDAY), k.days)
+        assertEquals(0, k.startHour)
+    }
 }

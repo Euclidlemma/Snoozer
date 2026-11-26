@@ -29,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -140,7 +141,11 @@ private fun DateCell(
             .heightIn(min = 48.dp)
             .clip(CircleShape)
             .selectable(selected = isSelected, enabled = enabled, role = Role.RadioButton, onClick = onPick)
-            .semantics { contentDescription = label }
+            // Said out loud too: a day that can't be picked is announced as unavailable.
+            .semantics {
+                contentDescription = label
+                if (!enabled) disabled()
+            }
             .alpha(if (!enabled) 0.3f else if (inMonth) 1f else 0.5f),
         contentAlignment = Alignment.Center,
     ) {
