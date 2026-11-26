@@ -2,6 +2,7 @@ package com.example.snoozer.report
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snoozer.alarm.QuietStretchDao
@@ -34,7 +35,7 @@ class ReportSeenStore @Inject constructor(@ApplicationContext context: Context) 
     fun markSeen(week: LocalDate) {
         if (seen.value == week) return
         seen.value = week
-        prefs.edit().putString(KEY_WEEK, week.toString()).apply()
+        prefs.edit { putString(KEY_WEEK, week.toString()) }
     }
 
     private companion object {

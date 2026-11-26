@@ -88,6 +88,7 @@ fun DayPickerMain(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val view by viewModel.weekView.collectAsStateWithLifecycle()
     val month by viewModel.monthState.collectAsStateWithLifecycle()
+    val reportStrip by viewModel.reportStrip.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(initialPage = viewModel.initialPage, pageCount = { 7 })
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
@@ -134,6 +135,8 @@ fun DayPickerMain(
                 onSelectDate = viewModel::onSelectDate,
                 onImport = pickTimetable,
                 onRemoveEnded = { confirmRemove = true },
+                report = reportStrip,
+                onReport = { navController.navigateFrom(lifecycleOwner, Routes.WeeklyReport.route) },
                 modifier = Modifier.padding(padding),
             )
         }
