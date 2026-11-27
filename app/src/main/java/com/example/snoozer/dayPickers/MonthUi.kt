@@ -17,7 +17,10 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 
 /** Which view the week screen shows: the weekly pages, or a month calendar. */
-enum class WeekView { Week, Month }
+enum class WeekView(@androidx.annotation.StringRes val labelRes: Int) {
+    Week(R.string.view_week),
+    Month(R.string.view_month),
+}
 
 /** The month calendar: a grid of days, and the picked day's quiet times under it. */
 @Immutable

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -239,6 +241,7 @@ fun DayHeader(day: DayUi, modifier: Modifier = Modifier) {
  * order, and a category-colored card with the time range, duration, repeat days and an
  * on/off switch. Switched-off cards fade out but stay tappable.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TimelineItem(
     card: AlarmCardUi,
@@ -310,9 +313,10 @@ fun TimelineItem(
                                 )
                             }
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
-                            Text(card.duration, style = type.caption)
-                            Text("·", style = type.caption)
+                        // Wraps the repeat letters under the duration when they don't fit (Korean day letters on a cover screen).
+                        FlowRow(verticalArrangement = Arrangement.Center, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+                            Text(card.duration, style = type.caption, modifier = Modifier.align(Alignment.CenterVertically))
+                            Text("·", style = type.caption, modifier = Modifier.align(Alignment.CenterVertically))
                             RepeatLetters(card.repeatsOn, card.repeatText)
                         }
                         if (card.dateNote != null) {

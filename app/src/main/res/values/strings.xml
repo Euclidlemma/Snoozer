@@ -335,4 +335,8 @@
     <string name="import_row_line_next_day">%1$s · %2$s (+1 day)</string>
     <string name="import_already_added">Already in Snoozer</string>
     <string name="no_file_picker">No file picker on this phone</string>
+
+    <!-- Week / Month switch -->
+    <string name="view_week">Week</string>
+    <string name="view_month">Month</string>
 </resources>

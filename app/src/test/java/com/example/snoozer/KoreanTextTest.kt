@@ -42,7 +42,7 @@ class KoreanTextTest {
         val wed = week.days[2]
         assertEquals("수요일", wed.name)
         assertEquals("수", wed.letter)
-        assertEquals("조용한 시간 2개 · 10시간", wed.summary)
+        assertEquals("스누저 2개 · 10시간", wed.summary)
         assertEquals("평일", wed.cards.first().repeatText)
         assertEquals("12월 9일까지", wed.cards.last().dateNote)
         assertEquals("이번 주 · 일 40시간 · 공부 4시간", week.weeklyTotals)
@@ -51,7 +51,7 @@ class KoreanTextTest {
     @Test
     fun homeLine() {
         val all = Permissions(dnd = true, exactAlarms = true, exactAlarmsApplies = true)
-        assertEquals("다음 조용한 시간: 오늘 19:00", HomeUi.build(KO, listOf(study), now, all).statusLine)
+        assertEquals("다음 스누저: 오늘 19:00", HomeUi.build(KO, listOf(study), now, all).statusLine)
         assertEquals("지금 조용해요, 17:00까지", HomeUi.build(KO, listOf(work), now, all).statusLine)
     }
 

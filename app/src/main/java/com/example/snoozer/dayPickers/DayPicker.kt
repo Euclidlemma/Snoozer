@@ -257,7 +257,7 @@ private fun ViewBar(view: WeekView, onView: (WeekView) -> Unit, onImport: () -> 
                 DoodleChip(
                     selected = v == view,
                     onClick = { onView(v) },
-                    label = v.name,
+                    label = stringResource(v.labelRes),
                     seed = 740 + i,
                     wobble = DoodleDefaults.WobbleLight,
                     modifier = Modifier.semantics { role = Role.Tab },

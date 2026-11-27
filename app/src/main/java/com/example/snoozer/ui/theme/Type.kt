@@ -6,13 +6,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.sp
 import com.example.snoozer.R
 
 /**
- * Gaegu, a hand-drawn pencil font (SIL Open Font License, see assets/licenses).
- * The bundled files are Latin-only subsets (~40 KB each instead of ~3 MB) since the
- * app is English-only. Characters outside the subset fall back to the system font.
+ * Gaegu, a hand-drawn pencil font (SIL Open Font License, see assets/licenses). The full
+ * files (~3 MB each) cover English and the 2,350 common Korean syllables; anything else
+ * (a rare syllable in a typed name, symbols like "…") falls back to the system font.
  */
 val Gaegu = FontFamily(
     Font(R.font.gaegu_regular, FontWeight.Normal),
@@ -30,6 +31,9 @@ private fun TextStyle.doodle(bold: Boolean) = copy(
     fontSize = fontSize * GaeguScale,
     lineHeight = lineHeight * GaeguScale,
     letterSpacing = 0.sp,
+    // Korean breaks lines between any two syllables by default ("시 / 작될"). Phrase keeps
+    // words whole and breaks at spaces (Android 13+; no effect on English).
+    lineBreak = LineBreak.Paragraph.copy(wordBreak = LineBreak.WordBreak.Phrase),
 )
 
 // Gaegu ships only Regular and Bold; Material's Medium (500) styles map to Bold.
