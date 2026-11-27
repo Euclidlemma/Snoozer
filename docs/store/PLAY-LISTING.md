@@ -67,6 +67,63 @@ Use jakeMobileDev@gmail.com, the same address as in the privacy policy.
 **Privacy policy URL:** the published address of `docs/privacy-policy.md` (see "Publishing
 the privacy policy" below).
 
+## Korean store listing (ko-KR)
+
+In Play Console: Grow users → Store presence → Main store listing → Manage translations →
+Add your own translations → Korean (한국어). Korean phones see this page; everyone else sees
+the English one. Words follow the app's glossary: a snoozer is 스누저, Work is 일, Study is 공부,
+and the app's name stays "Snoozer".
+
+**App name** (30 max): `Snoozer: 일정대로 조용하게` (18)
+
+**Short description** (80 max):
+
+```
+일할 땐 진동, 공부할 땐 완전 무음. 정해진 시간에 휴대폰을 알아서 조용하게 해요.
+```
+
+(47 characters)
+
+**Full description** (4000 max):
+
+```
+Snoozer는 휴대폰이 조용해야 할 때 조용하게 하고, 끝나면 소리를 다시 켜 줘요. 시간은 한 번만 정하면 매주 Snoozer가 알아서 해요.
+
+두 가지 조용함
+• 일: 벨소리 대신 진동이 울려서 전화와 메시지는 그대로 받을 수 있어요.
+• 공부: 벨소리도 진동도 없는 완전 무음. 알람은 그대로 울려요.
+
+한 주 계획하기
+• 시작 시간, 끝 시간, 반복할 요일을 정해 스누저를 추가하세요.
+• 시험이나 약속처럼 하루만 필요하면 '하루만'을 고르세요.
+• 주간·월간 보기로 앞으로의 일정을 보고, 맨 위 카드에서 지금 조용한지, 언제까지인지 바로 확인할 수 있어요.
+• 스누저가 시작되기 5분 전에 미리 알려 줘요.
+
+시간표 가져오기
+학교나 캘린더의 수업 시간표(.ics)를 열면 수업마다 이름, 요일, 학기 기간이 담긴 스누저가 만들어져요. 학기가 끝나면 수업 스누저도 알아서 멈춰요.
+
+주간 리포트
+매주 월요일, 지난주에 휴대폰이 몇 시간 조용했는지 일과 공부로 나눠 요일별로 보여 줘요. 가장 긴 시간과 가장 조용한 날도 알려 줘요.
+
+믿을 수 있게
+• 휴대폰이 잠들어 있어도 정확히 그 분에 시작하고 끝나요.
+• 휴대폰을 다시 켜거나 시간대가 바뀌어도 일정을 다시 맞춰요.
+• 짧은 권한 설정 목록에서 어떤 권한이 왜 필요한지 보여 줘요.
+
+개인정보는 휴대폰 안에만
+계정도, 광고도, 추적도 없어요. Snoozer는 인터넷에 연결하지 않아서 일정과 리포트가 휴대폰 밖으로 나가지 않아요.
+
+작가가 손으로 그린 그림과 밝은 테마, 어두운 테마.
+```
+
+(757 characters)
+
+**Graphics:** under the Korean translation, add the phone screenshots from
+`docs/store/screenshots/ko/01…06` (1080 × 1920, the same scenes as the English set). The icon and
+feature graphic come from the English listing. The feature graphic's tagline ("Quiet on
+schedule, for work and study.") stays in English on the Korean page unless a Korean graphic is
+added; `StoreArt.java` could draw one.
+
 ## App content
 
 ### Data safety
