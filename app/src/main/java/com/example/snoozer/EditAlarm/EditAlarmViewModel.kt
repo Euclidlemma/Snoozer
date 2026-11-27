@@ -1,5 +1,7 @@
 package com.example.snoozer.EditAlarm
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
 import android.util.Log
 import com.example.snoozer.R
 import com.example.snoozer.util.Strings
@@ -41,6 +43,7 @@ class EditAlarmViewModel @Inject constructor(
     private val permissionChecker: PermissionChecker,
     private val timeSource: TimeSource,
     private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     // Whether reminders can be shown, so the "What happens" panel doesn't promise a heads-up
@@ -82,7 +85,7 @@ class EditAlarmViewModel @Inject constructor(
 
     /** Null while the saved snoozer is loading. */
     // The clock keeps "That time has already passed today" current while the screen is open.
-    val uiState: StateFlow<EditUiState?> = combine(form, original, permissions, timeSource.minuteTicks) { f, o, p, now ->
+    val uiState: StateFlow<EditUiState?> = combine(form, original, permissions, timeSource.minuteTicks.alsoOn(language)) { f, o, p, now ->
         if (f == null || o == null) null
         else EditUi.describe(strings, f, o, isNew, permissions = p, now = now)
     // Only while the screen is shown (the clock stops 5s after it's covered or left).

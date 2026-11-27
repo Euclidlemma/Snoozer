@@ -1,5 +1,7 @@
 package com.example.snoozer.report
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
 import android.content.Context
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
@@ -47,6 +49,7 @@ class ReportViewModel @Inject constructor(
     private val timeSource: TimeSource,
     private val seen: ReportSeenStore,
     private val strings: com.example.snoozer.util.Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -56,7 +59,7 @@ class ReportViewModel @Inject constructor(
      * Monday 00:00 the report moves on to the week just finished, even with the screen open).
      */
     val uiState: StateFlow<ReportUiState> =
-        combine(dao.observeSince(WeeklyReport.keepFrom(timeSource.now(), zone)), timeSource.minuteTicks) { stretches, now ->
+        combine(dao.observeSince(WeeklyReport.keepFrom(timeSource.now(), zone)), timeSource.minuteTicks.alsoOn(language)) { stretches, now ->
             // Opening the report (or having it open when a new one comes in) clears the dot.
             seen.markSeen(WeeklyReport.reportWeek(now))
             WeeklyReport.build(strings, stretches, now, zone)

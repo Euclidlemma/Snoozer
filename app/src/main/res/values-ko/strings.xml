@@ -324,4 +324,8 @@
 
     <!-- The language these words are in (for dates and day names; not shown) -->
     <string name="strings_locale">ko</string>
+
+    <!-- Home: language switch -->
+    <string name="language_title">언어</string>
+    <string name="language_phone">휴대폰 언어</string>
 </resources>

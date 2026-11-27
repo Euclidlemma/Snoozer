@@ -342,4 +342,10 @@
 
     <!-- The language these words are in (for dates and day names; not shown) -->
     <string name="strings_locale">en</string>
+
+    <!-- Home: language switch -->
+    <string name="language_title">Language</string>
+    <string name="language_phone">Phone\'s language</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_korean" translatable="false">한국어</string>
 </resources>

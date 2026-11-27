@@ -1,5 +1,7 @@
 package com.example.snoozer.timetable
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
 import com.example.snoozer.R
 import com.example.snoozer.util.Strings
 import android.content.Context
@@ -99,6 +101,7 @@ class ImportViewModel @Inject constructor(
     private val actions: AlarmActions,
     private val timeSource: TimeSource,
     private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     private val uri: String? = savedStateHandle.get<String>(Routes.ImportTimetable.ARG_URI)?.takeIf { it.isNotBlank() }
@@ -127,7 +130,7 @@ class ImportViewModel @Inject constructor(
     private val events = Channel<ImportEvent>(Channel.BUFFERED)
     val eventFlow: Flow<ImportEvent> = events.receiveAsFlow()
 
-    val uiState: StateFlow<ImportUiState> = combine(loaded, failure, checked, category, saving) { l, f, c, cat, s ->
+    val uiState: StateFlow<ImportUiState> = combine(loaded, failure, checked, category, saving.alsoOn(language)) { l, f, c, cat, s ->
         when {
             f != null -> ImportUiState.Failed(strings.get(f))
             l == null || c == null -> ImportUiState.Loading

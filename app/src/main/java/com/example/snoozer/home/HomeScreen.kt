@@ -1,5 +1,14 @@
 package com.example.snoozer.home
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.platform.LocalConfiguration
+import com.example.snoozer.ui.doodle.DoodleChip
+import com.example.snoozer.util.AppLanguage
+import com.example.snoozer.util.LanguageChoice
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -102,9 +111,14 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
+    // Read again when the language changes (Android recreates the screen in it).
+    val configuration = LocalConfiguration.current
+    val language = remember(context, configuration) { if (AppLanguage.canChoose) AppLanguage.current(context) else null }
     val current = state ?: return // first database read; the screen is blank for a moment
     HomeContent(
         state = current,
+        language = language,
+        onLanguage = { AppLanguage.set(context, it) },
         onAllowDnd = context::openDndSettings,
         onAllowExactAlarms = context::openExactAlarmSettings,
         onAllowBattery = context::openBatterySettings,
@@ -145,7 +159,12 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/** Stateless home screen: header, today's status, the setup checklist and "Open my week". */
+/**
+ * Stateless home screen: header, today's status, the setup checklist, the language switch and
+ * "Open my week". [language] is the current choice, or null where Android can't keep a language
+ * per app (before Android 13); the switch is hidden then.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeContent(
     state: HomeUiState,
@@ -155,6 +174,8 @@ fun HomeContent(
     onAllowNotifications: () -> Unit = {},
     onAllowBattery: () -> Unit = {},
     onKeepWhenUnused: () -> Unit = {},
+    language: LanguageChoice? = null,
+    onLanguage: (LanguageChoice) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().systemBarsPadding()) {
@@ -208,6 +229,28 @@ fun HomeContent(
                         onAllow = onKeepWhenUnused,
                         seed = 133,
                     )
+                }
+            }
+            if (language != null) {
+                DoodleSection(title = stringResource(R.string.language_title), seed = 140) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().selectableGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.S),
+                    ) {
+                        LanguageChoice.entries.forEachIndexed { i, choice ->
+                            DoodleChip(
+                                selected = choice == language,
+                                // Always sets it, even when shown as chosen: "Phone's language" also clears a language
+                                // set elsewhere that isn't one of these.
+                                onClick = { onLanguage(choice) },
+                                label = stringResource(choice.labelRes),
+                                seed = 141 + i,
+                                wobble = DoodleDefaults.WobbleLight,
+                                modifier = Modifier.semantics { role = Role.RadioButton },
+                            )
+                        }
+                    }
                 }
             }
         }

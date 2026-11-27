@@ -1,5 +1,7 @@
 package com.example.snoozer
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.receiver.ReminderNotifier
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -42,9 +44,17 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var onboarding: OnboardingStore
     @Inject lateinit var actions: AlarmActions
     @Inject lateinit var scheduleStamp: ScheduleStamp
+    @Inject lateinit var shownLanguage: ShownLanguage
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A language change recreates this activity; tell the ViewModels, which outlive it, and
+        // rename the reminder channels (a per-app language change may not reach AlarmApp).
+        val locale = resources.configuration.locales[0]
+        if (shownLanguage.changes.value != locale) {
+            shownLanguage.update(locale)
+            ReminderNotifier.ensureChannels(this)
+        }
         enableEdgeToEdge()
         // Picked once, before anything is drawn, so Home never flashes ahead of onboarding.
         val startRoute = startRoute()

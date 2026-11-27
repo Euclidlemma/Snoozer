@@ -1,5 +1,7 @@
 package com.example.snoozer.dayPickers
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
 import com.example.snoozer.util.Strings
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
@@ -42,6 +44,7 @@ class DayPickerViewModel @Inject constructor(
     private val quietStretches: QuietStretchDao,
     reportSeen: ReportSeenStore,
     private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     /** The page to open on: today (0 = Monday). The pager owns the selection after that. */
@@ -69,7 +72,7 @@ class DayPickerViewModel @Inject constructor(
     // One database observer and one clock for both views.
     private data class Snapshot(val alarms: List<Alarm>, val now: LocalDateTime, val canMute: Boolean)
 
-    private val snapshot = combine(repository.observeAlarms(), timeSource.minuteTicks, canMute, ::Snapshot)
+    private val snapshot = combine(repository.observeAlarms(), timeSource.minuteTicks.alsoOn(language), canMute, ::Snapshot)
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     /**

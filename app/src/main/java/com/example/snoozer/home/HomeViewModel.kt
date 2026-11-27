@@ -1,5 +1,7 @@
 package com.example.snoozer.home
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -52,6 +54,7 @@ class HomeViewModel @Inject constructor(
     timeSource: TimeSource,
     private val permissionChecker: PermissionChecker,
     private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     // Android has no callback for these permissions changing, so the screen calls
@@ -60,7 +63,7 @@ class HomeViewModel @Inject constructor(
 
     /** Null until the first database read. */
     val uiState: StateFlow<HomeUiState?> =
-        combine(repository.observeAlarms(), timeSource.minuteTicks, permissions) { alarms, now, perms ->
+        combine(repository.observeAlarms(), timeSource.minuteTicks.alsoOn(language), permissions) { alarms, now, perms ->
             HomeUi.build(strings, alarms, now, perms)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

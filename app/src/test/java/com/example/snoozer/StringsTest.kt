@@ -93,6 +93,7 @@ class StringsTest {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
             .parse(File("src/main/res/$folder/strings.xml"))
         val nodes = doc.documentElement.childNodes
-        return (0 until nodes.length).mapNotNull { (nodes.item(it) as? org.w3c.dom.Element)?.getAttribute("name") }.toSet()
+        return (0 until nodes.length).mapNotNull { nodes.item(it) as? org.w3c.dom.Element }
+            .filter { it.getAttribute("translatable") != "false" }.map { it.getAttribute("name") }.toSet()
     }
 }
