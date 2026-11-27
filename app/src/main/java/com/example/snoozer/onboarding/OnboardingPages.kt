@@ -399,5 +399,5 @@ private fun MiniCard(fill: Color, tag: String, time: String, seed: Int) {
 // The sample reminder on the heads-up page: a Study window 19:00-21:00.
 private val SampleStudy = com.example.snoozer.alarm.Alarm(
     startHour = 19, startMinute = 0, endHour = 21, endMinute = 0,
-    daysOfWeek = listOf(java.time.DayOfWeek.MONDAY), work = Category.Study.label,
+    daysOfWeek = listOf(java.time.DayOfWeek.MONDAY), work = Category.Study.stored,
 )

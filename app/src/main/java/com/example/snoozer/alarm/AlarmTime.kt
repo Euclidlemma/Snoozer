@@ -1,11 +1,15 @@
 package com.example.snoozer.alarm
 
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
@@ -127,6 +131,25 @@ object AlarmTime {
     /** "4 Dec": day and short month, the way dates read on cards and in the calendar. */
     fun formatDate(date: LocalDate): String =
         "${date.dayOfMonth} ${date.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH)}"
+
+    /** [date] the way dates read on cards and in the calendar: "4 Dec" in English, "12월 4일" in Korean. */
+    fun formatDate(date: LocalDate, strings: Strings): String =
+        DateTimeFormatter.ofPattern(strings.get(R.string.format_date_short), strings.locale).format(date)
+
+    /** [day]'s name in the person's language: "Thu", "Thursday" or "T"; "목", "목요일" or "목". */
+    fun dayName(day: DayOfWeek, style: TextStyle, strings: Strings): String = day.getDisplayName(style, strings.locale)
+
+    /** Short duration in the person's language: "45m", "2h", "1h 30m"; "45분", "2시간", "1시간 30분". */
+    fun formatDuration(minutes: Int, strings: Strings): String {
+        val m = minutes.coerceAtLeast(0)
+        val hours = m / 60
+        val rest = m % 60
+        return when {
+            hours == 0 -> strings.get(R.string.duration_minutes, rest)
+            rest == 0 -> strings.get(R.string.duration_hours, hours)
+            else -> strings.get(R.string.duration_hours_minutes, hours, rest)
+        }
+    }
 
     /** "09:05" style 24-hour time. */
     fun formatTime(hour: Int, minute: Int): String = String.format(Locale.ROOT, "%02d:%02d", hour, minute)

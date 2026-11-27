@@ -75,12 +75,12 @@ interface QuietLog {
 class RoomQuietLog @Inject constructor(private val dao: QuietStretchDao) : QuietLog {
     override suspend fun quiet(category: Category, missed: Boolean, at: Long, louder: Boolean) {
         val open = dao.open()
-        if (open != null && open.category == category.label && open.missed == missed) {
+        if (open != null && open.category == category.stored && open.missed == missed) {
             if (louder && !open.louder) dao.update(open.copy(louder = true))
             return
         }
         if (open != null) dao.update(open.copy(endMillis = maxOf(at, open.startMillis), louder = open.louder || louder))
-        dao.insert(QuietStretch(startMillis = at, endMillis = null, category = category.label, louder = false, missed = missed))
+        dao.insert(QuietStretch(startMillis = at, endMillis = null, category = category.stored, louder = false, missed = missed))
     }
 
     override suspend fun stop(at: Long, louder: Boolean) {

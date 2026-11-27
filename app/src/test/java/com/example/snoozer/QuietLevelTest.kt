@@ -22,7 +22,7 @@ class QuietLevelTest {
 
     private fun alarm(id: Int, sh: Int, eh: Int, category: Category, vararg days: DayOfWeek, enabled: Boolean = true) =
         Alarm(id = id, startHour = sh, startMinute = 0, endHour = eh, endMinute = 0,
-            daysOfWeek = days.toList(), work = category.label, isEnabled = enabled)
+            daysOfWeek = days.toList(), work = category.stored, isEnabled = enabled)
 
     // 2026-11-16 is a Monday.
     private fun at(day: Int, hour: Int, minute: Int = 0) = LocalDateTime.of(2026, 11, day, hour, minute)

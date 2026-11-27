@@ -69,7 +69,7 @@ data class EditForm(
      * dates and the one date (each empty when unset). Read back by [decode].
      */
     fun encode(): String =
-        "$startHour:$startMinute:$endHour:$endMinute:${days.joinToString(",") { it.value.toString() }}:${category.label}" +
+        "$startHour:$startMinute:$endHour:$endMinute:${days.joinToString(",") { it.value.toString() }}:${category.stored}" +
             ":${URLEncoder.encode(name, "UTF-8")}:${fromDate ?: ""}:${untilDate ?: ""}:${oneDate ?: ""}"
 
     /**
@@ -154,7 +154,7 @@ data class EditForm(
             startHour = startHour, startMinute = startMinute,
             endHour = endHour, endMinute = endMinute,
             daysOfWeek = if (date != null) listOf(date.dayOfWeek) else days,
-            work = category.label,
+            work = category.stored,
             name = name.trim().takeIf { it.isNotEmpty() },
             fromDate = date ?: fromDate,
             untilDate = date ?: untilDate,
@@ -162,7 +162,7 @@ data class EditForm(
     }
 
     fun toNewAlarm() = applyTo(
-        Alarm(startHour = 0, startMinute = 0, endHour = 0, endMinute = 0, daysOfWeek = emptyList(), work = category.label)
+        Alarm(startHour = 0, startMinute = 0, endHour = 0, endMinute = 0, daysOfWeek = emptyList(), work = category.stored)
     )
 
     companion object {

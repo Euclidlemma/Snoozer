@@ -22,7 +22,7 @@ class WeeklyReportTest {
     private fun t(d: Int, h: Int, m: Int = 0, month: Int = 11) = LocalDateTime.of(2026, month, d, h, m)
     private fun ms(t: LocalDateTime) = WeeklyReport.millis(t, zone)
     private fun s(c: Category, from: LocalDateTime, to: LocalDateTime?, louder: Boolean = false, missed: Boolean = false) =
-        QuietStretch(startMillis = ms(from), endMillis = to?.let(::ms), category = c.label, louder = louder, missed = missed)
+        QuietStretch(startMillis = ms(from), endMillis = to?.let(::ms), category = c.stored, louder = louder, missed = missed)
 
     private fun ready(vararg stretches: QuietStretch) = WeeklyReport.build(stretches.toList(), now, zone) as ReportUiState.Ready
 

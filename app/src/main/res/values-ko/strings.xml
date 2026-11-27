@@ -1,0 +1,17 @@
+<resources>
+    <!-- The app's name stays Snoozer in Korean. -->
+    <string name="app_name">Snoozer</string>
+
+    <string name="category_work">일</string>
+    <string name="category_study">공부</string>
+    <string name="level_vibrate">진동</string>
+    <string name="level_silent">무음</string>
+    <string name="level_vibrate_description">휴대폰 진동</string>
+    <string name="level_silent_description">휴대폰 완전 무음</string>
+
+    <!-- java.time pattern: "12월 4일" -->
+    <string name="format_date_short">M월 d일</string>
+    <string name="duration_minutes">%1$d분</string>
+    <string name="duration_hours">%1$d시간</string>
+    <string name="duration_hours_minutes">%1$d시간 %2$d분</string>
+</resources>

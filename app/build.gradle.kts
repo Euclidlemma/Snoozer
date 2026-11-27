@@ -68,6 +68,14 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        // Lists the app's languages for Android 13+'s per-app language setting (Settings →
+        // Apps → Snoozer → Language). The default folder's language is in res/resources.properties.
+        generateLocaleConfig = true
+        // Only the languages Snoozer is translated into, so library words don't show in a third
+        // language next to English ones.
+        localeFilters += listOf("en", "ko")
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

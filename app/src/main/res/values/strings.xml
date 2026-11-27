@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">Snoozer</string>
+
+    <!-- Categories and how quiet they make the phone. The saved data keeps the English key
+         (Category.stored); these are only what people read. -->
+    <string name="category_work">Work</string>
+    <string name="category_study">Study</string>
+    <string name="level_vibrate">Vibrate</string>
+    <string name="level_silent">Silent</string>
+    <string name="level_vibrate_description">Phone on vibrate</string>
+    <string name="level_silent_description">Phone fully silent</string>
+
+    <!-- Dates and durations. format_date_short is a java.time pattern: "4 Dec". -->
+    <string name="format_date_short">d MMM</string>
+    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
 </resources>
