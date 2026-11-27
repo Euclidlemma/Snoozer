@@ -82,5 +82,7 @@ class KoreanTextTest {
         assertEquals("Mon 16 – Sun 22 Nov", WeeklyReport.range(EN, LocalDate.of(2026, 11, 16)))
         assertEquals("Mon 26 Oct – Sun 1 Nov", WeeklyReport.range(EN, LocalDate.of(2026, 10, 26)))
         assertEquals("다음 리포트는 월요일 00:00 · 5일 후", WeeklyReport.nextReport(KO, now))
+        // A day next to 일 (Work) is spelled out, so "월 일" can't read as Monday and Sunday.
+        assertEquals("월요일 일", KO.get(R.string.report_turned_up_item, "월", "일"))
     }
 }

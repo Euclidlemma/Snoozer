@@ -64,6 +64,15 @@ class StringsTest {
         assertEquals("Thu", AlarmTime.dayName(DayOfWeek.THURSDAY, TextStyle.SHORT, en))
     }
 
+    @Test
+    fun untranslatedPhoneLanguage_fallsBackToEnglish_datesToo() {
+        val ja = ResourceStrings(Locale.JAPANESE)
+        assertEquals(Locale.ENGLISH.language, ja.locale.language)
+        assertEquals("Work", ja.get(Category.Work.labelRes))
+        assertEquals("Thu", AlarmTime.dayName(DayOfWeek.THURSDAY, TextStyle.SHORT, ja))
+        assertEquals("4 Dec", AlarmTime.formatDate(LocalDate.of(2026, 12, 4), ja))
+    }
+
     /** Lint also checks this; the test says which word is missing without a lint run. */
     @Test
     fun everyWord_isInBothLanguages() {

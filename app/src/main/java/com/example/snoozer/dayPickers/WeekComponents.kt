@@ -316,8 +316,12 @@ fun TimelineItem(
                         // Wraps the repeat letters under the duration when they don't fit (Korean day letters on a cover screen).
                         FlowRow(verticalArrangement = Arrangement.Center, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
                             Text(card.duration, style = type.caption, modifier = Modifier.align(Alignment.CenterVertically))
-                            Text("·", style = type.caption, modifier = Modifier.align(Alignment.CenterVertically))
-                            RepeatLetters(card.repeatsOn, card.repeatText)
+                            // The dot goes with the letters, so a wrapped line never ends in "·".
+                            Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
+                                Text("·", style = type.caption)
+                                RepeatLetters(card.repeatsOn, card.repeatText)
+                            }
                         }
                         if (card.dateNote != null) {
                             Text(card.dateNote, style = type.caption, modifier = Modifier.padding(top = Spacing.XS))

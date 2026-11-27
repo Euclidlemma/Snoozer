@@ -33,8 +33,8 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import javax.inject.Inject
 
-/** Why a calendar file couldn't be read, worded for the screen. */
-class TimetableReadException(message: String) : Exception(message)
+/** The file couldn't be read; [messageRes] says why, in the words shown to the user. */
+class TimetableReadException(@androidx.annotation.StringRes val messageRes: Int) : Exception()
 
 /**
  * Reads the file the user picked (or opened with Snoozer). Through Android's ContentResolver,
@@ -48,17 +48,17 @@ class TimetableFileReader @Inject constructor(@ApplicationContext private val co
             // FileNotFound, a permission that lapsed (after the app was closed), a bad URI.
             Log.w(TAG, "Could not open $uri", e)
             null
-        } ?: throw TimetableReadException(context.getString(R.string.import_open_failed))
+        } ?: throw TimetableReadException(R.string.import_open_failed)
         val bytes = stream.use { input ->
             val out = ByteArrayOutputStream()
             val buffer = ByteArray(8192)
             while (true) {
                 val n = try { input.read(buffer) } catch (e: IOException) {
-                    throw TimetableReadException(context.getString(R.string.import_read_failed))
+                    throw TimetableReadException(R.string.import_read_failed)
                 }
                 if (n < 0) break
                 out.write(buffer, 0, n)
-                if (out.size() > IcsParser.MAX_BYTES) throw TimetableReadException(context.getString(R.string.import_too_big))
+                if (out.size() > IcsParser.MAX_BYTES) throw TimetableReadException(R.string.import_too_big)
             }
             out.toByteArray()
         }
@@ -103,15 +103,19 @@ class ImportViewModel @Inject constructor(
 
     private val uri: String? = savedStateHandle.get<String>(Routes.ImportTimetable.ARG_URI)?.takeIf { it.isNotBlank() }
 
-    /** What came out of the file, once read. */
+    /**
+     * What came out of the file, once read. Kept as facts, not words: the text is built when the
+     * state is, so a language change while the preview is open shows in the new language.
+     */
     private data class Loaded(
         val candidates: List<TimetableImport.Candidate>,
         val existing: List<Alarm>,
-        val skipped: String?,
+        val skipped: Map<SkipReason, Int>,
     )
 
     private val loaded = MutableStateFlow<Loaded?>(null)
-    private val failure = MutableStateFlow<String?>(null)
+    /** Why the file couldn't be read, as a string resource. */
+    private val failure = MutableStateFlow<Int?>(null)
     private val saving = MutableStateFlow(false)
 
     // The ticks and the Work/Study choice survive the process being killed (as plain values).
@@ -125,12 +129,12 @@ class ImportViewModel @Inject constructor(
 
     val uiState: StateFlow<ImportUiState> = combine(loaded, failure, checked, category, saving) { l, f, c, cat, s ->
         when {
-            f != null -> ImportUiState.Failed(f)
+            f != null -> ImportUiState.Failed(strings.get(f))
             l == null || c == null -> ImportUiState.Loading
             else -> ImportUiState.Ready(
                 rows = TimetableImport.rows(strings, l.candidates, c, l.existing, timeSource.now().toLocalDate()),
                 category = cat,
-                skipped = l.skipped,
+                skipped = TimetableImport.skippedText(strings, l.skipped),
                 saving = s,
                 limitNote = TimetableImport.budgetNote(strings, l.candidates, c, l.existing, timeSource.now()),
             )
@@ -144,13 +148,13 @@ class ImportViewModel @Inject constructor(
 
     private suspend fun load() {
         val file = uri ?: run {
-            failure.value = strings.get(R.string.import_no_file)
+            failure.value = R.string.import_no_file
             return
         }
         try {
             val text = withContext(Dispatchers.IO) { reader.read(file) }
             if (!IcsParser.looksLikeCalendar(text)) {
-                failure.value = strings.get(R.string.import_not_calendar)
+                failure.value = R.string.import_not_calendar
                 return
             }
             val result = withContext(Dispatchers.Default) { IcsParser.parse(text) }
@@ -159,14 +163,14 @@ class ImportViewModel @Inject constructor(
             if (checked.value == null) {
                 setChecked(TimetableImport.defaultChecked(candidates, existing, timeSource.now().toLocalDate()))
             }
-            loaded.value = Loaded(candidates, existing, TimetableImport.skippedText(strings, result.skipped))
+            loaded.value = Loaded(candidates, existing, result.skipped)
         } catch (e: CancellationException) {
             throw e
         } catch (e: TimetableReadException) {
-            failure.value = e.message
+            failure.value = e.messageRes
         } catch (e: Exception) {
             Log.e(TAG, "Import failed", e)
-            failure.value = strings.get(R.string.import_failed)
+            failure.value = R.string.import_failed
         }
     }
 

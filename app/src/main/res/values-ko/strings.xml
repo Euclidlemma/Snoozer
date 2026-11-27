@@ -209,7 +209,7 @@
     <string name="report_category_days">%1$s한 날</string>
     <string name="report_days_of_week">7일 중 %1$d일</string>
     <string name="report_missed">%1$s은 계획했지만 조용하지 않았어요: Snoozer에 방해 금지 권한이 없었어요.</string>
-    <string name="report_turned_up_item">%1$s %2$s</string>
+    <string name="report_turned_up_item">%1$s요일 %2$s</string>
     <plurals name="report_turned_up">
         <item quantity="other">스누저 %1$d번 동안 소리를 다시 켰어요 (%2$s).</item>
     </plurals>
@@ -321,4 +321,7 @@
     <!-- Week / Month switch -->
     <string name="view_week">주간</string>
     <string name="view_month">월간</string>
+
+    <!-- The language these words are in (for dates and day names; not shown) -->
+    <string name="strings_locale">ko</string>
 </resources>

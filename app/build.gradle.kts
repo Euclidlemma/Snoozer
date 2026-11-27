@@ -76,6 +76,14 @@ android {
         // language next to English ones.
         localeFilters += listOf("en", "ko")
     }
+    bundle {
+        // Play would otherwise install only the phone's languages, so picking Korean in the
+        // per-app language setting on an English phone could find no Korean words. Both
+        // languages' text is small; ship them to everyone.
+        language {
+            enableSplit = false
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

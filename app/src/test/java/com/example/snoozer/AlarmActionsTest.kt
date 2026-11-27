@@ -297,4 +297,11 @@ class AlarmActionsTest {
         assertEquals(true, actions.ensureScheduled())
         assertEquals(listOf(1), scheduler.scheduled)
     }
+
+    @Test
+    fun ensureScheduled_ignoresASnoozerWithNoDays() = runBlocking {
+        // Old data can hold one; it has nothing to schedule, so it must not look wiped on every open.
+        saved(alarm(2, 9, 17, "Work").copy(daysOfWeek = emptyList()))
+        assertEquals(false, actions.ensureScheduled())
+    }
 }

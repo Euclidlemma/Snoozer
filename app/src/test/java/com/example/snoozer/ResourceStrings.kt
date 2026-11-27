@@ -15,19 +15,22 @@ val KO = ResourceStrings(Locale.KOREAN)
  * reads them: the language's folder first (values-ko), then the English default. Tests run on
  * the plain JVM, where Android's resources aren't available.
  */
-class ResourceStrings(override val locale: Locale = Locale.ENGLISH) : Strings {
+class ResourceStrings(private val phone: Locale = Locale.ENGLISH) : Strings {
 
     private val strings = HashMap<String, String>()
     private val plurals = HashMap<String, Map<String, String>>()
 
     init {
         // The default folder first, then the language's, so its words replace the defaults.
-        val folders = listOf("values") + if (locale.language == "en") emptyList() else listOf("values-${locale.language}")
+        val folders = listOf("values") + if (phone.language == "en") emptyList() else listOf("values-${phone.language}")
         folders.forEach { folder ->
             val file = File(RES, "$folder/strings.xml")
             if (file.exists()) read(file)
         }
     }
+
+    /** Like the app: the language of the words found, which is English for an untranslated phone language. */
+    override val locale: Locale get() = Locale.forLanguageTag(strings.getValue("strings_locale"))
 
     override fun get(id: Int, vararg args: Any): String {
         val name = nameOf(STRING_IDS, id)

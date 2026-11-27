@@ -172,7 +172,10 @@ class AlarmActions @Inject constructor(
     suspend fun ensureScheduled(): Boolean {
         val now = timeSource.now()
         val missing = lock.withLock {
-            repository.getAllAlarmsDirect().any { it.isEnabled && !AlarmTime.hasEnded(it, now) && !scheduler.isScheduled(it) }
+            // A window with no days has nothing to schedule, so it can never look "set".
+            repository.getAllAlarmsDirect().any {
+                it.isEnabled && it.daysOfWeek.isNotEmpty() && !AlarmTime.hasEnded(it, now) && !scheduler.isScheduled(it)
+            }
         }
         if (missing) {
             logger.warn("Alarms were missing (force stop or hibernation); setting them again")

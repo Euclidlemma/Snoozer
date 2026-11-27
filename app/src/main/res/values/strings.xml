@@ -339,4 +339,7 @@
     <!-- Week / Month switch -->
     <string name="view_week">Week</string>
     <string name="view_month">Month</string>
+
+    <!-- The language these words are in (for dates and day names; not shown) -->
+    <string name="strings_locale">en</string>
 </resources>
