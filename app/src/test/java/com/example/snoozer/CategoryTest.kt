@@ -22,8 +22,8 @@ class CategoryTest {
     }
 
     @Test
-    fun label_roundTrips() {
-        Category.entries.forEach { assertEquals(it, Category.from(it.label)) }
+    fun stored_roundTrips() {
+        Category.entries.forEach { assertEquals(it, Category.from(it.stored)) }
     }
 
     @Test

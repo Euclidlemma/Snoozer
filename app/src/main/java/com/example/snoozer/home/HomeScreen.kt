@@ -1,5 +1,14 @@
 package com.example.snoozer.home
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.platform.LocalConfiguration
+import com.example.snoozer.ui.doodle.DoodleChip
+import com.example.snoozer.util.AppLanguage
+import com.example.snoozer.util.LanguageChoice
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -11,6 +20,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,9 +47,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,6 +63,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.util.pluralResource
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.ui.doodle.DoodleButton
@@ -59,13 +74,15 @@ import com.example.snoozer.ui.doodle.DoodleIllustration
 import com.example.snoozer.ui.doodle.Illustrations
 import com.example.snoozer.ui.doodle.DoodleSection
 import com.example.snoozer.ui.doodle.doodleFill
-import com.example.snoozer.ui.doodle.highlighter
+import com.example.snoozer.ui.doodle.lineHighlighter
 import com.example.snoozer.ui.doodle.sketchyBorder
 import com.example.snoozer.ui.theme.SnoozerTheme
 import com.example.snoozer.ui.theme.Spacing
 import com.example.snoozer.util.Permissions
 import com.example.snoozer.util.openDndSettings
 import com.example.snoozer.util.openExactAlarmSettings
+import com.example.snoozer.util.openBatterySettings
+import com.example.snoozer.util.openUnusedAppSettings
 import com.example.snoozer.util.openNotificationSettings
 import com.example.snoozer.util.notificationAsk
 import com.example.snoozer.util.refusedForGood
@@ -94,11 +111,18 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current // this screen's back stack entry
+    // Read again when the language changes (Android recreates the screen in it).
+    val configuration = LocalConfiguration.current
+    val language = remember(context, configuration) { if (AppLanguage.canChoose) AppLanguage.current(context) else null }
     val current = state ?: return // first database read; the screen is blank for a moment
     HomeContent(
         state = current,
+        language = language,
+        onLanguage = { AppLanguage.set(context, it) },
         onAllowDnd = context::openDndSettings,
         onAllowExactAlarms = context::openExactAlarmSettings,
+        onAllowBattery = context::openBatterySettings,
+        onKeepWhenUnused = context::openUnusedAppSettings,
         onAllowNotifications = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val permission = Manifest.permission.POST_NOTIFICATIONS
@@ -135,7 +159,12 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/** Stateless home screen: header, today's status, the setup checklist and "Open my week". */
+/**
+ * Stateless home screen: header, today's status, the setup checklist, the language switch and
+ * "Open my week". [language] is the current choice, or null where Android can't keep a language
+ * per app (before Android 13); the switch is hidden then.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeContent(
     state: HomeUiState,
@@ -143,6 +172,10 @@ fun HomeContent(
     onAllowExactAlarms: () -> Unit,
     onOpenWeek: () -> Unit,
     onAllowNotifications: () -> Unit = {},
+    onAllowBattery: () -> Unit = {},
+    onKeepWhenUnused: () -> Unit = {},
+    language: LanguageChoice? = null,
+    onLanguage: (LanguageChoice) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().systemBarsPadding()) {
@@ -155,18 +188,18 @@ fun HomeContent(
         ) {
             MascotHeader(Modifier.fillMaxWidth().padding(top = Spacing.M))
             StatusLine(state.statusLine, Modifier.align(Alignment.CenterHorizontally))
-            DoodleSection(title = "Setup", seed = 120) {
+            DoodleSection(title = stringResource(R.string.setup), seed = 120) {
                 PermissionRow(
-                    title = "Do Not Disturb access",
-                    description = "Required. Lets Snoozer mute and unmute your phone.",
+                    title = stringResource(R.string.perm_dnd),
+                    description = stringResource(R.string.perm_dnd_body),
                     granted = state.permissions.dnd,
                     onAllow = onAllowDnd,
                     seed = 121,
                 )
                 if (state.permissions.exactAlarmsApplies) {
                     PermissionRow(
-                        title = "Exact alarms",
-                        description = "Recommended. Without it, muting can start up to an hour late.",
+                        title = stringResource(R.string.perm_exact),
+                        description = stringResource(R.string.perm_exact_body),
                         granted = state.permissions.exactAlarms,
                         onAllow = onAllowExactAlarms,
                         seed = 124,
@@ -174,12 +207,50 @@ fun HomeContent(
                 }
                 if (state.permissions.notificationsApply) {
                     PermissionRow(
-                        title = "Notifications",
-                        description = "Optional. Reminds you 5 minutes before quiet time starts.",
+                        title = stringResource(R.string.perm_notifications),
+                        description = pluralResource(R.plurals.perm_notifications_body, AlarmTime.REMINDER_LEAD_MINUTES, AlarmTime.REMINDER_LEAD_MINUTES),
                         granted = state.permissions.notifications,
                         onAllow = onAllowNotifications,
                         seed = 127,
                     )
+                }
+                PermissionRow(
+                    title = stringResource(R.string.perm_battery),
+                    description = stringResource(R.string.perm_battery_body),
+                    granted = state.permissions.batteryUnrestricted,
+                    onAllow = onAllowBattery,
+                    seed = 130,
+                )
+                if (state.permissions.keptWhenUnusedApplies) {
+                    PermissionRow(
+                        title = stringResource(R.string.perm_unused),
+                        description = stringResource(R.string.perm_unused_body),
+                        granted = state.permissions.keptWhenUnused,
+                        onAllow = onKeepWhenUnused,
+                        seed = 133,
+                    )
+                }
+            }
+            if (language != null) {
+                DoodleSection(title = stringResource(R.string.language_title), seed = 140) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().selectableGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.S),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.S),
+                    ) {
+                        LanguageChoice.entries.forEachIndexed { i, choice ->
+                            DoodleChip(
+                                selected = choice == language,
+                                // Always sets it, even when shown as chosen: "Phone's language" also clears a language
+                                // set elsewhere that isn't one of these.
+                                onClick = { onLanguage(choice) },
+                                label = stringResource(choice.labelRes),
+                                seed = 141 + i,
+                                wobble = DoodleDefaults.WobbleLight,
+                                modifier = Modifier.semantics { role = Role.RadioButton },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -190,7 +261,7 @@ fun HomeContent(
         ) {
             if (!state.ready) {
                 Text(
-                    "Allow Do Not Disturb access to continue.",
+                    stringResource(R.string.home_allow_dnd_to_continue),
                     style = SnoozerTheme.type.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -204,7 +275,7 @@ fun HomeContent(
                 hatchColor = MaterialTheme.colorScheme.primary,
                 seed = 130,
             ) {
-                Text("Open my week")
+                Text(stringResource(R.string.open_my_week))
             }
         }
     }
@@ -230,13 +301,13 @@ private fun MascotHeader(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(Spacing.S))
         Text(
-            "SNOOZER",
+            stringResource(R.string.app_name_caps),
             style = MaterialTheme.typography.displaySmall,
             letterSpacing = 2.sp,
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            "On guard, so your phone stays quiet.",
+            stringResource(R.string.home_tagline),
             style = SnoozerTheme.type.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -251,10 +322,14 @@ private val MascotSize = 196.dp
 private fun StatusLine(text: String, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
         Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(24.dp))
+        // Marked line by line: on a narrow screen it wraps, and one swipe across the whole box
+        // ran past the end of the shorter second line.
+        var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
         Text(
             text,
             style = SnoozerTheme.type.body,
-            modifier = Modifier.highlighter(SnoozerTheme.colors.highlighter).padding(horizontal = Spacing.XS),
+            onTextLayout = { layout = it },
+            modifier = Modifier.padding(horizontal = Spacing.XS).lineHighlighter(SnoozerTheme.colors.highlighter, { layout }),
         )
     }
 }
@@ -266,28 +341,48 @@ private fun StatusLine(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun PermissionRow(title: String, description: String, granted: Boolean, onAllow: () -> Unit, seed: Int) {
     val scheme = MaterialTheme.colorScheme
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.M)) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .doodleFill(if (granted) scheme.secondaryContainer else Color.Transparent,
-                    cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
-                .sketchyBorder(if (granted) scheme.onSurface else scheme.outline, width = 1.5.dp,
-                    cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
-                .semantics { contentDescription = if (granted) "Allowed" else "Not allowed yet" },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (granted) Icon(painterResource(R.drawable.ic_doodle_check), contentDescription = null, modifier = Modifier.size(22.dp))
+    val allowNamed = stringResource(R.string.allow_named, title)
+    val checkDescription = stringResource(if (granted) R.string.allowed else R.string.not_allowed_yet)
+    val allow = @Composable {
+        // Spoken with the row's name: several rows each have an Allow button.
+        DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) {
+            Text(stringResource(R.string.allow), modifier = Modifier.clearAndSetSemantics { contentDescription = allowNamed })
         }
-        Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-            Text(title, style = SnoozerTheme.type.label)
-            Text(description, style = SnoozerTheme.type.caption, color = scheme.onSurfaceVariant)
-        }
-        if (!granted) {
-            DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) { Text("Allow") }
+    }
+    // On a narrow row (a foldable's cover screen) a button beside the words squeezes them to a
+    // word or two per line, so there it goes under the words instead.
+    BoxWithConstraints {
+        val beside = maxWidth >= AllowBesideFrom
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.S)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.M)) {
+                Box(
+                    modifier = Modifier
+                        .size(CheckSize)
+                        .doodleFill(if (granted) scheme.secondaryContainer else Color.Transparent,
+                            cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
+                        .sketchyBorder(if (granted) scheme.onSurface else scheme.outline, width = 1.5.dp,
+                            cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
+                        .semantics { contentDescription = checkDescription },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (granted) Icon(painterResource(R.drawable.ic_doodle_check), contentDescription = null, modifier = Modifier.size(22.dp))
+                }
+                Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
+                    Text(title, style = SnoozerTheme.type.label)
+                    Text(description, style = SnoozerTheme.type.caption, color = scheme.onSurfaceVariant)
+                }
+                if (!granted && beside) allow()
+            }
+            // Lined up with the words, past the circle.
+            if (!granted && !beside) Box(Modifier.padding(start = CheckSize + Spacing.M)) { allow() }
         }
     }
 }
+
+private val CheckSize = 32.dp
+
+/** From this row width the Allow button fits beside the words. */
+private val AllowBesideFrom = 280.dp
 
 @Preview(name = "Home - ready", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFFFAF6EC)
 @Preview(name = "Home - ready, dark", widthDp = 360, heightDp = 760, showBackground = true, backgroundColor = 0xFF2A2D2F,
@@ -310,7 +405,7 @@ private fun HomeReadyPreview() {
 private fun HomeFirstRunPreview() {
     SnoozerTheme {
         HomeContent(
-            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true)),
+            state = HomeUiState("No quiet times planned yet", Permissions(dnd = false, exactAlarms = false, exactAlarmsApplies = true, notifications = false, notificationsApply = true, batteryUnrestricted = false, keptWhenUnused = false, keptWhenUnusedApplies = true)),
             onAllowDnd = {}, onAllowExactAlarms = {}, onOpenWeek = {},
         )
     }

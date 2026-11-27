@@ -48,6 +48,8 @@ class AlarmActionsTest {
         override fun scheduleAlarm(alarm: Alarm) { scheduled += alarm.id }
         override fun scheduleAlarmWithDay(alarm: Alarm, day: DayOfWeek) { scheduled += alarm.id }
         override fun cancelAlarm(alarm: Alarm) { cancelled += alarm.id }
+        var wiped = false
+        override fun isScheduled(alarm: Alarm) = !wiped && alarm.id in scheduled
     }
 
     /** Records every ringer change: a level, or "restore". */
@@ -280,5 +282,26 @@ class AlarmActionsTest {
         time.at = at(12); actions.rescheduleAll()
         assertEquals(emptyList<String>(), ringer.calls)
         assertEquals(null, stretches.rows.single().endMillis)
+    }
+
+    @Test
+    fun ensureScheduled_resetsAlarmsWipedByAForceStop_andLeavesThemOtherwise() = runBlocking {
+        val work = alarm(1, 9, 17, "Work")
+        saved(work)
+        actions.rescheduleAll()
+        scheduler.scheduled.clear(); scheduler.scheduled += 1
+        // Nothing missing: nothing re-set.
+        assertEquals(false, actions.ensureScheduled())
+        // A force stop (or hibernation) wiped them: all set again.
+        scheduler.wiped = true; scheduler.scheduled.clear()
+        assertEquals(true, actions.ensureScheduled())
+        assertEquals(listOf(1), scheduler.scheduled)
+    }
+
+    @Test
+    fun ensureScheduled_ignoresASnoozerWithNoDays() = runBlocking {
+        // Old data can hold one; it has nothing to schedule, so it must not look wiped on every open.
+        saved(alarm(2, 9, 17, "Work").copy(daysOfWeek = emptyList()))
+        assertEquals(false, actions.ensureScheduled())
     }
 }

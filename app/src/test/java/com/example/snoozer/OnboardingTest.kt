@@ -34,8 +34,8 @@ class OnboardingTest {
         val spec = OnboardingSpec.of(OnboardingMode.FirstRun)
         assertEquals(0, spec.startPage)
         assertTrue(spec.showSkip)
-        assertEquals("Next", spec.buttonLabel(0))
-        assertEquals("Get started", spec.buttonLabel(4))
+        assertEquals("Next", EN.get(spec.buttonLabel(0)))
+        assertEquals("Get started", EN.get(spec.buttonLabel(4)))
         assertFalse(spec.canGoBack(0))
         assertTrue(spec.canGoBack(1))
     }
@@ -45,7 +45,7 @@ class OnboardingTest {
         val spec = OnboardingSpec.of(OnboardingMode.Help)
         assertEquals(1, spec.startPage)
         assertFalse(spec.showSkip)
-        assertEquals("Done", spec.buttonLabel(4))
+        assertEquals("Done", EN.get(spec.buttonLabel(4)))
         // Back stops at where help started: it doesn't wander back to Welcome.
         assertFalse(spec.canGoBack(1))
         assertTrue(spec.canGoBack(2))

@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.ui.doodle.DoodleButton
@@ -69,20 +71,20 @@ fun ImportContent(
             when (state) {
                 ImportUiState.Loading -> Message(Modifier.weight(1f)) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurface)
-                    Text("Reading your timetable…", style = SnoozerTheme.type.body)
+                    Text(stringResource(R.string.import_reading), style = SnoozerTheme.type.body)
                 }
                 is ImportUiState.Failed -> Message(Modifier.weight(1f)) {
                     Text(state.message, style = SnoozerTheme.type.body, textAlign = TextAlign.Center)
-                    DoodleButton(onClick = onPickAnother, seed = 701) { Text("Pick another file") }
+                    DoodleButton(onClick = onPickAnother, seed = 701) { Text(stringResource(R.string.import_pick_another)) }
                 }
                 is ImportUiState.Ready -> if (state.rows.isEmpty()) {
                     Message(Modifier.weight(1f)) {
-                        Text("No weekly classes in this file.", style = SnoozerTheme.type.title, textAlign = TextAlign.Center)
+                        Text(stringResource(R.string.import_no_weekly), style = SnoozerTheme.type.title, textAlign = TextAlign.Center)
                         if (state.skipped != null) {
                             Text(state.skipped, style = SnoozerTheme.type.body, textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        DoodleButton(onClick = onPickAnother, seed = 702) { Text("Pick another file") }
+                        DoodleButton(onClick = onPickAnother, seed = 702) { Text(stringResource(R.string.import_pick_another)) }
                     }
                 } else {
                     ReadyList(state, onToggle, onCategory, Modifier.weight(1f))
@@ -103,9 +105,9 @@ private fun ImportTopBar(onBack: () -> Unit) {
         DoodleButton(onClick = onBack, seed = 703, wobble = DoodleDefaults.WobbleLight) {
             Icon(painterResource(R.drawable.ic_doodle_back), contentDescription = null)
             Spacer(Modifier.width(Spacing.XS))
-            Text("Back")
+            Text(stringResource(R.string.back))
         }
-        Text("Import timetable", style = SnoozerTheme.type.title, modifier = Modifier.weight(1f).semantics { heading() })
+        Text(stringResource(R.string.import_timetable), style = SnoozerTheme.type.title, modifier = Modifier.weight(1f).semantics { heading() })
     }
 }
 
@@ -131,7 +133,7 @@ private fun ReadyList(
         verticalArrangement = Arrangement.spacedBy(Spacing.S),
     ) {
         item(key = "found") {
-            Text(state.foundLine, style = SnoozerTheme.type.headline, modifier = Modifier.semantics { heading() })
+            Text(state.foundLine(rememberStrings()), style = SnoozerTheme.type.headline, modifier = Modifier.semantics { heading() })
         }
         item(key = "kind") { KindPicker(state.category, onCategory) }
         items(state.rows, key = { it.key }) { row ->
@@ -154,7 +156,7 @@ private fun ReadyList(
 @Composable
 private fun KindPicker(selected: Category, onSelect: (Category) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.XS)) {
-        Text("Add them as", style = SnoozerTheme.type.label)
+        Text(stringResource(R.string.import_add_as), style = SnoozerTheme.type.label)
         Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
             // Study first: a timetable is usually classes.
             listOf(Category.Study, Category.Work).forEachIndexed { i, category ->
@@ -174,9 +176,9 @@ private fun KindPicker(selected: Category, onSelect: (Category) -> Unit) {
                 ) {
                     DoodleIllustration(category.illustration, size = 44.dp, dimmed = !isSelected, seed = 712 + i)
                     Column(Modifier.weight(1f)) {
-                        Text(category.label, style = SnoozerTheme.type.label,
+                        Text(stringResource(category.labelRes), style = SnoozerTheme.type.label,
                             color = if (isSelected) colors.content else MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(category.quietLevel.label, style = SnoozerTheme.type.caption,
+                        Text(stringResource(category.quietLevel.labelRes), style = SnoozerTheme.type.caption,
                             color = if (isSelected) colors.content else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -209,8 +211,9 @@ private fun ClassRow(row: ImportRowUi, category: Category, onToggle: () -> Unit)
             DoodleCheckBox(checked = included, ink = ink, seed = row.key.hashCode() + 1)
             Column(Modifier.weight(1f)) {
                 Text(row.name, style = SnoozerTheme.type.label)
-                Text(row.days + " · " + row.time + if (row.endsNextDay) " (+1 day)" else "", style = SnoozerTheme.type.body)
-                val note = if (row.alreadyAdded) "Already in Snoozer" else row.dates
+                Text(stringResource(if (row.endsNextDay) R.string.import_row_line_next_day else R.string.import_row_line, row.days, row.time),
+                    style = SnoozerTheme.type.body)
+                val note = if (row.alreadyAdded) stringResource(R.string.import_already_added) else row.dates
                 if (note != null) Text(note, style = SnoozerTheme.type.caption)
             }
         }
@@ -249,7 +252,7 @@ private fun AddBar(state: ImportUiState.Ready, onAdd: () -> Unit) {
             contentColor = Color(0xFF2E2B26),
             hatchColor = MaterialTheme.colorScheme.primary,
             seed = 720,
-        ) { Text(state.addLabel) }
+        ) { Text(state.addLabel(rememberStrings())) }
     }
 }
 

@@ -1,5 +1,9 @@
 package com.example.snoozer.timetable
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import android.content.Context
 import android.content.Intent
 import androidx.core.net.toUri
@@ -31,8 +35,8 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import javax.inject.Inject
 
-/** Why a calendar file couldn't be read, worded for the screen. */
-class TimetableReadException(message: String) : Exception(message)
+/** The file couldn't be read; [messageRes] says why, in the words shown to the user. */
+class TimetableReadException(@androidx.annotation.StringRes val messageRes: Int) : Exception()
 
 /**
  * Reads the file the user picked (or opened with Snoozer). Through Android's ContentResolver,
@@ -46,17 +50,17 @@ class TimetableFileReader @Inject constructor(@ApplicationContext private val co
             // FileNotFound, a permission that lapsed (after the app was closed), a bad URI.
             Log.w(TAG, "Could not open $uri", e)
             null
-        } ?: throw TimetableReadException("Couldn't open that file. Try picking it again.")
+        } ?: throw TimetableReadException(R.string.import_open_failed)
         val bytes = stream.use { input ->
             val out = ByteArrayOutputStream()
             val buffer = ByteArray(8192)
             while (true) {
                 val n = try { input.read(buffer) } catch (e: IOException) {
-                    throw TimetableReadException("Couldn't read that file. Try picking it again.")
+                    throw TimetableReadException(R.string.import_read_failed)
                 }
                 if (n < 0) break
                 out.write(buffer, 0, n)
-                if (out.size() > IcsParser.MAX_BYTES) throw TimetableReadException("That file is too big to be a timetable.")
+                if (out.size() > IcsParser.MAX_BYTES) throw TimetableReadException(R.string.import_too_big)
             }
             out.toByteArray()
         }
@@ -96,40 +100,46 @@ class ImportViewModel @Inject constructor(
     private val repository: AlarmRepository,
     private val actions: AlarmActions,
     private val timeSource: TimeSource,
+    private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     private val uri: String? = savedStateHandle.get<String>(Routes.ImportTimetable.ARG_URI)?.takeIf { it.isNotBlank() }
 
-    /** What came out of the file, once read. */
+    /**
+     * What came out of the file, once read. Kept as facts, not words: the text is built when the
+     * state is, so a language change while the preview is open shows in the new language.
+     */
     private data class Loaded(
         val candidates: List<TimetableImport.Candidate>,
         val existing: List<Alarm>,
-        val skipped: String?,
+        val skipped: Map<SkipReason, Int>,
     )
 
     private val loaded = MutableStateFlow<Loaded?>(null)
-    private val failure = MutableStateFlow<String?>(null)
+    /** Why the file couldn't be read, as a string resource. */
+    private val failure = MutableStateFlow<Int?>(null)
     private val saving = MutableStateFlow(false)
 
     // The ticks and the Work/Study choice survive the process being killed (as plain values).
     private val checked = MutableStateFlow(savedStateHandle.get<ArrayList<String>>(KEY_CHECKED)?.toSet())
     private val category = MutableStateFlow(
-        savedStateHandle.get<String>(KEY_CATEGORY)?.let { l -> Category.entries.firstOrNull { it.label == l } } ?: Category.Study
+        savedStateHandle.get<String>(KEY_CATEGORY)?.let { l -> Category.entries.firstOrNull { it.stored == l } } ?: Category.Study
     )
 
     private val events = Channel<ImportEvent>(Channel.BUFFERED)
     val eventFlow: Flow<ImportEvent> = events.receiveAsFlow()
 
-    val uiState: StateFlow<ImportUiState> = combine(loaded, failure, checked, category, saving) { l, f, c, cat, s ->
+    val uiState: StateFlow<ImportUiState> = combine(loaded, failure, checked, category, saving.alsoOn(language)) { l, f, c, cat, s ->
         when {
-            f != null -> ImportUiState.Failed(f)
+            f != null -> ImportUiState.Failed(strings.get(f))
             l == null || c == null -> ImportUiState.Loading
             else -> ImportUiState.Ready(
-                rows = TimetableImport.rows(l.candidates, c, l.existing, timeSource.now().toLocalDate()),
+                rows = TimetableImport.rows(strings, l.candidates, c, l.existing, timeSource.now().toLocalDate()),
                 category = cat,
-                skipped = l.skipped,
+                skipped = TimetableImport.skippedText(strings, l.skipped),
                 saving = s,
-                limitNote = TimetableImport.budgetNote(l.candidates, c, l.existing, timeSource.now()),
+                limitNote = TimetableImport.budgetNote(strings, l.candidates, c, l.existing, timeSource.now()),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ImportUiState.Loading)
@@ -141,13 +151,13 @@ class ImportViewModel @Inject constructor(
 
     private suspend fun load() {
         val file = uri ?: run {
-            failure.value = "No file was picked."
+            failure.value = R.string.import_no_file
             return
         }
         try {
             val text = withContext(Dispatchers.IO) { reader.read(file) }
             if (!IcsParser.looksLikeCalendar(text)) {
-                failure.value = "That doesn't look like a calendar (.ics) file."
+                failure.value = R.string.import_not_calendar
                 return
             }
             val result = withContext(Dispatchers.Default) { IcsParser.parse(text) }
@@ -156,14 +166,14 @@ class ImportViewModel @Inject constructor(
             if (checked.value == null) {
                 setChecked(TimetableImport.defaultChecked(candidates, existing, timeSource.now().toLocalDate()))
             }
-            loaded.value = Loaded(candidates, existing, TimetableImport.skippedText(result.skipped))
+            loaded.value = Loaded(candidates, existing, result.skipped)
         } catch (e: CancellationException) {
             throw e
         } catch (e: TimetableReadException) {
-            failure.value = e.message
+            failure.value = e.messageRes
         } catch (e: Exception) {
             Log.e(TAG, "Import failed", e)
-            failure.value = "Couldn't read that file. Is it a calendar (.ics) file?"
+            failure.value = R.string.import_failed
         }
     }
 
@@ -179,7 +189,7 @@ class ImportViewModel @Inject constructor(
 
     fun onCategory(value: Category) {
         category.value = value
-        savedStateHandle[KEY_CATEGORY] = value.label
+        savedStateHandle[KEY_CATEGORY] = value.stored
     }
 
     /** Saves the ticked classes once; a second tap while saving does nothing. */
@@ -189,12 +199,12 @@ class ImportViewModel @Inject constructor(
         if (saving.value) return
         val alarms = TimetableImport.toAlarms(l.candidates, keys, l.existing, category.value)
         if (alarms.isEmpty()) return
-        if (TimetableImport.budgetNote(l.candidates, keys, l.existing, timeSource.now()) != null) return
+        if (TimetableImport.budgetNote(strings, l.candidates, keys, l.existing, timeSource.now()) != null) return
         saving.value = true
         viewModelScope.launch {
             val event = try {
                 val n = actions.createAll(alarms)
-                ImportEvent(if (n == 1) "1 class added" else "$n classes added", leave = true)
+                ImportEvent(strings.plural(R.plurals.import_added, n, n), leave = true)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -203,7 +213,7 @@ class ImportViewModel @Inject constructor(
                 // ("Already in Snoozer") instead of adding them twice.
                 runCatching { repository.getAllAlarmsDirect() }.getOrNull()?.let { loaded.value = l.copy(existing = it) }
                 saving.value = false
-                ImportEvent("Couldn't add all the classes. Try again.")
+                ImportEvent(strings.get(R.string.import_add_failed))
             }
             events.send(event)
         }

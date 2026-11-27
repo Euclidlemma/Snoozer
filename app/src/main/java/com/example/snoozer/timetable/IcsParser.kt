@@ -24,12 +24,12 @@ data class ParsedClass(
 )
 
 /** Why an event in the file didn't become a class. */
-enum class SkipReason(val label: String) {
-    AllDay("all-day"),
-    NotWeekly("not weekly"),
-    OneOff("one-off"),
-    TooLong("a day or longer"),
-    Unreadable("unreadable"),
+enum class SkipReason(@androidx.annotation.StringRes val countRes: Int) {
+    AllDay(com.example.snoozer.R.string.skip_all_day),
+    NotWeekly(com.example.snoozer.R.string.skip_not_weekly),
+    OneOff(com.example.snoozer.R.string.skip_one_off),
+    TooLong(com.example.snoozer.R.string.skip_too_long),
+    Unreadable(com.example.snoozer.R.string.skip_unreadable),
 }
 
 data class ParseResult(val classes: List<ParsedClass>, val skipped: Map<SkipReason, Int>)

@@ -1,5 +1,7 @@
 package com.example.snoozer.EditAlarm
 
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.R
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -51,6 +53,7 @@ fun WhatHappensPanel(explanation: CategoryExplanation, onHowItWorks: () -> Unit,
     ) { e ->
         val colors = SnoozerTheme.colors.forCategory(e.category)
         val ink = MaterialTheme.colorScheme.onSurface
+        val open = stringResource(R.string.open_how_it_works)
         Column(
             Modifier
                 .fillMaxWidth()
@@ -70,13 +73,13 @@ fun WhatHappensPanel(explanation: CategoryExplanation, onHowItWorks: () -> Unit,
                 }
             }
             Text(
-                "How Work and Study differ",
+                stringResource(R.string.how_they_differ),
                 style = SnoozerTheme.type.body,
                 color = MaterialTheme.colorScheme.primary,
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
                     .heightIn(min = 48.dp)
-                    .clickable(onClickLabel = "Open how Snoozer works", role = Role.Button, onClick = onHowItWorks)
+                    .clickable(onClickLabel = open, role = Role.Button, onClick = onHowItWorks)
                     .padding(vertical = Spacing.S),
             )
         }

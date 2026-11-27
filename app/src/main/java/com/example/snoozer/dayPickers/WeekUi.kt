@@ -9,12 +9,13 @@ import com.example.snoozer.alarm.oneDate
 import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.alarm.QuietLevel
 import com.example.snoozer.alarm.QuietStatus
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 
 /** Everything the week screen shows, already formatted. Built by [WeekUi.build]. */
 @Immutable
@@ -95,10 +96,10 @@ object WeekUi {
      * [canMute] is whether Snoozer has Do Not Disturb access. Without it the status says so
      * and no card is marked active, since nothing is actually muting the phone.
      */
-    fun build(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): WeekUiState = WeekUiState(
-        status = status(alarms, now, canMute),
-        days = DayOfWeek.entries.map { day(it, alarms, now, canMute) },
-        weeklyTotals = weeklyTotalsLine(weeklyMinutes(alarms, weekOf = now.toLocalDate())),
+    fun build(strings: Strings, alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): WeekUiState = WeekUiState(
+        status = status(strings, alarms, now, canMute),
+        days = DayOfWeek.entries.map { day(strings, it, alarms, now, canMute) },
+        weeklyTotals = weeklyTotalsLine(strings, weeklyMinutes(alarms, weekOf = now.toLocalDate())),
         endedCount = alarms.count { AlarmTime.hasEnded(it, now) },
     )
 
@@ -122,13 +123,17 @@ object WeekUi {
     }
 
     /** "This week · Work 32h · Study 6h", in [Category] order; null when [minutes] is empty. */
-    fun weeklyTotalsLine(minutes: Map<Category, Int>): String? {
+    fun weeklyTotalsLine(strings: Strings, minutes: Map<Category, Int>): String? {
         if (minutes.isEmpty()) return null
-        val parts = Category.entries.mapNotNull { c -> minutes[c]?.let { "${c.label} ${AlarmTime.formatDuration(it)}" } }
-        return "This week · " + parts.joinToString(" · ")
+        val parts = Category.entries.mapNotNull { c -> minutes[c]?.let { amount(strings, c, it) } }
+        return strings.get(R.string.this_week_totals, parts.joinToString(" · "))
     }
 
-    fun status(alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): StatusUi =
+    /** "Work 32h" / "일 32시간". */
+    fun amount(strings: Strings, category: Category, minutes: Int): String =
+        strings.get(R.string.category_amount, strings.get(category.labelRes), AlarmTime.formatDuration(minutes, strings))
+
+    fun status(strings: Strings, alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean = true): StatusUi =
         if (!canMute) StatusUi.NoAccess
         else when (val s = AlarmTime.quietStatus(alarms, now)) {
             is QuietStatus.QuietUntil -> {
@@ -148,16 +153,17 @@ object WeekUi {
                 val quieter = AlarmTime.quietStatus(alarms.filter { it.category.quietLevel > level }, now)
                 val quieterStart = (quieter as? QuietStatus.NextQuiet)?.takeIf { it.at.isBefore(end) }
                 StatusUi.QuietNow(
-                    until = timeOn(end, now),
+                    until = timeOn(strings, end, now),
                     category = category,
                     level = level,
-                    left = "${relativeSpan(AlarmTime.minutesBetween(now, end))} left",
+                    left = strings.get(R.string.time_left, relativeSpan(strings, AlarmTime.minutesBetween(now, end))),
                     then = when {
-                        quieterStart != null ->
-                            "${quieterStart.alarm.category.quietLevel.label.lowercase()} from ${timeOn(quieterStart.at, now)}"
+                        quieterStart != null -> strings.get(R.string.level_from,
+                            levelWord(strings, quieterStart.alarm.category.quietLevel), timeOn(strings, quieterStart.at, now))
                         levelEnd != null -> {
-                            val next = AlarmTime.quietLevelAt(alarms, levelEnd)?.label?.lowercase() ?: "quiet"
-                            "then $next until ${timeOn(s.until, now)}"
+                            val next = AlarmTime.quietLevelAt(alarms, levelEnd)?.let { levelWord(strings, it) }
+                                ?: strings.get(R.string.quiet_generic)
+                            strings.get(R.string.then_level_until, next, timeOn(strings, s.until, now))
                         }
                         else -> null
                     },
@@ -165,15 +171,15 @@ object WeekUi {
             }
             is QuietStatus.NextQuiet -> StatusUi.Next(
                 time = AlarmTime.formatTime(s.at.hour, s.at.minute),
-                day = relativeDay(s.at, now),
+                day = relativeDay(strings, s.at, now),
                 category = s.alarm.category,
                 level = s.alarm.category.quietLevel,
-                startsIn = "in ${relativeSpan(AlarmTime.minutesBetween(now, s.at))}",
+                startsIn = strings.get(R.string.starts_in, relativeSpan(strings, AlarmTime.minutesBetween(now, s.at))),
             )
             QuietStatus.NothingScheduled -> StatusUi.NothingScheduled
         }
 
-    private fun day(day: DayOfWeek, alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean): DayUi {
+    private fun day(strings: Strings, day: DayOfWeek, alarms: List<Alarm>, now: LocalDateTime, canMute: Boolean): DayUi {
         // A one-date snoozer shows on its weekday only in its own week; the Month view has it always.
         val date = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(day.value - 1L)
         val onDay = alarms
@@ -186,25 +192,27 @@ object WeekUi {
         val enabled = onDay.filter { it.isEnabled && current(it) }
         val summary = when {
             onDay.isEmpty() -> null
-            enabled.isEmpty() -> "${count(onDay.size)} · " + when {
-                onDay.none { it.isEnabled } -> "all off"
-                onDay.filter { it.isEnabled }.all { AlarmTime.hasEnded(it, now) } -> if (onDay.all { it.isEnabled }) "all ended" else "all off or ended"
-                onDay.filter { it.isEnabled }.all { AlarmTime.notStartedYet(it, now) } -> "not started yet"
-                else -> "none this week"
-            }
-            else -> "${count(enabled.size)} · ${AlarmTime.formatDuration(quietMinutes(enabled))} quiet"
+            enabled.isEmpty() -> strings.get(R.string.day_summary, count(strings, onDay.size), strings.get(when {
+                onDay.none { it.isEnabled } -> R.string.day_all_off
+                onDay.filter { it.isEnabled }.all { AlarmTime.hasEnded(it, now) } ->
+                    if (onDay.all { it.isEnabled }) R.string.day_all_ended else R.string.day_all_off_or_ended
+                onDay.filter { it.isEnabled }.all { AlarmTime.notStartedYet(it, now) } -> R.string.day_not_started
+                else -> R.string.day_none_this_week
+            }))
+            else -> strings.get(R.string.day_summary_quiet, count(strings, enabled.size),
+                AlarmTime.formatDuration(quietMinutes(enabled), strings))
         }
         return DayUi(
             day = day,
-            letter = day.getDisplayName(TextStyle.NARROW, Locale.ENGLISH),
-            name = day.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+            letter = AlarmTime.dayName(day, TextStyle.NARROW, strings),
+            name = AlarmTime.dayName(day, TextStyle.FULL, strings),
             isToday = isToday,
             summary = summary,
-            cards = onDay.map { card(it, day, now, canMute) },
+            cards = onDay.map { card(strings, it, day, now, canMute) },
         )
     }
 
-    fun card(alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
+    fun card(strings: Strings, alarm: Alarm, day: DayOfWeek, now: LocalDateTime, canMute: Boolean) = AlarmCardUi(
         id = alarm.id,
         category = alarm.category,
         name = alarm.name?.takeIf { it.isNotBlank() },
@@ -212,23 +220,24 @@ object WeekUi {
         start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute),
         end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute),
         endsNextDay = AlarmTime.isOvernight(alarm),
-        duration = AlarmTime.formatDuration(AlarmTime.durationMinutes(alarm)),
+        duration = AlarmTime.formatDuration(AlarmTime.durationMinutes(alarm), strings),
         repeatsOn = DayOfWeek.entries.map { it in alarm.daysOfWeek },
-        repeatText = repeatText(alarm.daysOfWeek),
+        repeatText = repeatText(strings, alarm.daysOfWeek),
         enabled = alarm.isEnabled,
         activeNow = canMute && alarm.isEnabled && occurrenceActive(alarm, day, now),
-        dateNote = dateNote(alarm, now),
+        dateNote = dateNote(strings, alarm, now),
         ended = AlarmTime.hasEnded(alarm, now),
     )
 
     /** "Ended 4 Dec", "Starts 14 Sep" or "Until 4 Dec"; null for a snoozer without dates. */
-    fun dateNote(alarm: Alarm, now: LocalDateTime): String? = when {
-        AlarmTime.hasEnded(alarm, now) -> "Ended ${AlarmTime.formatDate(alarm.untilDate!!)}"
+    fun dateNote(strings: Strings, alarm: Alarm, now: LocalDateTime): String? = when {
+        AlarmTime.hasEnded(alarm, now) -> strings.get(R.string.note_ended, AlarmTime.formatDate(alarm.untilDate!!, strings))
         alarm.oneDate != null -> alarm.oneDate!!.let { d ->
-            if (d == now.toLocalDate()) "Only today" else "Only on ${d.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${AlarmTime.formatDate(d)}"
+            if (d == now.toLocalDate()) strings.get(R.string.note_only_today)
+            else strings.get(R.string.note_only_on, AlarmTime.dayName(d.dayOfWeek, TextStyle.SHORT, strings), AlarmTime.formatDate(d, strings))
         }
-        AlarmTime.notStartedYet(alarm, now) -> "Starts ${AlarmTime.formatDate(alarm.fromDate!!)}"
-        alarm.untilDate != null -> "Until ${AlarmTime.formatDate(alarm.untilDate)}"
+        AlarmTime.notStartedYet(alarm, now) -> strings.get(R.string.note_starts, AlarmTime.formatDate(alarm.fromDate!!, strings))
+        alarm.untilDate != null -> strings.get(R.string.note_until, AlarmTime.formatDate(alarm.untilDate, strings))
         else -> null
     }
 
@@ -265,39 +274,45 @@ object WeekUi {
         return total + (runEnd - runStart)
     }
 
-    fun repeatText(days: List<DayOfWeek>): String {
+    fun repeatText(strings: Strings, days: List<DayOfWeek>): String {
         val set = days.toSet()
         val weekdays = DayOfWeek.entries.take(5).toSet()
         val weekend = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
         return when (set) {
-            DayOfWeek.entries.toSet() -> "Every day"
-            weekdays -> "Weekdays"
-            weekend -> "Weekends"
+            DayOfWeek.entries.toSet() -> strings.get(R.string.repeat_every_day)
+            weekdays -> strings.get(R.string.repeat_weekdays)
+            weekend -> strings.get(R.string.repeat_weekends)
             else -> DayOfWeek.entries.filter { it in set }
-                .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) }
+                .joinToString(", ") { AlarmTime.dayName(it, TextStyle.SHORT, strings) }
         }
     }
 
-    private fun count(n: Int) = if (n == 1) "1 snoozer" else "$n snoozers"
+    /** "2 snoozers". */
+    fun count(strings: Strings, n: Int) = strings.plural(R.plurals.snoozer_count, n, n)
 
-    /** "17:00", or "07:00 tomorrow" / "07:00 Wed" when it isn't today. */
-    private fun timeOn(t: LocalDateTime, now: LocalDateTime): String =
-        AlarmTime.formatTime(t.hour, t.minute) + if (t.toLocalDate() != now.toLocalDate()) " ${relativeDay(t, now)}" else ""
+    /** "vibrate" or "silent" inside a sentence. */
+    private fun levelWord(strings: Strings, level: QuietLevel) = strings.get(level.labelRes).lowercase(strings.locale)
+
+    /** "17:00", or "07:00 tomorrow" / "07:00 Wed" when it isn't today ("내일 07:00" in Korean). */
+    fun timeOn(strings: Strings, t: LocalDateTime, now: LocalDateTime): String {
+        val time = AlarmTime.formatTime(t.hour, t.minute)
+        return if (t.toLocalDate() == now.toLocalDate()) time
+        else strings.get(R.string.time_on_day, time, relativeDay(strings, t, now))
+    }
 
     /** "today", "tomorrow", or a short weekday name for anything later. */
-    private fun relativeDay(target: LocalDateTime, now: LocalDateTime): String {
+    private fun relativeDay(strings: Strings, target: LocalDateTime, now: LocalDateTime): String {
         val days = target.toLocalDate().toEpochDay() - now.toLocalDate().toEpochDay()
         return when (days) {
-            0L -> "today"
-            1L -> "tomorrow"
-            else -> target.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+            0L -> strings.get(R.string.today)
+            1L -> strings.get(R.string.tomorrow)
+            else -> AlarmTime.dayName(target.dayOfWeek, TextStyle.SHORT, strings)
         }
     }
 
     /** "45m", "2h 15m", or whole days once it is a day or more away ("3 days"). */
-    private fun relativeSpan(minutes: Int): String = when {
-        minutes < 24 * 60 -> AlarmTime.formatDuration(minutes)
-        minutes < 48 * 60 -> "1 day"
-        else -> "${minutes / (24 * 60)} days"
+    private fun relativeSpan(strings: Strings, minutes: Int): String = when {
+        minutes < 24 * 60 -> AlarmTime.formatDuration(minutes, strings)
+        else -> (minutes / (24 * 60)).let { strings.plural(R.plurals.days_span, it, it) }
     }
 }

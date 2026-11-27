@@ -13,3 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# The Play upload key and its passwords: never commit them.
+keystore.properties
+*.jks
+*.keystore
+
+# Signed builds from Android Studio (Build > Generate Signed App Bundle).
+/app/release/

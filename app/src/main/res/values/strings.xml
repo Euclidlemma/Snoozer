@@ -1,3 +1,351 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Snoozer</string>
+
+    <!-- Categories and how quiet they make the phone. The saved data keeps the English key
+         (Category.stored); these are only what people read. -->
+    <string name="category_work">Work</string>
+    <string name="category_study">Study</string>
+    <string name="level_vibrate">Vibrate</string>
+    <string name="level_silent">Silent</string>
+    <string name="level_vibrate_description">Phone on vibrate</string>
+    <string name="level_silent_description">Phone fully silent</string>
+
+    <!-- Dates and durations. format_date_short is a java.time pattern: "4 Dec". -->
+    <string name="format_date_short">d MMM</string>
+    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+
+    <!-- What each category does (onboarding, edit screen) -->
+    <string name="explain_title">During %1$s</string>
+    <string name="explain_vibrate">Your phone vibrates instead of ringing.</string>
+    <string name="explain_calls_buzz">Calls and messages still buzz.</string>
+    <string name="explain_silent">Fully silent: no ring, no vibration.</string>
+    <string name="explain_alarms_ring">Alarms still ring.</string>
+    <string name="explain_heads_up_off_setup">Heads-up is off: allow notifications in Setup to get one.</string>
+    <string name="explain_heads_up_off_android">Heads-up is off: turn on Snoozer\'s notifications in Android settings to get one.</string>
+    <string name="explain_heads_up_quiet">A quiet heads-up before it starts.</string>
+    <plurals name="explain_heads_up_minutes">
+        <item quantity="one">A heads-up %1$d minute before it starts.</item>
+        <item quantity="other">A heads-up %1$d minutes before it starts.</item>
+    </plurals>
+    <string name="explain_summary_vibrate">Vibrate. Calls still buzz.</string>
+    <string name="explain_summary_silent">Fully silent. Only alarms ring.</string>
+
+    <!-- Reminder notifications -->
+    <plurals name="reminder_study_title">
+        <item quantity="one">%1$s starts in %2$d minute</item>
+        <item quantity="other">%1$s starts in %2$d minutes</item>
+    </plurals>
+    <string name="reminder_work_title">%1$s starts at %2$s</string>
+    <string name="reminder_study_body">Your phone goes fully silent at %1$s until %2$s.</string>
+    <string name="reminder_study_body_overnight">Your phone goes fully silent at %1$s until %2$s tomorrow.</string>
+    <string name="reminder_work_body">Your phone goes on vibrate until %1$s.</string>
+    <string name="reminder_work_body_overnight">Your phone goes on vibrate until %1$s tomorrow.</string>
+    <string name="channel_study_name">Study reminders</string>
+    <plurals name="channel_study_description">
+        <item quantity="one">A heads-up %1$d minute before a Study quiet time starts.</item>
+        <item quantity="other">A heads-up %1$d minutes before a Study quiet time starts.</item>
+    </plurals>
+    <string name="channel_work_name">Work reminders</string>
+    <string name="channel_work_description">A quiet notice before a Work quiet time starts.</string>
+
+    <!-- Week screen: status, days and cards -->
+    <plurals name="snoozer_count">
+        <item quantity="one">%1$d snoozer</item>
+        <item quantity="other">%1$d snoozers</item>
+    </plurals>
+    <string name="this_week_totals">This week · %1$s</string>
+    <string name="category_amount">%1$s %2$s</string>
+    <string name="time_left">%1$s left</string>
+    <string name="level_from">%1$s from %2$s</string>
+    <string name="then_level_until">then %1$s until %2$s</string>
+    <string name="quiet_generic">quiet</string>
+    <string name="starts_in">in %1$s</string>
+    <string name="day_summary">%1$s · %2$s</string>
+    <string name="day_summary_quiet">%1$s · %2$s quiet</string>
+    <string name="day_all_off">all off</string>
+    <string name="day_all_ended">all ended</string>
+    <string name="day_all_off_or_ended">all off or ended</string>
+    <string name="day_not_started">not started yet</string>
+    <string name="day_none_this_week">none this week</string>
+    <string name="note_ended">Ended %1$s</string>
+    <string name="note_only_today">Only today</string>
+    <string name="note_only_on">Only on %1$s %2$s</string>
+    <string name="note_starts">Starts %1$s</string>
+    <string name="note_until">Until %1$s</string>
+    <string name="repeat_every_day">Every day</string>
+    <string name="repeat_weekdays">Weekdays</string>
+    <string name="repeat_weekends">Weekends</string>
+    <string name="time_on_day">%1$s %2$s</string>
+    <string name="today">today</string>
+    <string name="tomorrow">tomorrow</string>
+    <plurals name="days_span">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="status_quiet_now">Quiet now · %1$s · %2$s</string>
+    <string name="status_until">until %1$s</string>
+    <string name="status_next">Next quiet time</string>
+    <string name="status_next_detail">%1$s · %2$s · %3$s</string>
+    <string name="status_none_title">No quiet times yet</string>
+    <string name="status_none_body">Tap + to plan your first one.</string>
+    <string name="status_paused_title">Snoozer is paused</string>
+    <string name="status_paused_body">Do Not Disturb access is off, so your phone won\'t be muted.</string>
+    <string name="allow_access">Allow access</string>
+    <string name="list_today">, today</string>
+    <string name="list_item">, %1$s</string>
+    <string name="header_today">" · today"</string>
+    <string name="tag_category_level">%1$s · %2$s</string>
+    <string name="tag_quiet_now">quiet now</string>
+    <string name="card_switch">%1$s, %2$s to %3$s</string>
+    <string name="time_range">%1$s – %2$s</string>
+    <string name="next_day">next day</string>
+    <string name="repeats">Repeats %1$s</string>
+    <string name="free_day_title">A free day</string>
+    <string name="free_day_body">Nothing mutes your phone on %1$s.</string>
+    <string name="add_snoozer">Add snoozer</string>
+    <string name="import_a_timetable">Import a timetable</string>
+    <string name="import_timetable">Import timetable</string>
+    <plurals name="remove_ended_title">
+        <item quantity="one">Remove the ended snoozer?</item>
+        <item quantity="other">Remove %1$d ended snoozers?</item>
+    </plurals>
+    <plurals name="remove_ended_body">
+        <item quantity="one">It\'s past its last date and won\'t quiet your phone again. Its quiet time stays in the weekly report.</item>
+        <item quantity="other">They\'re past their last date and won\'t quiet your phone again. Their quiet time stays in the weekly report.</item>
+    </plurals>
+    <string name="remove">Remove</string>
+    <string name="keep">Keep</string>
+    <plurals name="ended_banner">
+        <item quantity="one">%1$d snoozer has ended.</item>
+        <item quantity="other">%1$d snoozers have ended.</item>
+    </plurals>
+    <plurals name="remove_them">
+        <item quantity="one">Remove it</item>
+        <item quantity="other">Remove them</item>
+    </plurals>
+    <string name="open_how_it_works">Open how Snoozer works</string>
+    <string name="how_work_and_study_work">How Work and Study work</string>
+
+    <!-- Home: one-line status -->
+    <string name="home_quiet_until">Quiet now, until %1$s</string>
+    <string name="home_quiet_until_then">Quiet now, until %1$s, %2$s</string>
+    <string name="home_next">Next quiet time: %1$s</string>
+    <string name="home_nothing">No quiet times planned yet</string>
+    <string name="home_paused">Paused: Snoozer can\'t mute without Do Not Disturb access</string>
+
+    <!-- Month calendar and date picker -->
+    <string name="format_date_long">EEEE d MMMM</string>
+    <string name="format_month_year">LLLL yyyy</string>
+    <string name="first_class">First %1$s class</string>
+    <string name="last_class">Last %1$s class</string>
+    <string name="cell_description">%1$s: %2$s</string>
+    <string name="cell_description_ends">%1$s: %2$s, last day of %3$s</string>
+    <string name="cell_work_and_study">Work and Study</string>
+    <string name="cell_nothing">nothing planned</string>
+    <string name="month_empty_day">Nothing mutes your phone that day.</string>
+    <string name="next_month">Next month</string>
+    <string name="previous_month">Previous month</string>
+    <string name="legend_last_class">Last class</string>
+
+    <!-- Edit screen -->
+    <string name="edit_error_same_time">Start and end can\'t be the same time.</string>
+    <string name="edit_error_no_days">Pick at least one day.</string>
+    <string name="edit_error_past_date">Pick a date from today on.</string>
+    <string name="edit_error_time_passed">That time has already passed today.</string>
+    <string name="edit_quiet_for">Quiet for %1$s</string>
+    <string name="edit_quiet_for_overnight">Quiet for %1$s, until %2$s the next day</string>
+    <string name="edit_quiet_for_today">Quiet for %1$s today</string>
+    <string name="edit_quiet_for_today_overnight">Quiet for %1$s today, until %2$s the next day</string>
+    <string name="edit_quiet_for_on">Quiet for %1$s on %2$s %3$s</string>
+    <string name="edit_quiet_for_on_overnight">Quiet for %1$s on %2$s %3$s, until %4$s the next day</string>
+    <string name="date_range">%1$s – %2$s</string>
+    <string name="dates_from">From %1$s</string>
+    <string name="one_date_text">Only on %1$s. It won\'t repeat.</string>
+    <string name="leave_title">Leave without saving?</string>
+    <string name="leave_body">Your changes to this snoozer won\'t be saved.</string>
+    <string name="leave">Leave</string>
+    <string name="keep_editing">Keep editing</string>
+    <string name="delete_title">Delete this snoozer?</string>
+    <string name="delete_body">Its mute schedule will be removed. This can\'t be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <string name="new_snoozer">New snoozer</string>
+    <string name="edit_snoozer">Edit snoozer</string>
+    <string name="section_when">When</string>
+    <string name="start">Start</string>
+    <string name="end">End</string>
+    <string name="change_time">Change %1$s time</string>
+    <string name="section_repeat">Repeat</string>
+    <string name="every_week">Every week</string>
+    <string name="one_date">One date</string>
+    <string name="save_snoozer">Save snoozer</string>
+    <string name="save_changes">Save changes</string>
+    <string name="section_name">Name</string>
+    <string name="name_optional">Name, optional</string>
+    <string name="name_hint">Optional, e.g. MATH 101</string>
+    <string name="section_dates">Dates</string>
+    <string name="dates_body">Snoozer only quiets your phone between these dates.</string>
+    <string name="repeat_every_week_instead">Repeat every week instead</string>
+    <string name="how_they_differ">How Work and Study differ</string>
+    <string name="event_open_failed">Couldn\'t open that snoozer. Try again.</string>
+    <string name="event_gone">That snoozer no longer exists</string>
+    <string name="event_save_failed">Couldn\'t save. Your changes are still here; try again.</string>
+    <string name="event_saved">Snoozer saved</string>
+    <string name="event_deleted">Snoozer deleted</string>
+    <string name="event_delete_failed">Couldn\'t delete. Try again.</string>
+
+    <!-- Weekly report -->
+    <string name="report_first_title">Your first report arrives Monday</string>
+    <string name="report_so_far">So far this week: %1$s</string>
+    <string name="report_first_description">Weekly report. Your first report arrives Monday. So far this week: %1$s.</string>
+    <string name="report_strip_title">Last week · %1$s quiet</string>
+    <string name="report_strip_description">Last week\'s report: %1$s quiet. %2$s.</string>
+    <string name="report_strip_new">" New."</string>
+    <plurals name="report_sessions">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
+    <string name="report_up">▲ %1$s</string>
+    <string name="report_down">▼ %1$s</string>
+    <string name="report_same">same</string>
+    <string name="report_more">%1$s more than the week before</string>
+    <string name="report_less">%1$s less than the week before</string>
+    <string name="report_same_as_before">The same as the week before</string>
+    <string name="report_longest">Longest stretch</string>
+    <string name="report_detail">%1$s · %2$s</string>
+    <string name="report_quietest_day">Quietest day</string>
+    <string name="report_category_days">%1$s days</string>
+    <string name="report_days_of_week">%1$d of 7</string>
+    <string name="report_missed">%1$s planned but not quiet: Snoozer didn\'t have Do Not Disturb access.</string>
+    <string name="report_turned_up_item">%1$s %2$s</string>
+    <plurals name="report_turned_up">
+        <item quantity="one">You turned the sound back on during %1$d quiet time (%2$s).</item>
+        <item quantity="other">You turned the sound back on during %1$d quiet times (%2$s).</item>
+    </plurals>
+    <string name="report_nothing_yet">nothing yet</string>
+    <string name="report_so_far_quiet">%1$s quiet</string>
+    <string name="report_next_tomorrow">Next report Monday 00:00 · tomorrow</string>
+    <plurals name="report_next_in_days">
+        <item quantity="one">Next report Monday 00:00 · in %1$d day</item>
+        <item quantity="other">Next report Monday 00:00 · in %1$d days</item>
+    </plurals>
+    <string name="report_range_same_month" tools:ignore="StringFormatCount">%1$s %2$d – %4$s %5$s</string>
+    <string name="report_range" tools:ignore="StringFormatCount">%1$s %3$s – %4$s %5$s</string>
+    <string name="report_short_range_same_month" tools:ignore="StringFormatCount">%1$d – %3$s</string>
+    <string name="report_your_first_week">Your first week</string>
+    <string name="report_title">Weekly report</string>
+    <string name="report_stayed_quiet">Your phone stayed quiet for</string>
+    <string name="report_day_nothing">nothing</string>
+    <string name="report_day_summary">%1$s: %2$s</string>
+    <string name="report_day_by_day">Day by day</string>
+    <string name="report_earlier_weeks">Earlier weeks</string>
+    <string name="report_first_body">Snoozer is counting this week\'s quiet time now. On Monday at 00:00 you\'ll see how much you got for Work and for Study.</string>
+
+    <!-- Home and Setup -->
+    <string name="setup">Setup</string>
+    <string name="perm_dnd">Do Not Disturb access</string>
+    <string name="perm_dnd_body">Required. Lets Snoozer mute and unmute your phone.</string>
+    <string name="perm_exact">Exact alarms</string>
+    <string name="perm_exact_body">Recommended. Without it, muting can start up to an hour late.</string>
+    <string name="perm_notifications">Notifications</string>
+    <plurals name="perm_notifications_body">
+        <item quantity="one">Optional. Reminds you %1$d minute before quiet time starts.</item>
+        <item quantity="other">Optional. Reminds you %1$d minutes before quiet time starts.</item>
+    </plurals>
+    <string name="perm_battery">Battery: Unrestricted</string>
+    <string name="perm_battery_body">Recommended. Keeps your phone from putting Snoozer to sleep and delaying it. Opens app info: tap Battery, then Unrestricted.</string>
+    <string name="perm_unused">Keep running when unused</string>
+    <string name="perm_unused_body">Recommended. Phones pause apps you haven\'t opened for a few months, which would stop Snoozer. Turn off \"Manage app if unused\" (on some phones: \"Pause app activity if unused\").</string>
+    <string name="home_allow_dnd_to_continue">Allow Do Not Disturb access to continue.</string>
+    <string name="open_my_week">Open my week</string>
+    <string name="app_name_caps">SNOOZER</string>
+    <string name="home_tagline">On guard, so your phone stays quiet.</string>
+    <string name="allow">Allow</string>
+    <string name="allow_named">Allow %1$s</string>
+    <string name="allowed">Allowed</string>
+    <string name="not_allowed_yet">Not allowed yet</string>
+
+    <!-- Onboarding -->
+    <string name="welcome_body">Your phone\'s bodyguard. Pick when you want quiet, and Snoozer mutes it for you, every week.</string>
+    <string name="two_kinds_title">Two kinds of quiet</string>
+    <string name="overlap_title">When they overlap, the quieter one wins</string>
+    <string name="overlap_note">Study inside Work: silent for the study part, back to vibrate after.</string>
+    <string name="overlap_work_bar">%1$s 9–17</string>
+    <string name="ringer_normal">Normal</string>
+    <string name="phone_ringer">Phone: %1$s</string>
+    <string name="overlap_never_louder">If your phone is already silent, Snoozer never makes it louder.</string>
+    <string name="heads_up_title">A heads-up first</string>
+    <string name="heads_up_note">A few minutes before a quiet time starts. Optional; you can turn it off.</string>
+    <string name="sample_notice_header">Snoozer · now</string>
+    <string name="category_line">%1$s: %2$s</string>
+    <string name="plan_first_title">Plan your first quiet time</string>
+    <string name="plan_title">Plan a quiet time</string>
+    <string name="plan_first_note">Once Setup is done, tap \"Open my week\", then + to plan your first quiet time. Start with Work or Study; you can change it anytime.</string>
+    <string name="plan_note">Tap + on the week screen to plan a quiet time. Pick Work or Study; you can change it anytime.</string>
+    <string name="plan_timetable_note">Have a class timetable? \"Import timetable\" on the week screen adds every class at once, until the term ends.</string>
+    <string name="onboarding_back">‹ Back</string>
+    <string name="skip">Skip</string>
+    <string name="close">Close</string>
+    <string name="page_of">Page %1$d of %2$d</string>
+    <string name="next">Next</string>
+    <string name="get_started">Get started</string>
+    <string name="done">Done</string>
+
+    <!-- Timetable import -->
+    <string name="skip_all_day" tools:ignore="PluralsCandidate">%1$d all-day</string>
+    <string name="skip_not_weekly" tools:ignore="PluralsCandidate">%1$d not weekly</string>
+    <string name="skip_one_off" tools:ignore="PluralsCandidate">%1$d one-off</string>
+    <string name="skip_too_long" tools:ignore="PluralsCandidate">%1$d a day or longer</string>
+    <string name="skip_unreadable" tools:ignore="PluralsCandidate">%1$d unreadable</string>
+    <string name="skipped_text" tools:ignore="PluralsCandidate">%1$d skipped: %2$s</string>
+    <plurals name="import_budget">
+        <item quantity="one">That\'s more than Snoozer can keep at once: there\'s room for %1$d more class day. Untick some classes.</item>
+        <item quantity="other">That\'s more than Snoozer can keep at once: there\'s room for %1$d more class days. Untick some classes.</item>
+    </plurals>
+    <string name="import_already_over">Already over (ended %1$s)</string>
+    <string name="import_from">from %1$s</string>
+    <string name="import_pick_one">Pick a class to add</string>
+    <plurals name="import_add">
+        <item quantity="one">Add %1$d class</item>
+        <item quantity="other">Add %1$d classes</item>
+    </plurals>
+    <plurals name="import_found">
+        <item quantity="one">Found %1$d weekly class</item>
+        <item quantity="other">Found %1$d weekly classes</item>
+    </plurals>
+    <string name="import_open_failed">Couldn\'t open that file. Try picking it again.</string>
+    <string name="import_read_failed">Couldn\'t read that file. Try picking it again.</string>
+    <string name="import_too_big">That file is too big to be a timetable.</string>
+    <string name="import_no_file">No file was picked.</string>
+    <string name="import_not_calendar">That doesn\'t look like a calendar (.ics) file.</string>
+    <string name="import_failed">Couldn\'t read that file. Is it a calendar (.ics) file?</string>
+    <plurals name="import_added">
+        <item quantity="one">%1$d class added</item>
+        <item quantity="other">%1$d classes added</item>
+    </plurals>
+    <string name="import_add_failed">Couldn\'t add all the classes. Try again.</string>
+    <string name="import_reading">Reading your timetable…</string>
+    <string name="import_pick_another">Pick another file</string>
+    <string name="import_no_weekly">No weekly classes in this file.</string>
+    <string name="import_add_as">Add them as</string>
+    <string name="import_row_line">%1$s · %2$s</string>
+    <string name="import_row_line_next_day">%1$s · %2$s (+1 day)</string>
+    <string name="import_already_added">Already in Snoozer</string>
+    <string name="no_file_picker">No file picker on this phone</string>
+
+    <!-- Week / Month switch -->
+    <string name="view_week">Week</string>
+    <string name="view_month">Month</string>
+
+    <!-- The language these words are in (for dates and day names; not shown) -->
+    <string name="strings_locale">en</string>
+
+    <!-- Home: language switch -->
+    <string name="language_title">Language</string>
+    <string name="language_phone">Phone\'s language</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_korean" translatable="false">한국어</string>
 </resources>

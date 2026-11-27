@@ -69,7 +69,7 @@ class OneDateTest {
     @Test
     fun cantBeSetInThePast() {
         val form = EditForm.new(null, Category.Work, date = dec4)
-        fun err(f: EditForm, isNew: Boolean = true, original: EditForm = f) = EditUi.describe(f, original, isNew, now = now).error
+        fun err(f: EditForm, isNew: Boolean = true, original: EditForm = f) = EditUi.describe(EN, f, original, isNew, now = now).error
         assertNull(err(form))
         assertEquals("Pick a date from today on.", err(form.withOneDate(LocalDate.of(2026, 11, 24))))
         // Today: fine until the window ends; an overnight window ends tomorrow.
@@ -87,12 +87,12 @@ class OneDateTest {
     @Test
     fun summaryNamesTheDay() {
         val form = EditForm.new(null, Category.Study, date = dec4).withStart(13, 0).withEnd(15, 0)
-        val state = EditUi.describe(form, form, isNew = true, now = now)
+        val state = EditUi.describe(EN, form, form, isNew = true, now = now)
         assertEquals("Quiet for 2h on Fri 4 Dec", state.summary)
         assertEquals("Only on Friday 4 December. It won't repeat.", state.oneDateText)
         assertNull(state.dates)
         assertEquals("Quiet for 2h today",
-            EditUi.describe(form.withOneDate(now.toLocalDate()), form, isNew = true, now = now).summary)
+            EditUi.describe(EN, form.withOneDate(now.toLocalDate()), form, isNew = true, now = now).summary)
     }
 
     @Test
@@ -102,13 +102,13 @@ class OneDateTest {
         val weekly = Alarm(id = 1, startHour = 9, startMinute = 0, endHour = 10, endMinute = 0,
             daysOfWeek = listOf(FRIDAY, WEDNESDAY), work = "Work")
         // This week (23 - 29 Nov): not on Friday's page.
-        assertEquals(listOf(1), WeekUi.build(listOf(dentist, weekly), now).days[4].cards.map { it.id })
+        assertEquals(listOf(1), WeekUi.build(EN, listOf(dentist, weekly), now).days[4].cards.map { it.id })
         // The week of 4 Dec: there, with its date.
-        val thatWeek = WeekUi.build(listOf(dentist, weekly), LocalDateTime.of(2026, 12, 1, 12, 0)).days[4]
+        val thatWeek = WeekUi.build(EN, listOf(dentist, weekly), LocalDateTime.of(2026, 12, 1, 12, 0)).days[4]
         assertEquals(listOf(1, 3), thatWeek.cards.map { it.id })
         assertEquals("Only on Fri 4 Dec", thatWeek.cards.single { it.id == 3 }.dateNote)
         // Month: marked on 4 Dec only, with no "last class" mark or note.
-        val dec = MonthUi.build(listOf(dentist), now, YearMonth.of(2026, 12), dec4)
+        val dec = MonthUi.build(EN, listOf(dentist), now, YearMonth.of(2026, 12), dec4)
         val cell = dec.weeks.flatten().single { it.date == dec4 }
         assertTrue(cell.work)
         assertFalse(cell.endsHere)
@@ -123,7 +123,7 @@ class OneDateTest {
         val f = EditForm.new(null, Category.Work, date = late.toLocalDate()).notInThePast(late)
         assertEquals(listOf(23, 0, 7, 0), listOf(f.startHour, f.startMinute, f.endHour, f.endMinute))
         assertEquals(late.toLocalDate(), f.oneDate)
-        assertNull(EditUi.describe(f, f, isNew = true, now = late).error)
+        assertNull(EditUi.describe(EN, f, f, isNew = true, now = late).error)
         // Still ahead, another day, or overnight: unchanged.
         val morning = LocalDateTime.of(2026, 11, 25, 8, 0)
         val g = EditForm.new(null, Category.Work, date = morning.toLocalDate())

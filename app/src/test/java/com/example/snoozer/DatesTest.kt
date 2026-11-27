@@ -96,10 +96,10 @@ class DatesTest {
     @Test
     fun reminderSaysTheClassName() {
         val study = cls(9, 11, MONDAY)
-        assertEquals("MATH 101 starts in 5 minutes", ReminderText.of(study).title)
-        assertEquals("MATH 101 starts at 09:00", ReminderText.of(study.copy(work = "Work")).title)
+        assertEquals("MATH 101 starts in 5 minutes", ReminderText.of(study, EN).title)
+        assertEquals("MATH 101 starts at 09:00", ReminderText.of(study.copy(work = "Work"), EN).title)
         // Unnamed (or blank) snoozers keep the category's words.
-        assertEquals("Study starts in 5 minutes", ReminderText.of(study.copy(name = null)).title)
-        assertEquals("Study starts in 5 minutes", ReminderText.of(study.copy(name = "  ")).title)
+        assertEquals("Study starts in 5 minutes", ReminderText.of(study.copy(name = null), EN).title)
+        assertEquals("Study starts in 5 minutes", ReminderText.of(study.copy(name = "  "), EN).title)
     }
 }

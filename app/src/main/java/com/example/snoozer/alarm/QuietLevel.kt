@@ -1,6 +1,8 @@
 package com.example.snoozer.alarm
 
 import android.media.AudioManager
+import androidx.annotation.StringRes
+import com.example.snoozer.R
 
 /**
  * How quiet a running window makes the phone. Declared from loudest to quietest, so a
@@ -8,10 +10,16 @@ import android.media.AudioManager
  *
  * [ringerMode] is the AudioManager mode it sets. These are compile-time constants (vibrate
  * is 1, silent is 0), so this file stays usable in plain unit tests.
+ *
+ * [labelRes] and [descriptionRes] are its name and a short description, in the person's language.
  */
-enum class QuietLevel(val label: String, val description: String, val ringerMode: Int) {
-    Vibrate("Vibrate", "Phone on vibrate", AudioManager.RINGER_MODE_VIBRATE),
-    Silent("Silent", "Phone fully silent", AudioManager.RINGER_MODE_SILENT);
+enum class QuietLevel(
+    @StringRes val labelRes: Int,
+    @StringRes val descriptionRes: Int,
+    val ringerMode: Int,
+) {
+    Vibrate(R.string.level_vibrate, R.string.level_vibrate_description, AudioManager.RINGER_MODE_VIBRATE),
+    Silent(R.string.level_silent, R.string.level_silent_description, AudioManager.RINGER_MODE_SILENT);
 
     /**
      * The ringer mode to set, given the mode the user had before Snoozer stepped in. Never

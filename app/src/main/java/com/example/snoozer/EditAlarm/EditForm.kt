@@ -14,7 +14,9 @@ import java.net.URLEncoder
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
-import java.util.Locale
+import androidx.annotation.StringRes
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import com.example.snoozer.alarm.oneDate
 
 /** Where a new snoozer of a category starts: its usual time and days. */
@@ -34,10 +36,10 @@ val Category.defaults: CategoryDefaults
     }
 
 /** Quick picks for the repeat days. */
-enum class RepeatPreset(val label: String, val days: Set<DayOfWeek>) {
-    Weekdays("Weekdays", DayOfWeek.entries.take(5).toSet()),
-    Weekends("Weekends", setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)),
-    EveryDay("Every day", DayOfWeek.entries.toSet()),
+enum class RepeatPreset(@StringRes val labelRes: Int, val days: Set<DayOfWeek>) {
+    Weekdays(R.string.repeat_weekdays, DayOfWeek.entries.take(5).toSet()),
+    Weekends(R.string.repeat_weekends, setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)),
+    EveryDay(R.string.repeat_every_day, DayOfWeek.entries.toSet()),
 }
 
 /**
@@ -69,7 +71,7 @@ data class EditForm(
      * dates and the one date (each empty when unset). Read back by [decode].
      */
     fun encode(): String =
-        "$startHour:$startMinute:$endHour:$endMinute:${days.joinToString(",") { it.value.toString() }}:${category.label}" +
+        "$startHour:$startMinute:$endHour:$endMinute:${days.joinToString(",") { it.value.toString() }}:${category.stored}" +
             ":${URLEncoder.encode(name, "UTF-8")}:${fromDate ?: ""}:${untilDate ?: ""}:${oneDate ?: ""}"
 
     /**
@@ -154,7 +156,7 @@ data class EditForm(
             startHour = startHour, startMinute = startMinute,
             endHour = endHour, endMinute = endMinute,
             daysOfWeek = if (date != null) listOf(date.dayOfWeek) else days,
-            work = category.label,
+            work = category.stored,
             name = name.trim().takeIf { it.isNotEmpty() },
             fromDate = date ?: fromDate,
             untilDate = date ?: untilDate,
@@ -162,7 +164,7 @@ data class EditForm(
     }
 
     fun toNewAlarm() = applyTo(
-        Alarm(startHour = 0, startMinute = 0, endHour = 0, endMinute = 0, daysOfWeek = emptyList(), work = category.label)
+        Alarm(startHour = 0, startMinute = 0, endHour = 0, endMinute = 0, daysOfWeek = emptyList(), work = category.stored)
     )
 
     companion object {
@@ -207,7 +209,7 @@ data class EditForm(
             val days = if (parts[4].isEmpty()) emptyList() else parts[4].split(",").map { value ->
                 value.toIntOrNull()?.takeIf { it in 1..7 }?.let(DayOfWeek::of) ?: return null
             }
-            val category = Category.entries.firstOrNull { it.label == parts[5] } ?: return null
+            val category = Category.entries.firstOrNull { it.stored == parts[5] } ?: return null
             if (parts.size == 6) return EditForm(sh, sm, eh, em, days.distinct().sorted(), category)
             val name = runCatching { URLDecoder.decode(parts[6], "UTF-8") }.getOrNull() ?: return null
             fun date(text: String): Result<LocalDate?> =
@@ -257,23 +259,26 @@ object EditUi {
      * Each category has its own reminder channel, which can be off on its own. Setup only grants
      * the app-wide permission (Android 13+); a channel turned off is fixed in Android's settings.
      */
-    fun explainFor(category: Category, permissions: Permissions?): CategoryExplanation {
-        if (permissions == null) return category.explain(remindersOn = true)
+    fun explainFor(strings: Strings, category: Category, permissions: Permissions?): CategoryExplanation {
+        if (permissions == null) return category.explain(strings, remindersOn = true)
         return category.explain(
+            strings,
             remindersOn = permissions.notifications && category !in permissions.reminderChannelsOff,
             setupHasNotifications = permissions.notificationsApply && permissions.reminderChannelsOff.isEmpty(),
         )
     }
 
     /** "14 Sep – 4 Dec", "Until 4 Dec", "From 14 Sep", or null with neither. */
-    fun datesText(from: LocalDate?, until: LocalDate?): String? = when {
-        from != null && until != null -> "${AlarmTime.formatDate(from)} – ${AlarmTime.formatDate(until)}"
-        until != null -> "Until ${AlarmTime.formatDate(until)}"
-        from != null -> "From ${AlarmTime.formatDate(from)}"
+    fun datesText(strings: Strings, from: LocalDate?, until: LocalDate?): String? = when {
+        from != null && until != null ->
+            strings.get(R.string.date_range, AlarmTime.formatDate(from, strings), AlarmTime.formatDate(until, strings))
+        until != null -> strings.get(R.string.note_until, AlarmTime.formatDate(until, strings))
+        from != null -> strings.get(R.string.dates_from, AlarmTime.formatDate(from, strings))
         else -> null
     }
 
     fun describe(
+        strings: Strings,
         form: EditForm,
         original: EditForm,
         isNew: Boolean,
@@ -287,21 +292,28 @@ object EditUi {
         val end = AlarmTime.formatTime(form.endHour, form.endMinute)
         val date = form.oneDate
         val error = when {
-            minutes == 0 -> "Start and end can't be the same time."
-            date == null && form.days.isEmpty() -> "Pick at least one day."
-            date != null && now != null && dateTooLate(form, original, isNew, now) -> pastDateError(date, now)
+            minutes == 0 -> strings.get(R.string.edit_error_same_time)
+            date == null && form.days.isEmpty() -> strings.get(R.string.edit_error_no_days)
+            date != null && now != null && dateTooLate(form, original, isNew, now) -> pastDateError(strings, date, now)
             else -> null
         }
         // "on Fri 4 Dec" (or "today") for a one-date snoozer, so the summary names the day.
-        val on = when {
-            date == null -> ""
-            date == now?.toLocalDate() -> " today"
-            else -> " on ${date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${AlarmTime.formatDate(date)}"
-        }
+        val length = AlarmTime.formatDuration(minutes, strings)
+        val overnight = AlarmTime.isOvernight(probe)
         val summary = when {
             minutes == 0 -> null
-            AlarmTime.isOvernight(probe) -> "Quiet for ${AlarmTime.formatDuration(minutes)}$on, until $end the next day"
-            else -> "Quiet for ${AlarmTime.formatDuration(minutes)}$on"
+            date == null ->
+                if (overnight) strings.get(R.string.edit_quiet_for_overnight, length, end)
+                else strings.get(R.string.edit_quiet_for, length)
+            date == now?.toLocalDate() ->
+                if (overnight) strings.get(R.string.edit_quiet_for_today_overnight, length, end)
+                else strings.get(R.string.edit_quiet_for_today, length)
+            else -> {
+                val day = AlarmTime.dayName(date.dayOfWeek, TextStyle.SHORT, strings)
+                val shortDate = AlarmTime.formatDate(date, strings)
+                if (overnight) strings.get(R.string.edit_quiet_for_on_overnight, length, day, shortDate, end)
+                else strings.get(R.string.edit_quiet_for_on, length, day, shortDate)
+            }
         }
         return EditUiState(
             isNew = isNew,
@@ -314,11 +326,11 @@ object EditUi {
             error = error,
             // A new snoozer always counts as changed, so backing out asks before discarding it.
             hasChanges = isNew || form != original,
-            explanation = explainFor(form.category, permissions),
+            explanation = explainFor(strings, form.category, permissions),
             name = form.name,
-            dates = if (date == null) datesText(form.fromDate, form.untilDate) else null,
+            dates = if (date == null) datesText(strings, form.fromDate, form.untilDate) else null,
             oneDate = date,
-            oneDateText = date?.let { "Only on ${it.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${it.dayOfMonth} ${it.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)}. It won't repeat." },
+            oneDateText = date?.let { strings.get(R.string.one_date_text, AlarmTime.formatLongDate(it, strings)) },
             today = now?.toLocalDate(),
         )
     }
@@ -341,6 +353,6 @@ object EditUi {
         return !now.toLocalTime().isBefore(java.time.LocalTime.of(form.endHour, form.endMinute))
     }
 
-    private fun pastDateError(date: LocalDate, now: LocalDateTime): String =
-        if (date.isBefore(now.toLocalDate())) "Pick a date from today on." else "That time has already passed today."
+    private fun pastDateError(strings: Strings, date: LocalDate, now: LocalDateTime): String =
+        strings.get(if (date.isBefore(now.toLocalDate())) R.string.edit_error_past_date else R.string.edit_error_time_passed)
 }

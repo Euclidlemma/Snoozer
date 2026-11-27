@@ -5,6 +5,8 @@ import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.dayPickers.WeekUi
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -68,18 +70,18 @@ object TimetableImport {
     fun defaultChecked(candidates: List<Candidate>, existing: List<Alarm>, today: LocalDate): Set<String> =
         candidates.filter { !alreadyAdded(it.cls, existing) && !isOver(it.cls, today) }.map { it.key }.toSet()
 
-    fun rows(candidates: List<Candidate>, checked: Set<String>, existing: List<Alarm>, today: LocalDate): List<ImportRowUi> =
+    fun rows(strings: Strings, candidates: List<Candidate>, checked: Set<String>, existing: List<Alarm>, today: LocalDate): List<ImportRowUi> =
         candidates.map { (key, c) ->
             ImportRowUi(
                 key = key,
                 name = c.name,
-                time = "${AlarmTime.formatTime(c.start.hour, c.start.minute)} – ${AlarmTime.formatTime(c.end.hour, c.end.minute)}",
+                time = strings.get(R.string.time_range, AlarmTime.formatTime(c.start.hour, c.start.minute), AlarmTime.formatTime(c.end.hour, c.end.minute)),
                 endsNextDay = c.end < c.start,
-                days = WeekUi.repeatText(c.days.sorted()),
+                days = WeekUi.repeatText(strings, c.days.sorted()),
                 dates = when {
-                    isOver(c, today) -> "Already over (ended ${AlarmTime.formatDate(c.until!!)})"
-                    c.until != null -> "${AlarmTime.formatDate(c.from)} – ${AlarmTime.formatDate(c.until)}"
-                    else -> "from ${AlarmTime.formatDate(c.from)}"
+                    isOver(c, today) -> strings.get(R.string.import_already_over, AlarmTime.formatDate(c.until!!, strings))
+                    c.until != null -> strings.get(R.string.date_range, AlarmTime.formatDate(c.from, strings), AlarmTime.formatDate(c.until, strings))
+                    else -> strings.get(R.string.import_from, AlarmTime.formatDate(c.from, strings))
                 },
                 checked = key in checked,
                 alreadyAdded = alreadyAdded(c, existing),
@@ -97,20 +99,20 @@ object TimetableImport {
         alarms.filter { it.isEnabled && !AlarmTime.hasEnded(it, now) }.sumOf { it.daysOfWeek.distinct().size * 3 }
 
     /** Why the ticked classes can't all be added (too many alarms), or null when they fit. */
-    fun budgetNote(candidates: List<Candidate>, checked: Set<String>, existing: List<Alarm>, now: LocalDateTime): String? {
+    fun budgetNote(strings: Strings, candidates: List<Candidate>, checked: Set<String>, existing: List<Alarm>, now: LocalDateTime): String? {
         val adding = alarmsUsed(toAlarms(candidates, checked, existing, Category.Study), now)
         val used = alarmsUsed(existing, now)
         if (used + adding <= ALARM_BUDGET) return null
         val left = ((ALARM_BUDGET - used) / 3).coerceAtLeast(0)
-        return "That's more than Snoozer can keep at once: there's room for $left more class days. Untick some classes."
+        return strings.plural(R.plurals.import_budget, left, left)
     }
 
     /** "3 skipped: 2 all-day, 1 not weekly", in [SkipReason] order; null when nothing was skipped. */
-    fun skippedText(skipped: Map<SkipReason, Int>): String? {
+    fun skippedText(strings: Strings, skipped: Map<SkipReason, Int>): String? {
         val total = skipped.values.sum()
         if (total == 0) return null
-        val parts = SkipReason.entries.mapNotNull { r -> skipped[r]?.takeIf { it > 0 }?.let { "$it ${r.label}" } }
-        return "$total skipped: " + parts.joinToString(", ")
+        val parts = SkipReason.entries.mapNotNull { r -> skipped[r]?.takeIf { it > 0 }?.let { strings.get(r.countRes, it) } }
+        return strings.get(R.string.skipped_text, total, parts.joinToString(", "))
     }
 
     /** The snoozers to save: the ticked candidates not already saved, all as [category]. */
@@ -122,7 +124,7 @@ object TimetableImport {
                     startHour = c.start.hour, startMinute = c.start.minute,
                     endHour = c.end.hour, endMinute = c.end.minute,
                     daysOfWeek = c.days.sorted(),
-                    work = category.label,
+                    work = category.stored,
                     name = c.name.take(EditForm.MAX_NAME),
                     fromDate = c.from,
                     untilDate = c.until,

@@ -1,5 +1,7 @@
 package com.example.snoozer
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.receiver.ReminderNotifier
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -42,19 +44,33 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var onboarding: OnboardingStore
     @Inject lateinit var actions: AlarmActions
     @Inject lateinit var scheduleStamp: ScheduleStamp
+    @Inject lateinit var shownLanguage: ShownLanguage
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A language change recreates this activity; tell the ViewModels, which outlive it, and
+        // rename the reminder channels (a per-app language change may not reach AlarmApp).
+        val locale = resources.configuration.locales[0]
+        if (shownLanguage.changes.value != locale) {
+            shownLanguage.update(locale)
+            ReminderNotifier.ensureChannels(this)
+        }
         enableEdgeToEdge()
         // Picked once, before anything is drawn, so Home never flashes ahead of onboarding.
         val startRoute = startRoute()
         // Snoozers restored from a backup arrive without their system alarms (Android sends no
         // broadcast for a restore). The stamp is missing then, so re-create them all, once, off
         // the main thread. Normal opens skip it.
-        if (savedInstanceState == null && scheduleStamp.needsFullReschedule()) {
+        if (savedInstanceState == null) {
             lifecycleScope.launch(Dispatchers.IO) {
-                actions.rescheduleAll()
-                scheduleStamp.markDone()
+                if (scheduleStamp.needsFullReschedule()) {
+                    actions.rescheduleAll()
+                    scheduleStamp.markDone()
+                } else {
+                    // A force stop (Settings, or Android hibernating an app not opened for months)
+                    // wipes the alarms and nothing tells the app; check, and re-set them if so.
+                    actions.ensureScheduled()
+                }
             }
         }
         // Opened with a calendar file ("Open with Snoozer" from Files, mail or the browser): show

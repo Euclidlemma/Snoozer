@@ -17,6 +17,8 @@ import java.time.LocalDateTime
 
 class ReminderTest {
 
+    private val strings = ResourceStrings()
+
     private fun alarm(sh: Int, sm: Int, eh: Int, em: Int, work: String = "Work") =
         Alarm(id = 1, startHour = sh, startMinute = sm, endHour = eh, endMinute = em,
             daysOfWeek = listOf(MONDAY), work = work)
@@ -38,16 +40,16 @@ class ReminderTest {
     fun reminderText_perCategory() {
         assertEquals(
             ReminderText("Study starts in 5 minutes", "Your phone goes fully silent at 19:00 until 21:00."),
-            ReminderText.of(alarm(19, 0, 21, 0, work = "Study")),
+            ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), strings),
         )
         assertEquals(
             ReminderText("Work starts at 09:00", "Your phone goes on vibrate until 17:00."),
-            ReminderText.of(alarm(9, 0, 17, 0)),
+            ReminderText.of(alarm(9, 0, 17, 0), strings),
         )
         // Overnight windows say the end is tomorrow.
         assertEquals(
             "Your phone goes fully silent at 22:00 until 07:00 tomorrow.",
-            ReminderText.of(alarm(22, 0, 7, 0, work = "Study")).body,
+            ReminderText.of(alarm(22, 0, 7, 0, work = "Study"), strings).body,
         )
     }
 
@@ -85,7 +87,22 @@ class ReminderTest {
 
     @Test
     fun reminderText_usesTheMinutesLeft() {
-        assertEquals("Study starts in 4 minutes", ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), 4).title)
-        assertEquals("Study starts in 1 minute", ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), 1).title)
+        assertEquals("Study starts in 4 minutes", ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), strings, 4).title)
+        assertEquals("Study starts in 1 minute", ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), strings, 1).title)
+    }
+
+    @Test
+    fun reminderText_inKorean() {
+        val ko = ResourceStrings(java.util.Locale.KOREAN)
+        assertEquals(
+            ReminderText("공부, 5분 후 시작", "19:00부터 21:00까지 휴대폰이 완전 무음이 돼요."),
+            ReminderText.of(alarm(19, 0, 21, 0, work = "Study"), ko),
+        )
+        assertEquals(
+            ReminderText("일, 09:00 시작", "내일 07:00까지 휴대폰이 진동으로 바뀌어요."),
+            ReminderText.of(alarm(9, 0, 7, 0), ko),
+        )
+        // A class keeps its own name.
+        assertEquals("MATH 101, 5분 후 시작", ReminderText.of(alarm(19, 0, 21, 0, work = "Study").copy(name = "MATH 101"), ko).title)
     }
 }

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     // AGP 9 compiles Kotlin itself ("built-in Kotlin"); no separate kotlin-android plugin.
     alias(libs.plugins.android.application)
@@ -16,8 +18,9 @@ android {
         // java.time (DayOfWeek) is used throughout and needs API 26.
         minSdk = 26
         targetSdk = 36
+        // versionCode must grow with every upload to Play (1, 2, 3...); versionName is what people see.
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,13 +28,37 @@ android {
         }
     }
 
+    // The upload key for Google Play. Its location and passwords live in keystore.properties at
+    // the project root, which git ignores (see keystore.properties.example). Without it, release
+    // builds come out unsigned, unless -PlocalRelease asks to sign with the debug key to try the
+    // shrunk build on a phone. Play rejects debug-signed uploads, so that can't ship by accident.
+    val keystoreFile = rootProject.file("keystore.properties")
+    val uploadKey = Properties().apply { if (keystoreFile.exists()) keystoreFile.inputStream().use(::load) }
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            create("upload") {
+                storeFile = rootProject.file(uploadKey.getProperty("storeFile"))
+                storePassword = uploadKey.getProperty("storePassword")
+                keyAlias = uploadKey.getProperty("keyAlias")
+                keyPassword = uploadKey.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 shrinks and optimizes the code; unused resources are dropped too.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = when {
+                keystoreFile.exists() -> signingConfigs.getByName("upload")
+                project.hasProperty("localRelease") -> signingConfigs.getByName("debug")
+                else -> null
+            }
         }
     }
     compileOptions {
@@ -40,6 +67,22 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    androidResources {
+        // Lists the app's languages for Android 13+'s per-app language setting (Settings →
+        // Apps → Snoozer → Language). The default folder's language is in res/resources.properties.
+        generateLocaleConfig = true
+        // Only the languages Snoozer is translated into, so library words don't show in a third
+        // language next to English ones.
+        localeFilters += listOf("en", "ko")
+    }
+    bundle {
+        // Play would otherwise install only the phone's languages, so picking Korean in the
+        // per-app language setting on an English phone could find no Korean words. Both
+        // languages' text is small; ship them to everyone.
+        language {
+            enableSplit = false
+        }
     }
     packaging {
         resources {
@@ -51,6 +94,9 @@ android {
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
+
+// The migration tests build each old database from its exported schema.
+android.sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -79,6 +125,7 @@ dependencies {
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)

@@ -35,6 +35,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.ui.doodle.DoodleButton
 import com.example.snoozer.ui.doodle.DoodleDefaults
 import com.example.snoozer.ui.doodle.doodleFill
@@ -46,7 +49,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 
 /**
  * A month calendar for picking the one date of a snoozer. Days before [today] are faded and
@@ -59,11 +61,12 @@ fun OneDateCalendar(selected: LocalDate?, today: LocalDate, onPick: (LocalDate) 
     var shownText by rememberSaveable { mutableStateOf(YearMonth.from(selected ?: today).toString()) }
     val shown = YearMonth.parse(shownText).let { if (it < thisMonth) thisMonth else it }
     val scheme = MaterialTheme.colorScheme
+    val strings = rememberStrings()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.XS)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             CalendarArrow(forward = false, enabled = shown > thisMonth) { shownText = shown.minusMonths(1).toString() }
             Text(
-                "${shown.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${shown.year}",
+                AlarmTime.formatMonth(shown, strings),
                 style = SnoozerTheme.type.label,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f).semantics { heading() },
@@ -73,7 +76,7 @@ fun OneDateCalendar(selected: LocalDate?, today: LocalDate, onPick: (LocalDate) 
         Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
             DayOfWeek.entries.forEach {
                 Text(
-                    it.getDisplayName(TextStyle.NARROW, Locale.ENGLISH),
+                    AlarmTime.dayName(it, TextStyle.NARROW, strings),
                     style = SnoozerTheme.type.caption,
                     color = scheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -106,6 +109,7 @@ fun OneDateCalendar(selected: LocalDate?, today: LocalDate, onPick: (LocalDate) 
 
 @Composable
 private fun CalendarArrow(forward: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val label = stringResource(if (forward) R.string.next_month else R.string.previous_month)
     DoodleButton(
         onClick = onClick,
         enabled = enabled,
@@ -113,7 +117,7 @@ private fun CalendarArrow(forward: Boolean, enabled: Boolean, onClick: () -> Uni
         wobble = DoodleDefaults.WobbleLight,
         containerColor = Color.Transparent,
         borderColor = Color.Transparent,
-        modifier = Modifier.semantics { contentDescription = if (forward) "Next month" else "Previous month" },
+        modifier = Modifier.semantics { contentDescription = label },
     ) {
         Icon(
             painterResource(R.drawable.ic_doodle_expand),
@@ -134,8 +138,7 @@ private fun DateCell(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val label = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${date.dayOfMonth} " +
-        date.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH) + if (isToday) ", today" else ""
+    val label = AlarmTime.formatLongDate(date, rememberStrings()) + if (isToday) stringResource(R.string.list_today) else ""
     Box(
         modifier
             .heightIn(min = 48.dp)

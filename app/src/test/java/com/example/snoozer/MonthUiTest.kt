@@ -31,7 +31,7 @@ class MonthUiTest {
 
     @Test
     fun grid_isWholeWeeksMondayFirst() {
-        val m = MonthUi.build(alarms, now, YearMonth.of(2026, 11), LocalDate.of(2026, 11, 18))
+        val m = MonthUi.build(EN, alarms, now, YearMonth.of(2026, 11), LocalDate.of(2026, 11, 18))
         assertEquals("November 2026", m.title)
         // 1 Nov 2026 is a Sunday: the grid starts Mon 26 Oct and ends Sun 6 Dec.
         assertEquals(LocalDate.of(2026, 10, 26), m.weeks.first().first().date)
@@ -43,7 +43,7 @@ class MonthUiTest {
 
     @Test
     fun marks_followCategoriesDatesAndSwitches() {
-        val m = MonthUi.build(alarms, now, YearMonth.of(2026, 12), LocalDate.of(2026, 12, 4))
+        val m = MonthUi.build(EN, alarms, now, YearMonth.of(2026, 12), LocalDate.of(2026, 12, 4))
         val cells = m.weeks.flatten().associateBy { it.date }
         val fri4 = cells.getValue(LocalDate.of(2026, 12, 4))
         assertTrue(fri4.work && fri4.study && fri4.endsHere)
@@ -58,27 +58,27 @@ class MonthUiTest {
 
     @Test
     fun selectedDay_listsThatDatesWindows_andQuietNowOnlyToday() {
-        val today = MonthUi.selectedDay(alarms, now, LocalDate.of(2026, 11, 18))
+        val today = MonthUi.selectedDay(EN, alarms, now, LocalDate.of(2026, 11, 18))
         assertEquals("Wednesday 18 November", today.title)
         assertEquals(listOf(1), today.cards.map { it.id })
         assertTrue(today.cards.single().activeNow)
         // Next Wednesday: same window, but it isn't running now.
-        assertFalse(MonthUi.selectedDay(alarms, now, LocalDate.of(2026, 11, 25)).cards.single().activeNow)
+        assertFalse(MonthUi.selectedDay(EN, alarms, now, LocalDate.of(2026, 11, 25)).cards.single().activeNow)
         // The last class's day says so; the switched-off lab is still listed on its Tuesday.
-        assertEquals(listOf("Last MATH 101 class"), MonthUi.selectedDay(alarms, now, LocalDate.of(2026, 12, 4)).notes)
-        assertEquals(listOf(1, 3), MonthUi.selectedDay(alarms, now, LocalDate.of(2026, 11, 24)).cards.map { it.id })
+        assertEquals(listOf("Last MATH 101 class"), MonthUi.selectedDay(EN, alarms, now, LocalDate.of(2026, 12, 4)).notes)
+        assertEquals(listOf(1, 3), MonthUi.selectedDay(EN, alarms, now, LocalDate.of(2026, 11, 24)).cards.map { it.id })
     }
 
     @Test
     fun weekCards_sayTheNameAndDates() {
-        val friday = WeekUi.build(alarms, now).days[4]
+        val friday = WeekUi.build(EN, alarms, now).days[4]
         val card = friday.cards.single { it.id == 2 }
         assertEquals("MATH 101", card.name)
         assertEquals("Until 4 Dec", card.dateNote)
-        val after = WeekUi.build(alarms, LocalDateTime.of(2026, 12, 9, 12, 0))
+        val after = WeekUi.build(EN, alarms, LocalDateTime.of(2026, 12, 9, 12, 0))
         assertEquals(1, after.endedCount)
         assertEquals("Ended 4 Dec", after.days[0].cards.single { it.id == 2 }.dateNote)
-        val before = WeekUi.build(alarms, LocalDateTime.of(2026, 8, 20, 12, 0))
+        val before = WeekUi.build(EN, alarms, LocalDateTime.of(2026, 8, 20, 12, 0))
         assertEquals("Starts 7 Sep", before.days[0].cards.single { it.id == 2 }.dateNote)
         assertNull(before.days[0].cards.single { it.id == 1 }.dateNote)
     }
@@ -88,18 +88,18 @@ class MonthUiTest {
         val before = Alarm(5, 8, 30, 9, 20, listOf(MONDAY, FRIDAY), work = "Study", name = "MATH 101",
             fromDate = LocalDate.of(2026, 9, 7), untilDate = LocalDate.of(2026, 10, 30))
         val after = before.copy(id = 6, startHour = 9, endHour = 10, fromDate = LocalDate.of(2026, 11, 2), untilDate = LocalDate.of(2026, 12, 4))
-        val oct = MonthUi.build(listOf(before, after), now, YearMonth.of(2026, 10), LocalDate.of(2026, 10, 30))
+        val oct = MonthUi.build(EN, listOf(before, after), now, YearMonth.of(2026, 10), LocalDate.of(2026, 10, 30))
         assertFalse(oct.weeks.flatten().single { it.date == LocalDate.of(2026, 10, 30) }.endsHere)
         assertTrue(oct.selected.notes.isEmpty())
         // The real last class still gets one.
-        assertEquals(listOf("Last MATH 101 class"), MonthUi.selectedDay(listOf(before, after), now, LocalDate.of(2026, 12, 4)).notes)
+        assertEquals(listOf("Last MATH 101 class"), MonthUi.selectedDay(EN, listOf(before, after), now, LocalDate.of(2026, 12, 4)).notes)
     }
 
     @Test
     fun daySummary_leavesOutClassesBeforeTheirTerm() {
         val january = Alarm(9, 14, 30, 16, 20, listOf(TUESDAY), work = "Study", name = "LAB",
             fromDate = LocalDate.of(2027, 1, 12), untilDate = LocalDate.of(2027, 3, 30))
-        val tuesday = WeekUi.build(listOf(january), now).days[1]
+        val tuesday = WeekUi.build(EN, listOf(january), now).days[1]
         assertEquals("1 snoozer · not started yet", tuesday.summary)
     }
 
@@ -118,8 +118,8 @@ class MonthUiTest {
         // Text written before names existed still reads back.
         assertEquals(EditForm(8, 0, 9, 0, listOf(MONDAY), Category.Work), EditForm.decode("8:0:9:0:1:Work"))
         assertNull(EditForm.decode("8:0:9:0:1:Work:x:not-a-date:"))
-        assertEquals("7 Sep – 4 Dec", EditUi.describe(f, f, isNew = false).dates)
-        assertNull(EditUi.describe(f.clearDates(), f, isNew = false).dates)
+        assertEquals("7 Sep – 4 Dec", EditUi.describe(EN, f, f, isNew = false).dates)
+        assertNull(EditUi.describe(EN, f.clearDates(), f, isNew = false).dates)
         assertEquals(EditForm.MAX_NAME, f.withName("y".repeat(100)).name.length)
         // Saved: blank names become none.
         assertNull(f.withName("   ").applyTo(math).name)

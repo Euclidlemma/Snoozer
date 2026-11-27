@@ -1,5 +1,7 @@
 package com.example.snoozer.home
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +12,8 @@ import com.example.snoozer.dayPickers.WeekUi
 import com.example.snoozer.util.PermissionChecker
 import com.example.snoozer.util.Permissions
 import com.example.snoozer.util.TimeSource
+import com.example.snoozer.util.Strings
+import com.example.snoozer.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,15 +34,17 @@ data class HomeUiState(
 }
 
 object HomeUi {
-    fun build(alarms: List<Alarm>, now: LocalDateTime, permissions: Permissions) =
-        HomeUiState(statusLine(WeekUi.status(alarms, now, canMute = permissions.dnd)), permissions)
+    fun build(strings: Strings, alarms: List<Alarm>, now: LocalDateTime, permissions: Permissions) =
+        HomeUiState(statusLine(strings, WeekUi.status(strings, alarms, now, canMute = permissions.dnd)), permissions)
 
     /** The status card's message squeezed into one line. Same source as the week screen. */
-    fun statusLine(status: StatusUi): String = when (status) {
-        is StatusUi.QuietNow -> "Quiet now, until ${status.until}" + (status.then?.let { ", $it" } ?: "")
-        is StatusUi.Next -> "Next quiet time: ${status.time} ${status.day}"
-        StatusUi.NothingScheduled -> "No quiet times planned yet"
-        StatusUi.NoAccess -> "Paused: Snoozer can't mute without Do Not Disturb access"
+    fun statusLine(strings: Strings, status: StatusUi): String = when (status) {
+        is StatusUi.QuietNow ->
+            if (status.then == null) strings.get(R.string.home_quiet_until, status.until)
+            else strings.get(R.string.home_quiet_until_then, status.until, status.then)
+        is StatusUi.Next -> strings.get(R.string.home_next, strings.get(R.string.time_on_day, status.time, status.day))
+        StatusUi.NothingScheduled -> strings.get(R.string.home_nothing)
+        StatusUi.NoAccess -> strings.get(R.string.home_paused)
     }
 }
 
@@ -47,6 +53,8 @@ class HomeViewModel @Inject constructor(
     repository: AlarmRepository,
     timeSource: TimeSource,
     private val permissionChecker: PermissionChecker,
+    private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     // Android has no callback for these permissions changing, so the screen calls
@@ -55,8 +63,8 @@ class HomeViewModel @Inject constructor(
 
     /** Null until the first database read. */
     val uiState: StateFlow<HomeUiState?> =
-        combine(repository.observeAlarms(), timeSource.minuteTicks, permissions) { alarms, now, perms ->
-            HomeUi.build(alarms, now, perms)
+        combine(repository.observeAlarms(), timeSource.minuteTicks.alsoOn(language), permissions) { alarms, now, perms ->
+            HomeUi.build(strings, alarms, now, perms)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun refreshPermissions() {

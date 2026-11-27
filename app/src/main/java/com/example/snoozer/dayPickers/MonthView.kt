@@ -51,6 +51,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.alarm.Alarm
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.ui.doodle.DoodleButton
@@ -119,7 +121,7 @@ fun MonthContent(
         if (cards.isEmpty()) {
             item(key = "empty") {
                 Text(
-                    "Nothing mutes your phone that day.",
+                    stringResource(R.string.month_empty_day),
                     style = SnoozerTheme.type.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -157,13 +159,14 @@ private fun MonthHeader(title: String, onPrev: () -> Unit, onNext: () -> Unit) {
 
 @Composable
 private fun MonthArrow(forward: Boolean, onClick: () -> Unit) {
+    val label = stringResource(if (forward) R.string.next_month else R.string.previous_month)
     DoodleButton(
         onClick = onClick,
         seed = if (forward) 731 else 730,
         wobble = DoodleDefaults.WobbleLight,
         containerColor = Color.Transparent,
         borderColor = Color.Transparent,
-        modifier = Modifier.semantics { contentDescription = if (forward) "Next month" else "Previous month" },
+        modifier = Modifier.semantics { contentDescription = label },
     ) {
         // The expand chevron points down; turned to point left or right.
         Icon(
@@ -217,12 +220,13 @@ private fun DayCell(cell: DayCellUi, onClick: () -> Unit, modifier: Modifier = M
     val scheme = MaterialTheme.colorScheme
     val work = SnoozerTheme.colors.forCategory(Category.Work)
     val study = SnoozerTheme.colors.forCategory(Category.Study)
+    val today = stringResource(R.string.list_today)
     Column(
         modifier
             .heightIn(min = 56.dp)
             .clip(RoundedCornerShape(12.dp))
             .selectable(selected = cell.isSelected, role = Role.Tab, onClick = onClick)
-            .semantics { contentDescription = cell.description + if (cell.isToday) ", today" else "" }
+            .semantics { contentDescription = cell.description + if (cell.isToday) today else "" }
             .padding(vertical = Spacing.XS),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -286,15 +290,15 @@ private fun Legend(modifier: Modifier = Modifier) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.XS)) {
             Mark(SnoozerTheme.colors.forCategory(Category.Work).container, scheme.onSurface)
-            Text("Work", style = SnoozerTheme.type.caption)
+            Text(stringResource(Category.Work.labelRes), style = SnoozerTheme.type.caption)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.XS)) {
             Mark(SnoozerTheme.colors.forCategory(Category.Study).container, scheme.onSurface)
-            Text("Study", style = SnoozerTheme.type.caption)
+            Text(stringResource(Category.Study.labelRes), style = SnoozerTheme.type.caption)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.XS)) {
             Box(Modifier.size(width = 14.dp, height = 3.dp).doodleFill(EndColor, cornerRadius = 2.dp, wobble = 0.dp))
-            Text("Last class", style = SnoozerTheme.type.caption)
+            Text(stringResource(R.string.legend_last_class), style = SnoozerTheme.type.caption)
         }
     }
 }
@@ -320,7 +324,7 @@ private val PreviewAlarms = listOf(
 private fun MonthPreview() {
     SnoozerTheme {
         MonthContent(
-            MonthUi.build(PreviewAlarms, PreviewNow, YearMonth.of(2026, 11), LocalDate.of(2026, 11, 18)),
+            MonthUi.build(rememberStrings(), PreviewAlarms, PreviewNow, YearMonth.of(2026, 11), LocalDate.of(2026, 11, 18)),
             onMonth = {}, onSelect = {}, onCardClick = {}, onToggle = { _, _ -> },
         )
     }
@@ -331,7 +335,7 @@ private fun MonthPreview() {
 private fun MonthTermEndPreview() {
     SnoozerTheme {
         MonthContent(
-            MonthUi.build(PreviewAlarms, PreviewNow, YearMonth.of(2026, 12), LocalDate.of(2026, 12, 4)),
+            MonthUi.build(rememberStrings(), PreviewAlarms, PreviewNow, YearMonth.of(2026, 12), LocalDate.of(2026, 12, 4)),
             onMonth = {}, onSelect = {}, onCardClick = {}, onToggle = { _, _ -> },
         )
     }

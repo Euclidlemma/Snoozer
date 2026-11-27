@@ -68,6 +68,9 @@ import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.Route.leaveEditScreen
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.quietLevel
 import com.example.snoozer.ui.doodle.DoodleAlertDialog
@@ -86,7 +89,6 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import androidx.compose.ui.semantics.role
 import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel = hiltViewModel()) {
@@ -139,28 +141,28 @@ fun EditAlarmScreen(navController: NavController, viewModel: EditAlarmViewModel 
     if (confirmLeave) {
         DoodleAlertDialog(
             onDismissRequest = { confirmLeave = false },
-            title = "Leave without saving?",
-            text = "Your changes to this snoozer won't be saved.",
-            confirmLabel = "Leave",
+            title = stringResource(R.string.leave_title),
+            text = stringResource(R.string.leave_body),
+            confirmLabel = stringResource(R.string.leave),
             onConfirm = {
                 confirmLeave = false
                 navController.leaveEditScreen()
             },
-            dismissLabel = "Keep editing",
+            dismissLabel = stringResource(R.string.keep_editing),
         )
     }
 
     if (confirmDelete) {
         DoodleAlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = "Delete this snoozer?",
-            text = "Its mute schedule will be removed. This can't be undone.",
-            confirmLabel = "Delete",
+            title = stringResource(R.string.delete_title),
+            text = stringResource(R.string.delete_body),
+            confirmLabel = stringResource(R.string.delete),
             onConfirm = {
                 confirmDelete = false
                 viewModel.delete() // the screen leaves once the delete has finished
             },
-            dismissLabel = "Cancel",
+            dismissLabel = stringResource(R.string.cancel),
             destructive = true,
         )
     }
@@ -222,10 +224,10 @@ private fun EditTopBar(isNew: Boolean, onBack: () -> Unit, onDelete: () -> Unit)
             // Decorative: the "Back" label already names the action for screen readers.
             Icon(painterResource(R.drawable.ic_doodle_back), contentDescription = null)
             Spacer(Modifier.width(Spacing.XS))
-            Text("Back")
+            Text(stringResource(R.string.back))
         }
         Text(
-            text = if (isNew) "New snoozer" else "Edit snoozer",
+            text = stringResource(if (isNew) R.string.new_snoozer else R.string.edit_snoozer),
             style = SnoozerTheme.type.title,
             modifier = Modifier.weight(1f).semantics { heading() },
         )
@@ -241,7 +243,7 @@ private fun EditTopBar(isNew: Boolean, onBack: () -> Unit, onDelete: () -> Unit)
             ) {
                 Icon(painterResource(R.drawable.ic_doodle_delete), contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(Spacing.XS))
-                Text("Delete")
+                Text(stringResource(R.string.delete))
             }
         }
     }
@@ -309,7 +311,7 @@ private fun CategoryCard(
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                category.label,
+                stringResource(category.labelRes),
                 style = SnoozerTheme.type.label,
                 color = if (isSelected) colors.content else scheme.onSurfaceVariant,
             )
@@ -326,7 +328,7 @@ private fun CategoryCard(
         }
         // What choosing this category does, so the choice isn't only a color.
         Text(
-            category.quietLevel.description,
+            stringResource(category.quietLevel.descriptionRes),
             style = SnoozerTheme.type.caption,
             color = if (isSelected) colors.content else scheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -339,14 +341,14 @@ private val CategoryArtSize = 120.dp
 /** Start and end side by side, with a live line saying how long the phone will be quiet. */
 @Composable
 private fun WhenCard(state: EditUiState, onStartChange: (Int, Int) -> Unit, onEndChange: (Int, Int) -> Unit) {
-    DoodleSection(title = "When", seed = 90) {
+    DoodleSection(title = stringResource(R.string.section_when), seed = 90) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.S),
         ) {
-            TimeField("Start", state.start, onStartChange, seed = 91, modifier = Modifier.weight(1f))
+            TimeField(stringResource(R.string.start), state.start, onStartChange, seed = 91, modifier = Modifier.weight(1f))
             Text("–", style = SnoozerTheme.type.headline)
-            TimeField("End", state.end, onEndChange, seed = 92, modifier = Modifier.weight(1f))
+            TimeField(stringResource(R.string.end), state.end, onEndChange, seed = 92, modifier = Modifier.weight(1f))
         }
         if (state.summary != null) {
             Text(state.summary, style = SnoozerTheme.type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -364,19 +366,22 @@ private fun TimeField(label: String, time: String, onChange: (Int, Int) -> Unit,
     if (picking) {
         TimePicker(time = time, onPicked = onChange, onClose = { picking = false })
     }
+    val changeLabel = stringResource(R.string.change_time, label)
     Column(
         modifier = modifier
             .sketchyBorder(MaterialTheme.colorScheme.onSurface, width = 1.5.dp, wobble = DoodleDefaults.WobbleLight, seed = seed)
             .clip(shape)
-            .clickable(onClickLabel = "Change $label time", role = Role.Button) { picking = true }
+            .clickable(onClickLabel = changeLabel, role = Role.Button) { picking = true }
             .padding(horizontal = Spacing.M, vertical = Spacing.S),
     ) {
-        Text(label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // The clock sits by the label, so the time gets the field's whole width: beside the time
+        // it split "09:00" over two lines on a narrow cover screen.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(Spacing.S))
-            Text(time, style = SnoozerTheme.type.headline)
+            Icon(painterResource(R.drawable.ic_doodle_clock), contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(Spacing.XS))
+            Text(label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Text(time, style = SnoozerTheme.type.headline, maxLines = 1, softWrap = false)
     }
 }
 
@@ -423,11 +428,11 @@ private fun RepeatCard(
     onOneDateMode: (Boolean) -> Unit = {},
     onPickDate: (LocalDate) -> Unit = {},
 ) {
-    DoodleSection(title = "Repeat", seed = 93) {
+    DoodleSection(title = stringResource(R.string.section_repeat), seed = 93) {
         // Every week (weekday chips) or One date (a calendar). Picking one keeps the other's
         // choices, so switching back and forth loses nothing.
         Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
-            listOf(false to "Every week", true to "One date").forEachIndexed { i, (isOne, label) ->
+            listOf(false to stringResource(R.string.every_week), true to stringResource(R.string.one_date)).forEachIndexed { i, (isOne, label) ->
                 DoodleChip(
                     selected = (oneDate != null) == isOne,
                     onClick = { onOneDateMode(isOne) },
@@ -451,11 +456,12 @@ private fun RepeatCard(
             horizontalArrangement = Arrangement.spacedBy(Spacing.S),
             verticalArrangement = Arrangement.spacedBy(Spacing.S),
         ) {
+            val strings = rememberStrings()
             DayOfWeek.entries.forEach { day ->
                 DoodleChip(
                     selected = day in days,
                     onClick = { onToggleDay(day) },
-                    label = day.getDisplayName(TextStyle.SHORT, Locale.ENGLISH),
+                    label = AlarmTime.dayName(day, TextStyle.SHORT, strings),
                     seed = 60 + day.value,
                     wobble = DoodleDefaults.WobbleLight,
                 )
@@ -470,7 +476,7 @@ private fun RepeatCard(
                 DoodleChip(
                     selected = p == preset,
                     onClick = { onPreset(p) },
-                    label = p.label,
+                    label = stringResource(p.labelRes),
                     seed = 70 + index,
                     wobble = DoodleDefaults.WobbleLight,
                 )
@@ -497,7 +503,7 @@ private fun SaveBar(isNew: Boolean, error: String?, onSave: () -> Unit) {
             hatchColor = MaterialTheme.colorScheme.primary,
             seed = 71,
         ) {
-            Text(if (isNew) "Save snoozer" else "Save changes")
+            Text(stringResource(if (isNew) R.string.save_snoozer else R.string.save_changes))
         }
     }
 }
@@ -510,7 +516,7 @@ private fun EditContentPreview() {
     val original = EditForm(22, 0, 7, 0, RepeatPreset.Weekdays.days.sorted(), Category.Study)
     SnoozerTheme {
         EditContent(
-            state = EditUi.describe(original, original, isNew = false),
+            state = EditUi.describe(rememberStrings(), original, original, isNew = false),
             onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
             onToggleDay = {}, onPreset = {}, onSave = {},
         )
@@ -524,7 +530,7 @@ private fun NewStudySnoozerPreview() {
     val form = EditForm.new(null, Category.Study)   // 19:00-21:00 on weekdays
     SnoozerTheme {
         EditContent(
-            state = EditUi.describe(form, form, isNew = true),
+            state = EditUi.describe(rememberStrings(), form, form, isNew = true),
             onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
             onToggleDay = {}, onPreset = {}, onSave = {},
         )
@@ -537,7 +543,7 @@ private fun NewSnoozerPreview() {
     val form = EditForm.new(null).copy(days = emptyList())   // no day picked: Save explains why it's off
     SnoozerTheme {
         EditContent(
-            state = EditUi.describe(form, form, isNew = true),
+            state = EditUi.describe(rememberStrings(), form, form, isNew = true),
             onBack = {}, onDelete = {}, onCategory = {}, onStartChange = { _, _ -> }, onEndChange = { _, _ -> },
             onToggleDay = {}, onPreset = {}, onSave = {},
         )
@@ -548,7 +554,8 @@ private fun NewSnoozerPreview() {
 @Composable
 private fun NameCard(name: String, onName: (String) -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    DoodleSection(title = "Name", seed = 95) {
+    val nameDescription = stringResource(R.string.name_optional)
+    DoodleSection(title = stringResource(R.string.section_name), seed = 95) {
         BasicTextField(
             value = name,
             onValueChange = onName,
@@ -558,7 +565,7 @@ private fun NameCard(name: String, onName: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "Name, optional" },
+                .semantics { contentDescription = nameDescription },
             decorationBox = { field ->
                 Box(
                     Modifier
@@ -569,7 +576,7 @@ private fun NameCard(name: String, onName: (String) -> Unit) {
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     if (name.isEmpty()) {
-                        Text("Optional, e.g. MATH 101", style = SnoozerTheme.type.body, color = scheme.onSurfaceVariant)
+                        Text(stringResource(R.string.name_hint), style = SnoozerTheme.type.body, color = scheme.onSurfaceVariant)
                     }
                     field()
                 }
@@ -581,18 +588,18 @@ private fun NameCard(name: String, onName: (String) -> Unit) {
 /** For a snoozer with dates (an imported class): when it runs, and a way to make it weekly for good. */
 @Composable
 private fun DatesCard(dates: String, onClear: () -> Unit) {
-    DoodleSection(title = "Dates", seed = 97) {
+    DoodleSection(title = stringResource(R.string.section_dates), seed = 97) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
             Icon(painterResource(R.drawable.ic_doodle_calendar), contentDescription = null, modifier = Modifier.size(24.dp))
             Text(dates, style = SnoozerTheme.type.headline)
         }
         Text(
-            "Snoozer only quiets your phone between these dates.",
+            stringResource(R.string.dates_body),
             style = SnoozerTheme.type.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         DoodleButton(onClick = onClear, seed = 98, wobble = DoodleDefaults.WobbleLight, containerColor = Color.Transparent) {
-            Text("Repeat every week instead")
+            Text(stringResource(R.string.repeat_every_week_instead))
         }
     }
 }

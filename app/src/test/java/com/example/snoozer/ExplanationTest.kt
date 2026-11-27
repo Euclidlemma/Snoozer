@@ -14,9 +14,11 @@ import org.junit.Test
 
 class ExplanationTest {
 
+    private val strings = ResourceStrings()
+
     @Test
     fun work_explainsVibrateAndAQuietHeadsUp() {
-        val e = Category.Work.explanation
+        val e = Category.Work.explanation(strings)
         assertEquals("During Work", e.title)
         assertEquals("Vibrate. Calls still buzz.", e.summary)
         assertEquals(listOf(ExplainIcon.Vibrate, ExplainIcon.Call, ExplainIcon.Notify), e.lines.map { it.icon })
@@ -25,7 +27,7 @@ class ExplanationTest {
 
     @Test
     fun study_explainsSilenceAlarmsAndTheFiveMinuteHeadsUp() {
-        val e = Category.Study.explanation
+        val e = Category.Study.explanation(strings)
         assertEquals("During Study", e.title)
         assertEquals("Fully silent. Only alarms ring.", e.summary)
         assertEquals(listOf(ExplainIcon.Silent, ExplainIcon.Alarm, ExplainIcon.Notify), e.lines.map { it.icon })
@@ -36,23 +38,23 @@ class ExplanationTest {
     fun explanation_followsTheQuietLevel() {
         // If a category's level ever changes, its explanation changes with it.
         Category.entries.forEach { c ->
-            val first = c.explanation.lines.first().icon
+            val first = c.explanation(strings).lines.first().icon
             when (c.quietLevel) {
                 QuietLevel.Vibrate -> assertEquals(ExplainIcon.Vibrate, first)
                 QuietLevel.Silent -> assertEquals(ExplainIcon.Silent, first)
             }
-            assertTrue(c.explanation.lines.size == 3)
+            assertTrue(c.explanation(strings).lines.size == 3)
         }
     }
 
     @Test
     fun notificationsOff_theReminderLineSaysSo() {
         Category.entries.forEach { c ->
-            val line = c.explain(remindersOn = false).lines.last()
+            val line = c.explain(strings, remindersOn = false).lines.last()
             assertEquals("Heads-up is off: allow notifications in Setup to get one.", line.text)
         }
         // The rest is unchanged.
-        assertEquals(Category.Study.explanation.lines.dropLast(1), Category.Study.explain(false).lines.dropLast(1))
+        assertEquals(Category.Study.explanation(strings).lines.dropLast(1), Category.Study.explain(strings, false).lines.dropLast(1))
     }
 
     @Test

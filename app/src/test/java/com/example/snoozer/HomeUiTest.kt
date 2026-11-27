@@ -21,9 +21,9 @@ class HomeUiTest {
 
     @Test
     fun statusLine_allThreeCases() {
-        assertEquals("Next quiet time: 09:00 today", HomeUi.build(listOf(a), at(8, 0), all).statusLine)
-        assertEquals("Quiet now, until 10:30", HomeUi.build(listOf(a), at(9, 15), all).statusLine)
-        assertEquals("No quiet times planned yet", HomeUi.build(emptyList(), at(8, 0), all).statusLine)
+        assertEquals("Next quiet time: 09:00 today", HomeUi.build(EN, listOf(a), at(8, 0), all).statusLine)
+        assertEquals("Quiet now, until 10:30", HomeUi.build(EN, listOf(a), at(9, 15), all).statusLine)
+        assertEquals("No quiet times planned yet", HomeUi.build(EN, emptyList(), at(8, 0), all).statusLine)
     }
 
     @Test
@@ -34,18 +34,18 @@ class HomeUiTest {
         val study = Alarm(id = 2, startHour = 10, startMinute = 0, endHour = 12, endMinute = 0,
             daysOfWeek = listOf(MONDAY), work = "Study")
         assertEquals("Quiet now, until 12:00, then vibrate until 17:00",
-            HomeUi.build(listOf(work, study), at(11, 0), all).statusLine)
+            HomeUi.build(EN, listOf(work, study), at(11, 0), all).statusLine)
     }
 
     @Test
     fun statusLine_withoutDndAccess_saysPaused() {
         assertEquals("Paused: Snoozer can't mute without Do Not Disturb access",
-            HomeUi.build(listOf(a), at(9, 15), all.copy(dnd = false)).statusLine)
+            HomeUi.build(EN, listOf(a), at(9, 15), all.copy(dnd = false)).statusLine)
     }
 
     @Test
     fun ready_needsDndOnly() {
-        assertTrue(HomeUi.build(emptyList(), at(8, 0), all.copy(exactAlarms = false)).ready)
-        assertFalse(HomeUi.build(emptyList(), at(8, 0), all.copy(dnd = false)).ready)
+        assertTrue(HomeUi.build(EN, emptyList(), at(8, 0), all.copy(exactAlarms = false)).ready)
+        assertFalse(HomeUi.build(EN, emptyList(), at(8, 0), all.copy(dnd = false)).ready)
     }
 }

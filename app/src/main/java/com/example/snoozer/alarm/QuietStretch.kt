@@ -21,7 +21,7 @@ data class QuietStretch(
     val startMillis: Long,
     /** Null while it's still going. */
     val endMillis: Long?,
-    /** The category that set the level ([Category.label]); with overlaps, the quieter one. */
+    /** The category that set the level ([Category.stored]); with overlaps, the quieter one. */
     val category: String,
     /** The ringer was louder than Snoozer set it when the stretch ended: turned back up by hand. */
     val louder: Boolean,
@@ -75,12 +75,12 @@ interface QuietLog {
 class RoomQuietLog @Inject constructor(private val dao: QuietStretchDao) : QuietLog {
     override suspend fun quiet(category: Category, missed: Boolean, at: Long, louder: Boolean) {
         val open = dao.open()
-        if (open != null && open.category == category.label && open.missed == missed) {
+        if (open != null && open.category == category.stored && open.missed == missed) {
             if (louder && !open.louder) dao.update(open.copy(louder = true))
             return
         }
         if (open != null) dao.update(open.copy(endMillis = maxOf(at, open.startMillis), louder = open.louder || louder))
-        dao.insert(QuietStretch(startMillis = at, endMillis = null, category = category.label, louder = false, missed = missed))
+        dao.insert(QuietStretch(startMillis = at, endMillis = null, category = category.stored, louder = false, missed = missed))
     }
 
     override suspend fun stop(at: Long, louder: Boolean) {

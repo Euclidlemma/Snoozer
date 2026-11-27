@@ -64,9 +64,9 @@ class FirstLaunchTest {
     @Test
     fun remindersOff_pointsToTheRightPlace() {
         assertEquals("Heads-up is off: allow notifications in Setup to get one.",
-            Category.Study.explain(remindersOn = false, setupHasNotifications = true).lines.last().text)
+            Category.Study.explain(EN, remindersOn = false, setupHasNotifications = true).lines.last().text)
         // Android 12 and older: Setup has no Notifications row.
         assertEquals("Heads-up is off: turn on Snoozer's notifications in Android settings to get one.",
-            Category.Study.explain(remindersOn = false, setupHasNotifications = false).lines.last().text)
+            Category.Study.explain(EN, remindersOn = false, setupHasNotifications = false).lines.last().text)
     }
 }

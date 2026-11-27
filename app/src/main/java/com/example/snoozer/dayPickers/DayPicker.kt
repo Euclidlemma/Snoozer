@@ -49,6 +49,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.util.pluralResource
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.alarm.Alarm
@@ -115,7 +118,7 @@ fun DayPickerMain(
 
     Scaffold(
         floatingActionButton = {
-            DoodleFab(onClick = createOnCurrentDay, contentDescription = "Add snoozer", seed = 31) {
+            DoodleFab(onClick = createOnCurrentDay, contentDescription = stringResource(R.string.add_snoozer), seed = 31) {
                 // Decorative: the FAB's own description ("Add snoozer") is what gets announced.
                 Icon(painterResource(R.drawable.ic_doodle_add), contentDescription = null, modifier = Modifier.size(32.dp))
             }
@@ -152,15 +155,14 @@ fun DayPickerMain(
         val count = state?.endedCount ?: 0
         DoodleAlertDialog(
             onDismissRequest = { confirmRemove = false },
-            title = if (count == 1) "Remove the ended snoozer?" else "Remove $count ended snoozers?",
-            text = (if (count == 1) "It's past its last date and won't quiet your phone again." else "They're past their last date and won't quiet your phone again.") +
-                (if (count == 1) " Its" else " Their") + " quiet time stays in the weekly report.",
-            confirmLabel = "Remove",
+            title = pluralResource(R.plurals.remove_ended_title, count, count),
+            text = pluralResource(R.plurals.remove_ended_body, count),
+            confirmLabel = stringResource(R.string.remove),
             onConfirm = {
                 confirmRemove = false
                 viewModel.removeEnded()
             },
-            dismissLabel = "Keep",
+            dismissLabel = stringResource(R.string.keep),
             destructive = true,
         )
     }
@@ -255,7 +257,7 @@ private fun ViewBar(view: WeekView, onView: (WeekView) -> Unit, onImport: () -> 
                 DoodleChip(
                     selected = v == view,
                     onClick = { onView(v) },
-                    label = v.name,
+                    label = stringResource(v.labelRes),
                     seed = 740 + i,
                     wobble = DoodleDefaults.WobbleLight,
                     modifier = Modifier.semantics { role = Role.Tab },
@@ -271,7 +273,7 @@ private fun ViewBar(view: WeekView, onView: (WeekView) -> Unit, onImport: () -> 
         ) {
             Icon(painterResource(R.drawable.ic_doodle_import), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(Spacing.XS))
-            Text("Import timetable")
+            Text(stringResource(R.string.import_timetable))
         }
     }
 }
@@ -290,13 +292,13 @@ private fun EndedNotice(count: Int, onRemove: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            if (count == 1) "1 snoozer has ended." else "$count snoozers have ended.",
+            pluralResource(R.plurals.ended_banner, count, count),
             style = SnoozerTheme.type.body,
             modifier = Modifier.weight(1f),
         )
         DoodleButton(onClick = onRemove, seed = 746, wobble = DoodleDefaults.WobbleLight, containerColor = Color.Transparent,
             borderColor = Color.Transparent) {
-            Text(if (count == 1) "Remove it" else "Remove them")
+            Text(pluralResource(R.plurals.remove_them, count))
         }
     }
 }
@@ -341,7 +343,7 @@ private val PreviewAlarms = listOf(
 private fun WeekContentPreview() {
     SnoozerTheme {
         WeekContent(
-            state = WeekUi.build(PreviewAlarms, PreviewNow),
+            state = WeekUi.build(rememberStrings(), PreviewAlarms, PreviewNow),
             pagerState = rememberPagerState(initialPage = 2, pageCount = { 7 }),
             onCardClick = {}, onToggle = { _, _ -> }, onAdd = {},
         )
@@ -354,7 +356,7 @@ private fun WeekContentPreview() {
 private fun EmptyWeekPreview() {
     SnoozerTheme {
         WeekContent(
-            state = WeekUi.build(emptyList(), PreviewNow),
+            state = WeekUi.build(rememberStrings(), emptyList(), PreviewNow),
             pagerState = rememberPagerState(initialPage = 2, pageCount = { 7 }),
             onCardClick = {}, onToggle = { _, _ -> }, onAdd = {},
         )
@@ -384,12 +386,14 @@ private fun StatusCardStatesPreview() {
 @Composable
 private fun HelpButton(onClick: () -> Unit) {
     val ink = MaterialTheme.colorScheme.onSurface
+    val open = stringResource(R.string.open_how_it_works)
+    val description = stringResource(R.string.how_work_and_study_work)
     Box(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .clickable(onClickLabel = "Open how Snoozer works", role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = "How Work and Study work" },
+            .clickable(onClickLabel = open, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Box(

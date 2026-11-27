@@ -47,13 +47,16 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        /** Every step from the first version to now; the migration tests run these same ones. */
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+
         fun getDatabase(context: Context): AlarmDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlarmDatabase::class.java,
                     "alarm_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+                ).addMigrations(*MIGRATIONS).build()
                 INSTANCE = instance
                 instance
             }

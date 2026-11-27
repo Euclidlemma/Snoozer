@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.sqrt
@@ -123,13 +124,44 @@ fun Modifier.highlighter(
     alpha: Float = 0.7f,
     thickness: Float = 0.32f,
 ): Modifier = drawWithCache {
-    val stroke = size.height * thickness
-    val y = size.height * 0.72f
-    val path = Path().apply {
-        moveTo(size.width * 0.06f, y + stroke * 0.12f)
-        quadraticBezierTo(size.width * 0.5f, y - stroke * 0.25f, size.width * 0.94f, y - stroke * 0.05f)
-    }
-    val style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    val path = markerPath(0f, 0f, size.width, size.height)
+    val style = Stroke(size.height * thickness, cap = StrokeCap.Round, join = StrokeJoin.Round)
     val marker = color.copy(alpha = color.alpha * alpha)
     onDrawBehind { drawPath(path, marker, style = style) }
+}
+
+/**
+ * [highlighter] for text that may wrap: one swipe under each line, as long as that line,
+ * instead of one across the whole box. [layout] is the text's latest layout.
+ */
+fun Modifier.lineHighlighter(
+    color: Color,
+    layout: () -> TextLayoutResult?,
+    alpha: Float = 0.7f,
+    thickness: Float = 0.32f,
+): Modifier = drawBehind {
+    val text = layout() ?: return@drawBehind
+    val marker = color.copy(alpha = color.alpha * alpha)
+    for (line in 0 until text.lineCount) {
+        val left = text.getLineLeft(line)
+        val right = text.getLineRight(line)
+        val top = text.getLineTop(line)
+        val height = text.getLineBottom(line) - top
+        if (right <= left) continue
+        drawPath(
+            markerPath(left, top, right - left, height),
+            marker,
+            style = Stroke(height * thickness, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+    }
+}
+
+/** The tilted swipe across the box at ([left], [top]) of [width] x [height]. */
+private fun markerPath(left: Float, top: Float, width: Float, height: Float): Path {
+    val stroke = height * 0.32f
+    val y = top + height * 0.72f
+    return Path().apply {
+        moveTo(left + width * 0.06f, y + stroke * 0.12f)
+        quadraticBezierTo(left + width * 0.5f, y - stroke * 0.25f, left + width * 0.94f, y - stroke * 0.05f)
+    }
 }

@@ -19,6 +19,8 @@ import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.ReminderText
 import com.example.snoozer.alarm.category
 import com.example.snoozer.alarm.hasQuietReminder
+import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.util.AndroidStrings
 
 /**
  * Posts the "starts in 5 minutes" reminders. One channel per category, so people can turn
@@ -63,7 +65,7 @@ object ReminderNotifier {
     fun show(context: Context, alarm: Alarm, minutesUntilStart: Int) {
         if (!canNotify(context)) return
         ensureChannels(context)
-        val text = ReminderText.of(alarm, minutesUntilStart)
+        val text = ReminderText.of(alarm, AndroidStrings(context), minutesUntilStart)
         val open = PendingIntent.getActivity(
             context,
             0,
@@ -95,17 +97,23 @@ object ReminderNotifier {
         Category.Work -> CHANNEL_WORK
     }
 
-    /** Creating a channel that exists is a no-op, and keeps any changes the user made to it. */
-    private fun ensureChannels(context: Context) {
+    /**
+     * Creating a channel that exists keeps any changes the user made to it, but takes the new
+     * name and description. The app calls this when it starts, so the channels in Android's
+     * settings follow a language change.
+     */
+    fun ensureChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
+        val res = context.resources
+        val lead = AlarmTime.REMINDER_LEAD_MINUTES
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_STUDY, "Study reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "A heads-up 5 minutes before a Study quiet time starts."
+            NotificationChannel(CHANNEL_STUDY, res.getString(R.string.channel_study_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = res.getQuantityString(R.plurals.channel_study_description, lead, lead)
             }
         )
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_WORK, "Work reminders", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "A quiet notice before a Work quiet time starts."
+            NotificationChannel(CHANNEL_WORK, res.getString(R.string.channel_work_name), NotificationManager.IMPORTANCE_LOW).apply {
+                description = res.getString(R.string.channel_work_description)
             }
         )
     }

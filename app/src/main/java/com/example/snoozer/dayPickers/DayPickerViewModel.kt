@@ -1,5 +1,8 @@
 package com.example.snoozer.dayPickers
 
+import com.example.snoozer.util.ShownLanguage
+import com.example.snoozer.util.alsoOn
+import com.example.snoozer.util.Strings
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -40,6 +43,8 @@ class DayPickerViewModel @Inject constructor(
     private val permissionChecker: PermissionChecker,
     private val quietStretches: QuietStretchDao,
     reportSeen: ReportSeenStore,
+    private val strings: Strings,
+    language: ShownLanguage,
 ) : ViewModel() {
 
     /** The page to open on: today (0 = Monday). The pager owns the selection after that. */
@@ -67,7 +72,7 @@ class DayPickerViewModel @Inject constructor(
     // One database observer and one clock for both views.
     private data class Snapshot(val alarms: List<Alarm>, val now: LocalDateTime, val canMute: Boolean)
 
-    private val snapshot = combine(repository.observeAlarms(), timeSource.minuteTicks, canMute, ::Snapshot)
+    private val snapshot = combine(repository.observeAlarms(), timeSource.minuteTicks.alsoOn(language), canMute, ::Snapshot)
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     /**
@@ -76,7 +81,7 @@ class DayPickerViewModel @Inject constructor(
      * The clock only ticks while the screen collects this (it stops 5s after it leaves).
      */
     val uiState: StateFlow<WeekUiState?> =
-        snapshot.map { WeekUi.build(it.alarms, it.now, canMute = it.canMute) }
+        snapshot.map { WeekUi.build(strings, it.alarms, it.now, canMute = it.canMute) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
@@ -85,13 +90,13 @@ class DayPickerViewModel @Inject constructor(
      */
     val reportStrip: StateFlow<ReportStripUi?> =
         combine(snapshot, quietStretches.observeSince(WeeklyReport.keepFrom(timeSource.now(), ZoneId.systemDefault())), reportSeen.seenWeek) { s, stretches, seenWeek ->
-            WeeklyReport.strip(stretches, s.now, ZoneId.systemDefault(), seenWeek)
+            WeeklyReport.strip(strings, stretches, s.now, ZoneId.systemDefault(), seenWeek)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The month calendar; only built while the Month view is showing. */
     val monthState: StateFlow<MonthUiState?> =
         combine(snapshot, view, month, selected) { s, v, m, d ->
-            if (v == WeekView.Month) MonthUi.build(s.alarms, s.now, m, d, canMute = s.canMute) else null
+            if (v == WeekView.Month) MonthUi.build(strings, s.alarms, s.now, m, d, canMute = s.canMute) else null
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {

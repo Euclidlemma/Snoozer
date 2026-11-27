@@ -1,5 +1,7 @@
 package com.example.snoozer.onboarding
 
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.R
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -109,7 +111,7 @@ fun OnboardingContent(
                         else MaterialTheme.colorScheme.onSecondaryContainer,
                     seed = 400,
                 ) {
-                    Text(spec.buttonLabel(page))
+                    Text(stringResource(spec.buttonLabel(page)))
                 }
             }
         }
@@ -125,12 +127,12 @@ private fun TopBar(spec: OnboardingSpec, page: Int, onBack: () -> Unit, onSkipOr
     ) {
         if (spec.canGoBack(page)) {
             DoodleButton(onClick = onBack, seed = 401, wobble = DoodleDefaults.WobbleLight,
-                containerColor = Color.Transparent, borderColor = Color.Transparent) { Text("‹ Back") }
+                containerColor = Color.Transparent, borderColor = Color.Transparent) { Text(stringResource(R.string.onboarding_back)) }
         }
         Spacer(Modifier.weight(1f))
         DoodleButton(onClick = onSkipOrClose, seed = 402, wobble = DoodleDefaults.WobbleLight,
             containerColor = Color.Transparent, borderColor = Color.Transparent) {
-            Text(if (spec.showSkip) "Skip" else "Close")
+            Text(stringResource(if (spec.showSkip) R.string.skip else R.string.close))
         }
     }
 }
@@ -139,9 +141,10 @@ private fun TopBar(spec: OnboardingSpec, page: Int, onBack: () -> Unit, onSkipOr
 @Composable
 private fun PageDots(current: Int, first: Int) {
     val ink = MaterialTheme.colorScheme.onSurface
+    val pageOf = stringResource(R.string.page_of, current - first + 1, OnboardingPageCount - first)
     Row(
         horizontalArrangement = Arrangement.spacedBy(Spacing.S),
-        modifier = Modifier.semantics { contentDescription = "Page ${current - first + 1} of ${OnboardingPageCount - first}" },
+        modifier = Modifier.semantics { contentDescription = pageOf },
     ) {
         (first until OnboardingPageCount).forEach { i ->
             Box(

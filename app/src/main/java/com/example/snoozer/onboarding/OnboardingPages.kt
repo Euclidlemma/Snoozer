@@ -51,6 +51,8 @@ import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.ExplainIcon
 import com.example.snoozer.alarm.ReminderText
 import com.example.snoozer.alarm.explanation
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.ui.doodle.DoodleDefaults
 import com.example.snoozer.ui.doodle.DoodleIllustration
 import com.example.snoozer.ui.doodle.DoodlePhone
@@ -127,10 +129,10 @@ private fun ColumnScope.WelcomePage() {
             seed = 11,
             modifier = Modifier.bob(),
         )
-        Text("SNOOZER", style = MaterialTheme.typography.displaySmall, letterSpacing = 2.sp,
+        Text(stringResource(R.string.app_name_caps), style = MaterialTheme.typography.displaySmall, letterSpacing = 2.sp,
             modifier = Modifier.semantics { heading() })
         Text(
-            "Your phone's bodyguard. Pick when you want quiet, and Snoozer mutes it for you, every week.",
+            stringResource(R.string.welcome_body),
             style = SnoozerTheme.type.body,
             textAlign = TextAlign.Center,
         )
@@ -141,7 +143,7 @@ private fun ColumnScope.WelcomePage() {
 
 @Composable
 private fun ColumnScope.TwoKindsPage() {
-    PageTitle("Two kinds of quiet")
+    PageTitle(stringResource(R.string.two_kinds_title))
     // Same height for both cards, even when one summary wraps to two lines.
     Row(Modifier.height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
         Category.entries.forEach { category ->
@@ -154,7 +156,7 @@ private fun ColumnScope.TwoKindsPage() {
 @Composable
 private fun KindCard(category: Category, modifier: Modifier = Modifier) {
     val colors = SnoozerTheme.colors.forCategory(category)
-    val explanation = category.explanation
+    val explanation = category.explanation(rememberStrings())
     val isWork = category == Category.Work
     Column(
         modifier = modifier
@@ -165,7 +167,7 @@ private fun KindCard(category: Category, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(Spacing.S),
     ) {
         DoodleIllustration(category.illustration, size = 88.dp, seed = 210 + category.ordinal)
-        Text(category.label, style = SnoozerTheme.type.label, color = colors.content)
+        Text(stringResource(category.labelRes), style = SnoozerTheme.type.label, color = colors.content)
         // Work's phone buzzes now and then; Study's stays perfectly still.
         DoodlePhone(
             width = 70.dp,
@@ -204,8 +206,8 @@ internal fun ringerAt(fraction: Float): String = when {
 
 @Composable
 private fun ColumnScope.OverlapPage() {
-    PageTitle("When they overlap, the quieter one wins")
-    PageNote("Study inside Work: silent for the study part, back to vibrate after.")
+    PageTitle(stringResource(R.string.overlap_title))
+    PageNote(stringResource(R.string.overlap_note))
     val motion = rememberMotionEnabled()
     val now = if (motion) {
         rememberInfiniteTransition(label = "day").animateFloat(
@@ -226,8 +228,8 @@ private fun ColumnScope.OverlapPage() {
         Modifier.fillMaxWidth().height(120.dp).clearAndSetSemantics {}
     ) {
         val w = maxWidth
-        TimelineBar("Work 9–17", work.container, work.hatch, ink, w * WorkFrom, w * (WorkTo - WorkFrom), 14.dp, 300)
-        TimelineBar("Study", study.container, study.hatch, ink, w * StudyFrom, w * (StudyTo - StudyFrom), 64.dp, 301)
+        TimelineBar(stringResource(R.string.overlap_work_bar, stringResource(Category.Work.labelRes)), work.container, work.hatch, ink, w * WorkFrom, w * (WorkTo - WorkFrom), 14.dp, 300)
+        TimelineBar(stringResource(Category.Study.labelRes), study.container, study.hatch, ink, w * StudyFrom, w * (StudyTo - StudyFrom), 64.dp, 301)
         // The "now" line, moved in layout (offset lambda) so it doesn't recompose each frame.
         Box(
             Modifier
@@ -252,9 +254,14 @@ private fun ColumnScope.OverlapPage() {
             else -> R.drawable.ic_doodle_notify
         }
         Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
-        Text("Phone: $ringer", style = SnoozerTheme.type.label)
+        val ringerWord = stringResource(when (ringer) {
+            "Silent" -> R.string.level_silent
+            "Vibrate" -> R.string.level_vibrate
+            else -> R.string.ringer_normal
+        })
+        Text(stringResource(R.string.phone_ringer, ringerWord), style = SnoozerTheme.type.label)
     }
-    PageNote("If your phone is already silent, Snoozer never makes it louder.")
+    PageNote(stringResource(R.string.overlap_never_louder))
 }
 
 @Composable
@@ -280,8 +287,8 @@ private fun TimelineBar(
 
 @Composable
 private fun ColumnScope.HeadsUpPage() {
-    PageTitle("A heads-up first")
-    PageNote("A few minutes before a quiet time starts. Optional; you can turn it off.")
+    PageTitle(stringResource(R.string.heads_up_title))
+    PageNote(stringResource(R.string.heads_up_note))
     val motion = rememberMotionEnabled()
     // The notice slides down into the phone, stays, and slides away (or just stays, at rest).
     val slide = if (motion) {
@@ -315,17 +322,19 @@ private fun ColumnScope.HeadsUpPage() {
                 .padding(8.dp),
         ) {
             // Built by the same code as the real notice, so the sample can't drift from it.
-            val sample = ReminderText.of(SampleStudy)
-            Text("Snoozer · now", style = SnoozerTheme.type.caption, color = Graphite)
+            val sample = ReminderText.of(SampleStudy, rememberStrings())
+            Text(stringResource(R.string.sample_notice_header), style = SnoozerTheme.type.caption, color = Graphite)
             Text(sample.title, style = SnoozerTheme.type.label, color = Graphite)
             Text(sample.body, style = SnoozerTheme.type.caption, color = Graphite)
         }
     }
+    val strings = rememberStrings()
     Category.entries.reversed().forEach { category ->
-        val line = category.explanation.lines.last()
+        val line = category.explanation(strings).lines.last()
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
             Icon(painterResource(line.icon.drawable()), contentDescription = null, modifier = Modifier.size(22.dp))
-            Text("${category.label}: ${line.text.replaceFirstChar { it.lowercase() }}", style = SnoozerTheme.type.body)
+            Text(stringResource(R.string.category_line, stringResource(category.labelRes),
+                line.text.replaceFirstChar { it.lowercase(strings.locale) }), style = SnoozerTheme.type.body)
         }
     }
 }
@@ -335,7 +344,7 @@ private fun ColumnScope.HeadsUpPage() {
 @Composable
 private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
     // Help is usually opened by someone who already has snoozers, so "first" is for the first run only.
-    PageTitle(if (mode == OnboardingMode.FirstRun) "Plan your first quiet time" else "Plan a quiet time")
+    PageTitle(stringResource(if (mode == OnboardingMode.FirstRun) R.string.plan_first_title else R.string.plan_title))
     // A dimmed sketch of the week screen with a pulsing ring around "+".
     Box(
         Modifier
@@ -349,8 +358,12 @@ private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
                 Modifier.fillMaxSize().padding(top = 20.dp, start = 12.dp, end = 12.dp).graphicsLayer { alpha = 0.45f },
                 verticalArrangement = Arrangement.spacedBy(Spacing.S),
             ) {
-                MiniCard(SnoozerTheme.colors.forCategory(Category.Work).container, "Work · Vibrate", "09:00 – 17:00", 321)
-                MiniCard(SnoozerTheme.colors.forCategory(Category.Study).container, "Study · Silent", "19:00 – 21:00", 322)
+                MiniCard(SnoozerTheme.colors.forCategory(Category.Work).container,
+                    stringResource(R.string.tag_category_level, stringResource(Category.Work.labelRes), stringResource(R.string.level_vibrate)),
+                    stringResource(R.string.time_range, "09:00", "17:00"), 321)
+                MiniCard(SnoozerTheme.colors.forCategory(Category.Study).container,
+                    stringResource(R.string.tag_category_level, stringResource(Category.Study.labelRes), stringResource(R.string.level_silent)),
+                    stringResource(R.string.time_range, "19:00", "21:00"), 322)
             }
         }
         // "+" in its place, at full strength, ringed.
@@ -370,16 +383,9 @@ private fun ColumnScope.WhereThingsArePage(mode: OnboardingMode) {
         }
     }
     // First run ends on Home's Setup, not the week screen, so say how to get to the "+".
-    PageNote(
-        if (mode == OnboardingMode.FirstRun) {
-            "Once Setup is done, tap \"Open my week\", then + to plan your first quiet time. " +
-                "Start with Work or Study; you can change it anytime."
-        } else {
-            "Tap + on the week screen to plan a quiet time. Pick Work or Study; you can change it anytime."
-        }
-    )
+    PageNote(stringResource(if (mode == OnboardingMode.FirstRun) R.string.plan_first_note else R.string.plan_note))
     // Students can skip typing classes in one by one.
-    PageNote("Have a class timetable? \"Import timetable\" on the week screen adds every class at once, until the term ends.")
+    PageNote(stringResource(R.string.plan_timetable_note))
     Spacer(Modifier.height(Spacing.S))
 }
 
@@ -399,5 +405,5 @@ private fun MiniCard(fill: Color, tag: String, time: String, seed: Int) {
 // The sample reminder on the heads-up page: a Study window 19:00-21:00.
 private val SampleStudy = com.example.snoozer.alarm.Alarm(
     startHour = 19, startMinute = 0, endHour = 21, endMinute = 0,
-    daysOfWeek = listOf(java.time.DayOfWeek.MONDAY), work = Category.Study.label,
+    daysOfWeek = listOf(java.time.DayOfWeek.MONDAY), work = Category.Study.stored,
 )

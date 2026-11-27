@@ -52,6 +52,18 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
         }
     }
 
+    // A force stop cancels the app's PendingIntents along with its alarms. Ours are only ever
+    // created by scheduling (cancelling an alarm keeps the PendingIntent), so if none of this
+    // window's exists, its alarms were wiped from outside.
+    override fun isScheduled(alarm: Alarm): Boolean = alarm.daysOfWeek.any { day ->
+        Kind.entries.any { kind ->
+            PendingIntent.getBroadcast(
+                context, requestCode(alarm, day, kind), receiverIntent(alarm, day, kind),
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            ) != null
+        }
+    }
+
     override fun cancelAlarm(alarm: Alarm) {
         for (day in alarm.daysOfWeek) {
             Kind.entries.forEach { cancel(alarm, day, it) }
@@ -133,16 +145,20 @@ class AlarmScheduler @Inject constructor(@ApplicationContext private val context
      * The same request code and target give the same PendingIntent for scheduling and
      * cancelling; extras don't affect matching, and FLAG_UPDATE_CURRENT refreshes them.
      */
-    private fun pendingIntent(alarm: Alarm, day: DayOfWeek, kind: Kind): PendingIntent {
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
+    private fun receiverIntent(alarm: Alarm, day: DayOfWeek, kind: Kind) =
+        Intent(context, AlarmReceiver::class.java).apply {
             putExtra("action", kind.name)
             putExtra("alarmId", alarm.id)
             putExtra("dayOfWeek", day.value)
         }
+
+    private fun requestCode(alarm: Alarm, day: DayOfWeek, kind: Kind) = "${alarm.id}_${day.value}_${kind.name}".hashCode()
+
+    private fun pendingIntent(alarm: Alarm, day: DayOfWeek, kind: Kind): PendingIntent {
         return PendingIntent.getBroadcast(
             context,
-            "${alarm.id}_${day.value}_${kind.name}".hashCode(),
-            intent,
+            requestCode(alarm, day, kind),
+            receiverIntent(alarm, day, kind),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }

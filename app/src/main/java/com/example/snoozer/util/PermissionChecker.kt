@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.os.PowerManager
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.receiver.ReminderNotifier
 import dagger.Binds
@@ -27,6 +28,18 @@ data class Permissions(
     val notificationsApply: Boolean = false,
     /** Categories whose own reminder channel is off in Android's settings (Setup can't turn it back on). */
     val reminderChannelsOff: Set<Category> = emptySet(),
+    /**
+     * Snoozer is exempt from battery optimization ("Unrestricted" on Samsung). Recommended:
+     * some phones put apps they think are unused to sleep, which can hold their alarms back.
+     */
+    val batteryUnrestricted: Boolean = true,
+    /**
+     * Exempt from Android pausing apps that go unused for months (Android 11+). A paused
+     * (hibernated) app is force-stopped, which cancels every alarm, so Snoozer would stop muting.
+     */
+    val keptWhenUnused: Boolean = true,
+    /** That pausing only exists on Android 11+. */
+    val keptWhenUnusedApplies: Boolean = false,
 )
 
 /** Reads permission state; an interface so ViewModels can be tested with fixed answers. */
@@ -50,6 +63,10 @@ class SystemPermissionChecker @Inject constructor(
             notifications = ReminderNotifier.canNotify(context),
             notificationsApply = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
             reminderChannelsOff = ReminderNotifier.channelsOff(context),
+            batteryUnrestricted = context.getSystemService(PowerManager::class.java)
+                .isIgnoringBatteryOptimizations(context.packageName),
+            keptWhenUnused = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || context.packageManager.isAutoRevokeWhitelisted,
+            keptWhenUnusedApplies = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
         )
     }
 }
