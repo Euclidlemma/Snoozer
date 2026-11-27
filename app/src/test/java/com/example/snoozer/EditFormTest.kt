@@ -33,32 +33,32 @@ class EditFormTest {
     fun preset_setsDaysAndIsRecognised() {
         val f = base.withPreset(RepeatPreset.Weekends)
         assertEquals(listOf(SATURDAY, SUNDAY), f.days)
-        assertEquals(RepeatPreset.Weekends, EditUi.describe(f, base, isNew = false).preset)
-        assertNull(EditUi.describe(base, base, isNew = false).preset)
+        assertEquals(RepeatPreset.Weekends, EditUi.describe(EN, f, base, isNew = false).preset)
+        assertNull(EditUi.describe(EN, base, base, isNew = false).preset)
     }
 
     @Test
     fun summary_sameDayAndOvernight() {
-        assertEquals("Quiet for 1h 30m", EditUi.describe(base, base, false).summary)
+        assertEquals("Quiet for 1h 30m", EditUi.describe(EN, base, base, false).summary)
         val night = base.withStart(22, 0).withEnd(7, 0)
-        assertEquals("Quiet for 9h, until 07:00 the next day", EditUi.describe(night, base, false).summary)
+        assertEquals("Quiet for 9h, until 07:00 the next day", EditUi.describe(EN, night, base, false).summary)
     }
 
     @Test
     fun errors_blockSaving() {
         val same = base.withEnd(9, 0)
-        assertEquals("Start and end can't be the same time.", EditUi.describe(same, base, false).error)
-        assertFalse(EditUi.describe(same, base, false).canSave)
+        assertEquals("Start and end can't be the same time.", EditUi.describe(EN, same, base, false).error)
+        assertFalse(EditUi.describe(EN, same, base, false).canSave)
         val noDays = base.toggleDay(MONDAY)
-        assertEquals("Pick at least one day.", EditUi.describe(noDays, base, false).error)
-        assertTrue(EditUi.describe(base, base, false).canSave)
+        assertEquals("Pick at least one day.", EditUi.describe(EN, noDays, base, false).error)
+        assertTrue(EditUi.describe(EN, base, base, false).canSave)
     }
 
     @Test
     fun hasChanges_onlyWhenEditedOrNew() {
-        assertFalse(EditUi.describe(base, base, isNew = false).hasChanges)
-        assertTrue(EditUi.describe(base.withEnd(11, 0), base, isNew = false).hasChanges)
-        assertTrue(EditUi.describe(base, base, isNew = true).hasChanges)
+        assertFalse(EditUi.describe(EN, base, base, isNew = false).hasChanges)
+        assertTrue(EditUi.describe(EN, base.withEnd(11, 0), base, isNew = false).hasChanges)
+        assertTrue(EditUi.describe(EN, base, base, isNew = true).hasChanges)
     }
 
     @Test
@@ -87,8 +87,8 @@ class EditFormTest {
     @Test
     fun changingCategory_countsAsAChange() {
         val edited = base.copy(category = Category.Study)
-        assertTrue(EditUi.describe(edited, base, isNew = false).hasChanges)
-        assertEquals(Category.Study, EditUi.describe(edited, base, isNew = false).category)
+        assertTrue(EditUi.describe(EN, edited, base, isNew = false).hasChanges)
+        assertEquals(Category.Study, EditUi.describe(EN, edited, base, isNew = false).category)
     }
 
     @Test
@@ -137,10 +137,10 @@ class EditFormTest {
 
     @Test
     fun explanation_followsTheChosenCategory() {
-        assertEquals(Category.Work, EditUi.describe(base, base, isNew = false).explanation.category)
+        assertEquals(Category.Work, EditUi.describe(EN, base, base, isNew = false).explanation.category)
         val study = base.copy(category = Category.Study)
-        assertEquals(Category.Study, EditUi.describe(study, base, isNew = false).explanation.category)
-        assertEquals("During Study", EditUi.describe(study, base, isNew = false).explanation.title)
+        assertEquals(Category.Study, EditUi.describe(EN, study, base, isNew = false).explanation.category)
+        assertEquals("During Study", EditUi.describe(EN, study, base, isNew = false).explanation.title)
     }
 
     @Test
@@ -179,13 +179,13 @@ class EditFormTest {
         val studyOff = on.copy(reminderChannelsOff = setOf(Category.Study))
         // Only Study's channel is off: Work still promises its heads-up, Study says it's off
         // and points to Android's settings (Setup can't turn a channel back on).
-        assertEquals("A quiet heads-up before it starts.", EditUi.explainFor(Category.Work, studyOff).lines.last().text)
+        assertEquals("A quiet heads-up before it starts.", EditUi.explainFor(EN, Category.Work, studyOff).lines.last().text)
         assertEquals("Heads-up is off: turn on Snoozer's notifications in Android settings to get one.",
-            EditUi.explainFor(Category.Study, studyOff).lines.last().text)
+            EditUi.explainFor(EN, Category.Study, studyOff).lines.last().text)
         // App-wide permission missing on Android 13+: Setup can fix it.
         assertEquals("Heads-up is off: allow notifications in Setup to get one.",
-            EditUi.explainFor(Category.Study, on.copy(notifications = false)).lines.last().text)
+            EditUi.explainFor(EN, Category.Study, on.copy(notifications = false)).lines.last().text)
         // No permissions known (previews): assume on.
-        assertEquals("A heads-up 5 minutes before it starts.", EditUi.explainFor(Category.Study, null).lines.last().text)
+        assertEquals("A heads-up 5 minutes before it starts.", EditUi.explainFor(EN, Category.Study, null).lines.last().text)
     }
 }

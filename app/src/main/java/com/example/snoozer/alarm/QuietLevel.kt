@@ -11,18 +11,15 @@ import com.example.snoozer.R
  * [ringerMode] is the AudioManager mode it sets. These are compile-time constants (vibrate
  * is 1, silent is 0), so this file stays usable in plain unit tests.
  *
- * [labelRes] and [descriptionRes] are the words in the person's language; [label] and
- * [description] are the English ones, still used by screens that haven't moved over yet.
+ * [labelRes] and [descriptionRes] are its name and a short description, in the person's language.
  */
 enum class QuietLevel(
-    val label: String,
-    val description: String,
     @StringRes val labelRes: Int,
     @StringRes val descriptionRes: Int,
     val ringerMode: Int,
 ) {
-    Vibrate("Vibrate", "Phone on vibrate", R.string.level_vibrate, R.string.level_vibrate_description, AudioManager.RINGER_MODE_VIBRATE),
-    Silent("Silent", "Phone fully silent", R.string.level_silent, R.string.level_silent_description, AudioManager.RINGER_MODE_SILENT);
+    Vibrate(R.string.level_vibrate, R.string.level_vibrate_description, AudioManager.RINGER_MODE_VIBRATE),
+    Silent(R.string.level_silent, R.string.level_silent_description, AudioManager.RINGER_MODE_SILENT);
 
     /**
      * The ringer mode to set, given the mode the user had before Snoozer stepped in. Never

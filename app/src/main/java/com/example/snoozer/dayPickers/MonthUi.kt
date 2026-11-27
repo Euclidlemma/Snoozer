@@ -6,6 +6,8 @@ import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.category
 import com.example.snoozer.alarm.oneDate
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -13,7 +15,6 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 
 /** Which view the week screen shows: the weekly pages, or a month calendar. */
 enum class WeekView { Week, Month }
@@ -65,6 +66,7 @@ data class SelectedDayUi(
 object MonthUi {
 
     fun build(
+        strings: Strings,
         alarms: List<Alarm>,
         now: LocalDateTime,
         month: YearMonth,
@@ -79,7 +81,7 @@ object MonthUi {
         val cells = days.map { date ->
             val starting = enabled.filter { AlarmTime.startsOn(it, date) }
             // A one-date snoozer has no "last day" to mark: it is that day.
-            val endingNames = enabled.filter { it.untilDate == date && it.oneDate == null && !continues(it, enabled) }.map(::label)
+            val endingNames = enabled.filter { it.untilDate == date && it.oneDate == null && !continues(it, enabled) }.map { label(strings, it) }
             val work = starting.any { it.category == Category.Work }
             val study = starting.any { it.category == Category.Study }
             DayCellUi(
@@ -91,36 +93,35 @@ object MonthUi {
                 work = work,
                 study = study,
                 endsHere = endingNames.isNotEmpty(),
-                description = describe(date, work, study, endingNames),
+                description = describe(strings, date, work, study, endingNames),
             )
         }
         return MonthUiState(
             month = month,
-            title = "${month.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${month.year}",
-            dayLetters = DayOfWeek.entries.map { it.getDisplayName(TextStyle.NARROW, Locale.ENGLISH) },
+            title = AlarmTime.formatMonth(month, strings),
+            dayLetters = DayOfWeek.entries.map { AlarmTime.dayName(it, TextStyle.NARROW, strings) },
             weeks = cells.chunked(7),
-            selected = selectedDay(alarms, now, selected, canMute),
+            selected = selectedDay(strings, alarms, now, selected, canMute),
         )
     }
 
     /** The picked day: the windows starting then (switched-off ones too, dimmed), and first/last-class notes. */
-    fun selectedDay(alarms: List<Alarm>, now: LocalDateTime, date: LocalDate, canMute: Boolean = true): SelectedDayUi {
+    fun selectedDay(strings: Strings, alarms: List<Alarm>, now: LocalDateTime, date: LocalDate, canMute: Boolean = true): SelectedDayUi {
         val onDay = alarms
             .filter { AlarmTime.startsOn(it, date) }
             .sortedWith(compareBy({ it.startHour }, { it.startMinute }, { it.id }))
         val notes = alarms.filter { it.isEnabled && it.oneDate == null }.flatMap { a ->
             listOfNotNull(
-                if (a.fromDate == date) "First ${label(a)} class" else null,
-                if (a.untilDate == date && !continues(a, alarms)) "Last ${label(a)} class" else null,
+                if (a.fromDate == date) strings.get(R.string.first_class, label(strings, a)) else null,
+                if (a.untilDate == date && !continues(a, alarms)) strings.get(R.string.last_class, label(strings, a)) else null,
             )
         }
         return SelectedDayUi(
             date = date,
-            title = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${date.dayOfMonth} " +
-                date.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+            title = AlarmTime.formatLongDate(date, strings),
             cards = onDay.map { a ->
                 // The week card, with "quiet now" only for the window of this exact date.
-                WeekUi.card(a, date.dayOfWeek, now, canMute).copy(activeNow = canMute && a.isEnabled && runsAt(a, date, now))
+                WeekUi.card(strings, a, date.dayOfWeek, now, canMute).copy(activeNow = canMute && a.isEnabled && runsAt(a, date, now))
             },
             notes = notes,
         )
@@ -152,18 +153,18 @@ object MonthUi {
         return !now.isBefore(start) && now.isBefore(end)
     }
 
-    private fun label(alarm: Alarm): String = alarm.name?.takeIf { it.isNotBlank() } ?: alarm.category.label
+    private fun label(strings: Strings, alarm: Alarm): String =
+        alarm.name?.takeIf { it.isNotBlank() } ?: strings.get(alarm.category.labelRes)
 
-    private fun describe(date: LocalDate, work: Boolean, study: Boolean, ending: List<String>): String {
-        val day = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${date.dayOfMonth} " +
-            date.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-        val quiet = when {
-            work && study -> "Work and Study"
-            work -> "Work"
-            study -> "Study"
-            else -> "nothing planned"
-        }
-        val ends = if (ending.isEmpty()) "" else ", last day of " + ending.joinToString(", ")
-        return "$day: $quiet$ends"
+    private fun describe(strings: Strings, date: LocalDate, work: Boolean, study: Boolean, ending: List<String>): String {
+        val day = AlarmTime.formatLongDate(date, strings)
+        val quiet = strings.get(when {
+            work && study -> R.string.cell_work_and_study
+            work -> Category.Work.labelRes
+            study -> Category.Study.labelRes
+            else -> R.string.cell_nothing
+        })
+        return if (ending.isEmpty()) strings.get(R.string.cell_description, day, quiet)
+        else strings.get(R.string.cell_description_ends, day, quiet, ending.joinToString(", "))
     }
 }

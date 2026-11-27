@@ -2,6 +2,8 @@ package com.example.snoozer.timetable
 
 import androidx.compose.runtime.Immutable
 import com.example.snoozer.alarm.Category
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 
 /** What the import preview shows. Built by the import ViewModel from the parsed file. */
 @Immutable
@@ -29,16 +31,12 @@ sealed interface ImportUiState {
         /** How many will be added: ticked, and not already in Snoozer. */
         val addCount: Int get() = rows.count { it.checked && !it.alreadyAdded }
 
-        val addLabel: String
-            get() = when (addCount) {
-                0 -> "Pick a class to add"
-                1 -> "Add 1 class"
-                else -> "Add $addCount classes"
-            }
+        fun addLabel(strings: Strings): String =
+            if (addCount == 0) strings.get(R.string.import_pick_one)
+            else strings.plural(R.plurals.import_add, addCount, addCount)
 
         /** "Found 6 classes" over the list. */
-        val foundLine: String
-            get() = if (rows.size == 1) "Found 1 weekly class" else "Found ${rows.size} weekly classes"
+        fun foundLine(strings: Strings): String = strings.plural(R.plurals.import_found, rows.size, rows.size)
     }
 }
 

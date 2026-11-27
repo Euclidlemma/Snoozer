@@ -54,6 +54,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.snoozer.R
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.util.pluralResource
 import com.example.snoozer.Route.Routes
 import com.example.snoozer.Route.navigateFrom
 import com.example.snoozer.ui.doodle.DoodleButton
@@ -164,18 +167,18 @@ fun HomeContent(
         ) {
             MascotHeader(Modifier.fillMaxWidth().padding(top = Spacing.M))
             StatusLine(state.statusLine, Modifier.align(Alignment.CenterHorizontally))
-            DoodleSection(title = "Setup", seed = 120) {
+            DoodleSection(title = stringResource(R.string.setup), seed = 120) {
                 PermissionRow(
-                    title = "Do Not Disturb access",
-                    description = "Required. Lets Snoozer mute and unmute your phone.",
+                    title = stringResource(R.string.perm_dnd),
+                    description = stringResource(R.string.perm_dnd_body),
                     granted = state.permissions.dnd,
                     onAllow = onAllowDnd,
                     seed = 121,
                 )
                 if (state.permissions.exactAlarmsApplies) {
                     PermissionRow(
-                        title = "Exact alarms",
-                        description = "Recommended. Without it, muting can start up to an hour late.",
+                        title = stringResource(R.string.perm_exact),
+                        description = stringResource(R.string.perm_exact_body),
                         granted = state.permissions.exactAlarms,
                         onAllow = onAllowExactAlarms,
                         seed = 124,
@@ -183,26 +186,24 @@ fun HomeContent(
                 }
                 if (state.permissions.notificationsApply) {
                     PermissionRow(
-                        title = "Notifications",
-                        description = "Optional. Reminds you 5 minutes before quiet time starts.",
+                        title = stringResource(R.string.perm_notifications),
+                        description = pluralResource(R.plurals.perm_notifications_body, AlarmTime.REMINDER_LEAD_MINUTES, AlarmTime.REMINDER_LEAD_MINUTES),
                         granted = state.permissions.notifications,
                         onAllow = onAllowNotifications,
                         seed = 127,
                     )
                 }
                 PermissionRow(
-                    title = "Battery: Unrestricted",
-                    description = "Recommended. Keeps your phone from putting Snoozer to sleep and delaying it. " +
-                        "Opens app info: tap Battery, then Unrestricted.",
+                    title = stringResource(R.string.perm_battery),
+                    description = stringResource(R.string.perm_battery_body),
                     granted = state.permissions.batteryUnrestricted,
                     onAllow = onAllowBattery,
                     seed = 130,
                 )
                 if (state.permissions.keptWhenUnusedApplies) {
                     PermissionRow(
-                        title = "Keep running when unused",
-                        description = "Recommended. Phones pause apps you haven't opened for a few months, which would stop Snoozer. " +
-                            "Turn off \"Manage app if unused\" (on some phones: \"Pause app activity if unused\").",
+                        title = stringResource(R.string.perm_unused),
+                        description = stringResource(R.string.perm_unused_body),
                         granted = state.permissions.keptWhenUnused,
                         onAllow = onKeepWhenUnused,
                         seed = 133,
@@ -217,7 +218,7 @@ fun HomeContent(
         ) {
             if (!state.ready) {
                 Text(
-                    "Allow Do Not Disturb access to continue.",
+                    stringResource(R.string.home_allow_dnd_to_continue),
                     style = SnoozerTheme.type.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -231,7 +232,7 @@ fun HomeContent(
                 hatchColor = MaterialTheme.colorScheme.primary,
                 seed = 130,
             ) {
-                Text("Open my week")
+                Text(stringResource(R.string.open_my_week))
             }
         }
     }
@@ -257,13 +258,13 @@ private fun MascotHeader(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(Spacing.S))
         Text(
-            "SNOOZER",
+            stringResource(R.string.app_name_caps),
             style = MaterialTheme.typography.displaySmall,
             letterSpacing = 2.sp,
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            "On guard, so your phone stays quiet.",
+            stringResource(R.string.home_tagline),
             style = SnoozerTheme.type.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -297,10 +298,12 @@ private fun StatusLine(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun PermissionRow(title: String, description: String, granted: Boolean, onAllow: () -> Unit, seed: Int) {
     val scheme = MaterialTheme.colorScheme
+    val allowNamed = stringResource(R.string.allow_named, title)
+    val checkDescription = stringResource(if (granted) R.string.allowed else R.string.not_allowed_yet)
     val allow = @Composable {
         // Spoken with the row's name: several rows each have an Allow button.
         DoodleButton(onClick = onAllow, seed = seed + 1, wobble = DoodleDefaults.WobbleLight) {
-            Text("Allow", modifier = Modifier.clearAndSetSemantics { contentDescription = "Allow $title" })
+            Text(stringResource(R.string.allow), modifier = Modifier.clearAndSetSemantics { contentDescription = allowNamed })
         }
     }
     // On a narrow row (a foldable's cover screen) a button beside the words squeezes them to a
@@ -316,7 +319,7 @@ private fun PermissionRow(title: String, description: String, granted: Boolean, 
                             cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
                         .sketchyBorder(if (granted) scheme.onSurface else scheme.outline, width = 1.5.dp,
                             cornerRadius = DoodleDefaults.Round, wobble = DoodleDefaults.WobbleLight, seed = seed)
-                        .semantics { contentDescription = if (granted) "Allowed" else "Not allowed yet" },
+                        .semantics { contentDescription = checkDescription },
                     contentAlignment = Alignment.Center,
                 ) {
                     if (granted) Icon(painterResource(R.drawable.ic_doodle_check), contentDescription = null, modifier = Modifier.size(22.dp))

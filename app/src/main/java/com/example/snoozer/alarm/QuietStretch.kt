@@ -21,7 +21,7 @@ data class QuietStretch(
     val startMillis: Long,
     /** Null while it's still going. */
     val endMillis: Long?,
-    /** The category that set the level ([Category.label]); with overlaps, the quieter one. */
+    /** The category that set the level ([Category.stored]); with overlaps, the quieter one. */
     val category: String,
     /** The ringer was louder than Snoozer set it when the stretch ended: turned back up by hand. */
     val louder: Boolean,

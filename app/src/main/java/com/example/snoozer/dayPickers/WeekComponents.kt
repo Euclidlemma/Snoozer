@@ -36,6 +36,12 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.alarm.AlarmTime
+import com.example.snoozer.util.pluralResource
+import com.example.snoozer.util.rememberStrings
+import java.time.DayOfWeek
+import java.time.format.TextStyle
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -95,26 +101,28 @@ fun StatusCard(status: StatusUi, modifier: Modifier = Modifier, onAllowAccess: (
                 Column {
                     when (status) {
                         is StatusUi.QuietNow -> {
-                            Text("Quiet now · ${status.category.label} · ${status.level.label}", style = type.caption)
-                            Text("until ${status.until}", style = type.headline)
+                            Text(stringResource(R.string.status_quiet_now, stringResource(status.category.labelRes),
+                                stringResource(status.level.labelRes)), style = type.caption)
+                            Text(stringResource(R.string.status_until, status.until), style = type.headline)
                             Text(listOfNotNull(status.left, status.then).joinToString(" · "), style = type.caption)
                         }
                         is StatusUi.Next -> {
-                            Text("Next quiet time", style = type.caption)
-                            Text("${status.time} ${status.day}", style = type.headline)
-                            Text("${status.category.label} · ${status.level.label} · ${status.startsIn}", style = type.caption)
+                            Text(stringResource(R.string.status_next), style = type.caption)
+                            Text(stringResource(R.string.time_on_day, status.time, status.day), style = type.headline)
+                            Text(stringResource(R.string.status_next_detail, stringResource(status.category.labelRes),
+                                stringResource(status.level.labelRes), status.startsIn), style = type.caption)
                         }
                         StatusUi.NothingScheduled -> {
-                            Text("No quiet times yet", style = type.title)
-                            Text("Tap + to plan your first one.", style = type.caption)
+                            Text(stringResource(R.string.status_none_title), style = type.title)
+                            Text(stringResource(R.string.status_none_body), style = type.caption)
                         }
                         // Without Do Not Disturb access nothing mutes, so say that instead of a schedule.
                         StatusUi.NoAccess -> {
-                            Text("Snoozer is paused", style = type.title)
-                            Text("Do Not Disturb access is off, so your phone won't be muted.", style = type.caption)
+                            Text(stringResource(R.string.status_paused_title), style = type.title)
+                            Text(stringResource(R.string.status_paused_body), style = type.caption)
                             Spacer(Modifier.height(Spacing.S))
                             DoodleButton(onClick = onAllowAccess, seed = 42, wobble = DoodleDefaults.WobbleLight) {
-                                Text("Allow access")
+                                Text(stringResource(R.string.allow_access))
                             }
                         }
                     }
@@ -152,10 +160,12 @@ fun WeekStrip(days: List<DayUi>, selected: Int, onSelect: (Int) -> Unit, modifie
         days.forEachIndexed { index, day ->
             val isSelected = index == selected
             val count = day.cards.size
+            val today = stringResource(R.string.list_today)
+            val snoozers = stringResource(R.string.list_item, pluralResource(R.plurals.snoozer_count, count, count))
             val description = buildString {
                 append(day.name)
-                if (day.isToday) append(", today")
-                append(if (count == 1) ", 1 snoozer" else ", $count snoozers")
+                if (day.isToday) append(today)
+                append(snoozers)
             }
             Column(
                 modifier = Modifier
@@ -214,7 +224,7 @@ fun DayHeader(day: DayUi, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(day.name, style = type.title)
             if (day.isToday) {
-                Text(" · today", style = type.caption, color = MaterialTheme.colorScheme.primary,
+                Text(stringResource(R.string.header_today), style = type.caption, color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 2.dp))
             }
         }
@@ -258,8 +268,9 @@ fun TimelineItem(
         ) {
             Column(Modifier.padding(start = Spacing.M, end = Spacing.S, top = Spacing.S, bottom = Spacing.M)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
-                    Tag("${card.category.label} · ${card.level.label}", seed = card.id * 3)
-                    if (card.activeNow) Tag("quiet now", seed = card.id * 3 + 1, highlighted = true)
+                    Tag(stringResource(R.string.tag_category_level, stringResource(card.category.labelRes),
+                        stringResource(card.level.labelRes)), seed = card.id * 3)
+                    if (card.activeNow) Tag(stringResource(R.string.tag_quiet_now), seed = card.id * 3 + 1, highlighted = true)
                     Spacer(Modifier.weight(1f))
                     DoodleSwitch(
                         checked = checked,
@@ -267,7 +278,8 @@ fun TimelineItem(
                             checked = it
                             onToggle(it)
                         },
-                        contentDescription = listOfNotNull(card.name, card.category.label).joinToString(", ") + ", ${card.start} to ${card.end}",
+                        contentDescription = stringResource(R.string.card_switch,
+                            listOfNotNull(card.name, stringResource(card.category.labelRes)).joinToString(", "), card.start, card.end),
                         seed = card.id * 5,
                     )
                 }
@@ -287,13 +299,14 @@ fun TimelineItem(
                         // An imported class says which one it is.
                         if (card.name != null) Text(card.name, style = type.label, maxLines = 2)
                         Row(verticalAlignment = Alignment.Top) {
-                            Text("${card.start} – ${card.end}", style = type.headline)
+                            Text(stringResource(R.string.time_range, card.start, card.end), style = type.headline)
                             // Overnight windows end the next day; say so instead of looking like a typo.
                             if (card.endsNextDay) {
+                                val nextDay = stringResource(R.string.next_day)
                                 Text(
                                     "+1",
                                     style = type.caption,
-                                    modifier = Modifier.padding(start = Spacing.XS).semantics { contentDescription = "next day" },
+                                    modifier = Modifier.padding(start = Spacing.XS).semantics { contentDescription = nextDay },
                                 )
                             }
                         }
@@ -352,11 +365,13 @@ private fun Tag(text: String, seed: Int, highlighted: Boolean = false) {
 /** "M T W T F S S" with the repeat days in full ink and the rest faint. */
 @Composable
 private fun RepeatLetters(repeatsOn: List<Boolean>, description: String) {
+    val strings = rememberStrings()
+    val repeats = stringResource(R.string.repeats, description)
     Row(
         horizontalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = Modifier.clearAndSetSemantics { contentDescription = "Repeats $description" },
+        modifier = Modifier.clearAndSetSemantics { contentDescription = repeats },
     ) {
-        listOf("M", "T", "W", "T", "F", "S", "S").forEachIndexed { i, letter ->
+        DayOfWeek.entries.map { AlarmTime.dayName(it, TextStyle.NARROW, strings) }.forEachIndexed { i, letter ->
             Text(
                 letter,
                 style = SnoozerTheme.type.caption.copy(
@@ -388,9 +403,9 @@ fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier, 
             Image(painterResource(R.drawable.ic_doodle_bell), contentDescription = null, modifier = Modifier.size(60.dp))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("A free day", style = SnoozerTheme.type.title)
+            Text(stringResource(R.string.free_day_title), style = SnoozerTheme.type.title)
             Text(
-                "Nothing mutes your phone on $dayName.",
+                stringResource(R.string.free_day_body, dayName),
                 style = SnoozerTheme.type.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -399,7 +414,7 @@ fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier, 
         DoodleButton(onClick = onAdd, seed = 53, wobble = DoodleDefaults.WobbleLight) {
             Icon(painterResource(R.drawable.ic_doodle_add), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(Spacing.XS))
-            Text("Add snoozer")
+            Text(stringResource(R.string.add_snoozer))
         }
         // Classes are quicker to bring in from a calendar file than to type one by one.
         if (onImport != null) {
@@ -407,7 +422,7 @@ fun EmptyDay(dayName: String, onAdd: () -> Unit, modifier: Modifier = Modifier, 
                 containerColor = Color.Transparent, borderColor = Color.Transparent) {
                 Icon(painterResource(R.drawable.ic_doodle_import), contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(Spacing.XS))
-                Text("Import a timetable")
+                Text(stringResource(R.string.import_a_timetable))
             }
         }
     }

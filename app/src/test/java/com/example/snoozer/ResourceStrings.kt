@@ -6,6 +6,10 @@ import java.io.File
 import java.util.Locale
 import javax.xml.parsers.DocumentBuilderFactory
 
+/** English and Korean, read from the app's string files. */
+val EN = ResourceStrings(Locale.ENGLISH)
+val KO = ResourceStrings(Locale.KOREAN)
+
 /**
  * [Strings] for unit tests, read from the app's own res/values/strings.xml files the way Android
  * reads them: the language's folder first (values-ko), then the English default. Tests run on

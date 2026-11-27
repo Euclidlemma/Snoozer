@@ -1,5 +1,7 @@
 package com.example.snoozer.onboarding
 
+import androidx.annotation.StringRes
+import com.example.snoozer.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.example.snoozer.Route.Routes
@@ -30,10 +32,11 @@ data class OnboardingSpec(
     val showSkip: Boolean,
 ) {
     /** "Next" on every page but the last, which finishes: "Get started" or "Done". */
-    fun buttonLabel(page: Int): String = when {
-        page < OnboardingPageCount - 1 -> "Next"
-        mode == OnboardingMode.FirstRun -> "Get started"
-        else -> "Done"
+    @StringRes
+    fun buttonLabel(page: Int): Int = when {
+        page < OnboardingPageCount - 1 -> R.string.next
+        mode == OnboardingMode.FirstRun -> R.string.get_started
+        else -> R.string.done
     }
 
     /** Back goes to the previous page, but not before where this mode started. */

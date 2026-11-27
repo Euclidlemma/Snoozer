@@ -1,5 +1,8 @@
 package com.example.snoozer.report
 
+import com.example.snoozer.R
+import com.example.snoozer.dayPickers.WeekUi
+import com.example.snoozer.util.Strings
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.QuietStretch
@@ -12,7 +15,6 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 
 /**
  * Turns the log of quiet stretches into the weekly report. Pure (no Android), so it's
@@ -112,13 +114,13 @@ object WeeklyReport {
 
     // ---- The report screen --------------------------------------------------------------------
 
-    fun build(stretches: List<QuietStretch>, now: LocalDateTime, zone: ZoneId): ReportUiState {
+    fun build(strings: Strings, stretches: List<QuietStretch>, now: LocalDateTime, zone: ZoneId): ReportUiState {
         val nowMillis = millis(now, zone)
         val thisWeek = weekStart(now.toLocalDate())
-        val next = nextReport(now)
+        val next = nextReport(strings, now)
         // Nothing logged before this week: there's no finished week to report yet.
         if (!startedBefore(stretches, thisWeek, zone)) {
-            return ReportUiState.FirstWeek(soFar(week(stretches, thisWeek, nowMillis, zone).totalMinutes), next)
+            return ReportUiState.FirstWeek(soFar(strings, week(stretches, thisWeek, nowMillis, zone).totalMinutes), next)
         }
         val monday = thisWeek.minusWeeks(1)
         val last = week(stretches, monday, nowMillis, zone)
@@ -128,136 +130,150 @@ object WeeklyReport {
         val maxDay = last.days.maxOf { it.values.sum() }
         val quietestIndex = if (maxDay > 0) last.days.indexOfFirst { it.values.sum() == maxDay } else -1
         return ReportUiState.Ready(
-            range = range(monday),
+            range = range(strings, monday),
             totalMinutes = last.totalMinutes,
-            change = before?.let { change(last.totalMinutes - it.totalMinutes) },
-            work = category(Category.Work, last, before),
-            study = category(Category.Study, last, before),
+            change = before?.let { change(strings, last.totalMinutes - it.totalMinutes) },
+            work = category(strings, Category.Work, last, before),
+            study = category(strings, Category.Study, last, before),
             days = last.days.mapIndexed { i, m ->
                 val day = DayOfWeek.of(i + 1)
                 DayBarUi(
-                    letter = day.getDisplayName(TextStyle.NARROW, Locale.ENGLISH),
-                    name = day.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                    letter = AlarmTime.dayName(day, TextStyle.NARROW, strings),
+                    name = AlarmTime.dayName(day, TextStyle.FULL, strings),
                     workMinutes = m[Category.Work] ?: 0,
                     studyMinutes = m[Category.Study] ?: 0,
                     isQuietest = i == quietestIndex,
                 )
             },
-            highlights = highlights(last, quietestIndex),
-            notes = notes(last),
+            highlights = highlights(strings, last, quietestIndex),
+            notes = notes(strings, last),
             nextReport = next,
             earlier = (2..KEEP_WEEKS - 1).map { thisWeek.minusWeeks(it) }
                 .filter { startedBefore(stretches, it.plusWeeks(1), zone) }
-                .map { EarlierWeekUi(shortRange(it), AlarmTime.formatDuration(week(stretches, it, nowMillis, zone).totalMinutes)) },
+                .map { EarlierWeekUi(shortRange(strings, it), AlarmTime.formatDuration(week(stretches, it, nowMillis, zone).totalMinutes, strings)) },
         )
     }
 
     /** The week screen's strip. [seenWeek]: the report week last opened (for the dot). */
-    fun strip(stretches: List<QuietStretch>, now: LocalDateTime, zone: ZoneId, seenWeek: LocalDate?): ReportStripUi {
+    fun strip(strings: Strings, stretches: List<QuietStretch>, now: LocalDateTime, zone: ZoneId, seenWeek: LocalDate?): ReportStripUi {
         val thisWeek = weekStart(now.toLocalDate())
         val nowMillis = millis(now, zone)
         if (!startedBefore(stretches, thisWeek, zone)) {
-            val soFar = soFar(week(stretches, thisWeek, nowMillis, zone).totalMinutes)
+            val soFar = soFar(strings, week(stretches, thisWeek, nowMillis, zone).totalMinutes)
             return ReportStripUi(
-                title = "Your first report arrives Monday",
-                detail = "So far this week: $soFar",
+                title = strings.get(R.string.report_first_title),
+                detail = strings.get(R.string.report_so_far, soFar),
                 isNew = false,
-                description = "Weekly report. Your first report arrives Monday. So far this week: $soFar.",
+                description = strings.get(R.string.report_first_description, soFar),
             )
         }
         val last = week(stretches, thisWeek.minusWeeks(1), nowMillis, zone)
-        val total = AlarmTime.formatDuration(last.totalMinutes)
-        val split = Category.entries.joinToString(" · ") { "${it.label} ${AlarmTime.formatDuration(last.minutes(it))}" }
+        val total = AlarmTime.formatDuration(last.totalMinutes, strings)
+        val amounts = Category.entries.map { WeekUi.amount(strings, it, last.minutes(it)) }
         val isNew = seenWeek != thisWeek.minusWeeks(1)
         return ReportStripUi(
-            title = "Last week · $total quiet",
-            detail = split,
+            title = strings.get(R.string.report_strip_title, total),
+            detail = amounts.joinToString(" · "),
             isNew = isNew,
-            description = "Last week's report: $total quiet. ${split.replace(" · ", ", ")}." + if (isNew) " New." else "",
+            description = strings.get(R.string.report_strip_description, total, amounts.joinToString(", ")) +
+                if (isNew) strings.get(R.string.report_strip_new) else "",
         )
     }
 
     // ---- Pieces -------------------------------------------------------------------------------
 
-    private fun category(c: Category, last: Week, before: Week?): CategoryReportUi {
+    private fun category(strings: Strings, c: Category, last: Week, before: Week?): CategoryReportUi {
         val n = last.sessions[c] ?: 0
         return CategoryReportUi(
             category = c,
             minutes = last.minutes(c),
-            sessions = if (n == 1) "1 session" else "$n sessions",
+            sessions = strings.plural(R.plurals.report_sessions, n, n),
             change = before?.let {
                 val diff = last.minutes(c) - it.minutes(c)
                 when {
-                    diff > 0 -> "▲ ${AlarmTime.formatDuration(diff)}"
-                    diff < 0 -> "▼ ${AlarmTime.formatDuration(-diff)}"
-                    else -> "same"
+                    diff > 0 -> strings.get(R.string.report_up, AlarmTime.formatDuration(diff, strings))
+                    diff < 0 -> strings.get(R.string.report_down, AlarmTime.formatDuration(-diff, strings))
+                    else -> strings.get(R.string.report_same)
                 }
             },
         )
     }
 
-    private fun change(diff: Int): ChangeUi = when {
-        diff > 0 -> ChangeUi("${AlarmTime.formatDuration(diff)} more than the week before", up = true)
-        diff < 0 -> ChangeUi("${AlarmTime.formatDuration(-diff)} less than the week before", up = false)
-        else -> ChangeUi("The same as the week before", up = null)
+    private fun change(strings: Strings, diff: Int): ChangeUi = when {
+        diff > 0 -> ChangeUi(strings.get(R.string.report_more, AlarmTime.formatDuration(diff, strings)), up = true)
+        diff < 0 -> ChangeUi(strings.get(R.string.report_less, AlarmTime.formatDuration(-diff, strings)), up = false)
+        else -> ChangeUi(strings.get(R.string.report_same_as_before), up = null)
     }
 
-    private fun highlights(w: Week, quietestIndex: Int): List<HighlightUi> {
+    private fun highlights(strings: Strings, w: Week, quietestIndex: Int): List<HighlightUi> {
         if (w.totalMinutes == 0) return emptyList()
         val out = mutableListOf<HighlightUi>()
         w.longest?.let { (min, c, day) ->
-            out += HighlightUi(HighlightIcon.Trophy, "Longest stretch", AlarmTime.formatDuration(min), "${c.label} · ${short(day.dayOfWeek)}")
+            out += HighlightUi(HighlightIcon.Trophy, strings.get(R.string.report_longest), AlarmTime.formatDuration(min, strings),
+                strings.get(R.string.report_detail, strings.get(c.labelRes), short(strings, day.dayOfWeek)))
         }
         if (quietestIndex >= 0) {
             val day = DayOfWeek.of(quietestIndex + 1)
-            out += HighlightUi(HighlightIcon.Calendar, "Quietest day", short(day), AlarmTime.formatDuration(w.days[quietestIndex].values.sum()))
+            out += HighlightUi(HighlightIcon.Calendar, strings.get(R.string.report_quietest_day), short(strings, day),
+                AlarmTime.formatDuration(w.days[quietestIndex].values.sum(), strings))
         }
         // Days with Study (or with Work, in a week without Study).
         val c = if (w.minutes(Category.Study) > 0) Category.Study else Category.Work
         val days = w.days.indices.filter { (w.days[it][c] ?: 0) > 0 }.map { DayOfWeek.of(it + 1) }
-        out += HighlightUi(HighlightIcon.Flame, "${c.label} days", "${days.size} of 7", days.joinToString(" · ") { short(it) })
+        out += HighlightUi(HighlightIcon.Flame, strings.get(R.string.report_category_days, strings.get(c.labelRes)),
+            strings.get(R.string.report_days_of_week, days.size), days.joinToString(" · ") { short(strings, it) })
         return out
     }
 
-    private fun notes(w: Week): List<String> {
+    private fun notes(strings: Strings, w: Week): List<String> {
         val out = mutableListOf<String>()
         if (w.missedMinutes > 0) {
-            out += "${AlarmTime.formatDuration(w.missedMinutes)} planned but not quiet: Snoozer didn't have Do Not Disturb access."
+            out += strings.get(R.string.report_missed, AlarmTime.formatDuration(w.missedMinutes, strings))
         }
         if (w.turnedUp.isNotEmpty()) {
             val n = w.turnedUp.size
-            val which = w.turnedUp.take(3).joinToString(", ") { (c, d) -> "${short(d.dayOfWeek)} ${c.label}" } +
-                if (n > 3) ", …" else ""
-            out += "You turned the sound back on during " + (if (n == 1) "1 quiet time" else "$n quiet times") + " ($which)."
+            val which = w.turnedUp.take(3).joinToString(", ") { (c, d) ->
+                strings.get(R.string.report_turned_up_item, short(strings, d.dayOfWeek), strings.get(c.labelRes))
+            } + if (n > 3) ", …" else ""
+            out += strings.plural(R.plurals.report_turned_up, n, n, which)
         }
         return out
     }
 
     /** "3h 20m quiet", or "nothing yet" before anything is counted. */
-    private fun soFar(minutes: Int): String = if (minutes == 0) "nothing yet" else "${AlarmTime.formatDuration(minutes)} quiet"
+    private fun soFar(strings: Strings, minutes: Int): String =
+        if (minutes == 0) strings.get(R.string.report_nothing_yet)
+        else strings.get(R.string.report_so_far_quiet, AlarmTime.formatDuration(minutes, strings))
 
     /** "Next report Monday 00:00 · in 3 days" (or "· tomorrow"). */
-    fun nextReport(now: LocalDateTime): String {
+    fun nextReport(strings: Strings, now: LocalDateTime): String {
         val next = weekStart(now.toLocalDate()).plusWeeks(1)
-        val days = ChronoUnit.DAYS.between(now.toLocalDate(), next)
-        return "Next report Monday 00:00 · " + if (days == 1L) "tomorrow" else "in $days days"
+        val days = ChronoUnit.DAYS.between(now.toLocalDate(), next).toInt()
+        return if (days == 1) strings.get(R.string.report_next_tomorrow)
+        else strings.plural(R.plurals.report_next_in_days, days, days)
     }
 
-    /** "Mon 17 – Sun 23 Nov", or "Mon 27 Oct – Sun 2 Nov" across months. */
-    fun range(monday: LocalDate): String {
+    /** "Mon 17 – Sun 23 Nov", or "Mon 27 Oct – Sun 2 Nov" across months; "11월 17일 (월) – 11월 23일 (일)". */
+    fun range(strings: Strings, monday: LocalDate): String {
         val sunday = monday.plusDays(6)
-        val from = if (monday.month == sunday.month) "Mon ${monday.dayOfMonth}" else "Mon ${AlarmTime.formatDate(monday)}"
-        return "$from – Sun ${AlarmTime.formatDate(sunday)}"
+        return strings.get(
+            if (monday.month == sunday.month) R.string.report_range_same_month else R.string.report_range,
+            short(strings, monday.dayOfWeek), monday.dayOfMonth, AlarmTime.formatDate(monday, strings),
+            short(strings, sunday.dayOfWeek), AlarmTime.formatDate(sunday, strings),
+        )
     }
 
     /** "10 – 16 Nov", or "27 Oct – 2 Nov". */
-    private fun shortRange(monday: LocalDate): String {
+    private fun shortRange(strings: Strings, monday: LocalDate): String {
         val sunday = monday.plusDays(6)
-        val from = if (monday.month == sunday.month) "${monday.dayOfMonth}" else AlarmTime.formatDate(monday)
-        return "$from – ${AlarmTime.formatDate(sunday)}"
+        return strings.get(
+            if (monday.month == sunday.month) R.string.report_short_range_same_month else R.string.date_range,
+            *(if (monday.month == sunday.month) arrayOf<Any>(monday.dayOfMonth, AlarmTime.formatDate(monday, strings), AlarmTime.formatDate(sunday, strings))
+              else arrayOf<Any>(AlarmTime.formatDate(monday, strings), AlarmTime.formatDate(sunday, strings))),
+        )
     }
 
-    private fun short(day: DayOfWeek) = day.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+    private fun short(strings: Strings, day: DayOfWeek) = AlarmTime.dayName(day, TextStyle.SHORT, strings)
 
     private fun startedBefore(stretches: List<QuietStretch>, date: LocalDate, zone: ZoneId): Boolean {
         val m = millis(date, zone)

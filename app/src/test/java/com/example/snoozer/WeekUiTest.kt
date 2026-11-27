@@ -32,7 +32,7 @@ class WeekUiTest {
     fun days_mondayFirst_withTodayMarkedAndSortedCards() {
         val late = alarm(1, 22, 0, 23, 0, MONDAY)
         val early = alarm(2, 9, 0, 10, 30, MONDAY, WEDNESDAY)
-        val ui = WeekUi.build(listOf(late, early), at(18, 8, 0))   // Wednesday
+        val ui = WeekUi.build(EN, listOf(late, early), at(18, 8, 0))   // Wednesday
 
         assertEquals(7, ui.days.size)
         assertEquals(listOf("M", "T", "W", "T", "F", "S", "S"), ui.days.map { it.letter })
@@ -45,7 +45,7 @@ class WeekUiTest {
     @Test
     fun card_formatsTimesDurationAndRepeat() {
         val a = alarm(5, 22, 0, 7, 0, MONDAY, FRIDAY, work = "Study")
-        val card = WeekUi.build(listOf(a), at(16, 12, 0)).days[0].cards.single()
+        val card = WeekUi.build(EN, listOf(a), at(16, 12, 0)).days[0].cards.single()
         assertEquals("22:00", card.start)
         assertEquals("07:00", card.end)
         assertTrue(card.endsNextDay)
@@ -60,14 +60,14 @@ class WeekUiTest {
         val a = alarm(1, 9, 0, 11, 0, MONDAY)
         val b = alarm(2, 10, 0, 12, 0, MONDAY)
         val off = alarm(3, 20, 0, 21, 0, MONDAY, enabled = false)
-        assertEquals("2 snoozers · 3h quiet", WeekUi.build(listOf(a, b, off), at(16, 8, 0)).days[0].summary)
-        assertEquals("1 snoozer · all off", WeekUi.build(listOf(off), at(16, 8, 0)).days[0].summary)
+        assertEquals("2 snoozers · 3h quiet", WeekUi.build(EN, listOf(a, b, off), at(16, 8, 0)).days[0].summary)
+        assertEquals("1 snoozer · all off", WeekUi.build(EN, listOf(off), at(16, 8, 0)).days[0].summary)
     }
 
     @Test
     fun activeNow_overnightBelongsToTheStartDayPage() {
         val a = alarm(1, 22, 0, 7, 0, SUNDAY, MONDAY)
-        val ui = WeekUi.build(listOf(a), at(16, 6, 0))   // Monday 06:00, inside Sunday's window
+        val ui = WeekUi.build(EN, listOf(a), at(16, 6, 0))   // Monday 06:00, inside Sunday's window
         assertTrue(ui.days[6].cards.single().activeNow)   // Sunday page
         assertFalse(ui.days[0].cards.single().activeNow)  // Monday's own window starts at 22:00
     }
@@ -76,25 +76,25 @@ class WeekUiTest {
     fun status_quietNow() {
         val a = alarm(1, 9, 0, 10, 30, MONDAY, work = "Study")
         assertEquals(StatusUi.QuietNow(until = "10:30", category = Category.Study, level = QuietLevel.Silent, left = "1h 10m left"),
-            WeekUi.status(listOf(a), at(16, 9, 20)))
+            WeekUi.status(EN, listOf(a), at(16, 9, 20)))
     }
 
     @Test
     fun status_next_todayTomorrowAndLater() {
         val mon = alarm(1, 22, 0, 23, 0, MONDAY)
         assertEquals(StatusUi.Next("22:00", "today", Category.Work, QuietLevel.Vibrate, "in 2h 15m"),
-            WeekUi.status(listOf(mon), at(16, 19, 45)))
+            WeekUi.status(EN, listOf(mon), at(16, 19, 45)))
         assertEquals(StatusUi.Next("22:00", "tomorrow", Category.Work, QuietLevel.Vibrate, "in 1 day"),
-            WeekUi.status(listOf(mon), at(15, 21, 0)))   // Sunday evening
+            WeekUi.status(EN, listOf(mon), at(15, 21, 0)))   // Sunday evening
         val sat = alarm(2, 9, 0, 10, 0, SATURDAY)
         assertEquals(StatusUi.Next("09:00", "Sat", Category.Work, QuietLevel.Vibrate, "in 5 days"),
-            WeekUi.status(listOf(sat), at(16, 8, 0)))
+            WeekUi.status(EN, listOf(sat), at(16, 8, 0)))
     }
 
     @Test
     fun withoutDndAccess_statusSaysPausedAndNoCardIsActive() {
         val a = alarm(1, 9, 0, 10, 30, MONDAY)
-        val ui = WeekUi.build(listOf(a), at(16, 9, 20), canMute = false)   // inside the window
+        val ui = WeekUi.build(EN, listOf(a), at(16, 9, 20), canMute = false)   // inside the window
         assertEquals(StatusUi.NoAccess, ui.status)
         assertFalse(ui.days[0].cards.single().activeNow)
     }
@@ -105,7 +105,7 @@ class WeekUiTest {
         // silence is what the phone is at, so the card says Study, Silent.
         val work = alarm(1, 9, 0, 17, 0, MONDAY)
         val study = alarm(2, 10, 0, 12, 0, MONDAY, work = "Study")
-        val during = WeekUi.status(listOf(work, study), at(16, 11, 0)) as StatusUi.QuietNow
+        val during = WeekUi.status(EN, listOf(work, study), at(16, 11, 0)) as StatusUi.QuietNow
         assertEquals(Category.Study, during.category)
         assertEquals(QuietLevel.Silent, during.level)
         // Silent only until Study ends; the rest of the quiet time is mentioned separately.
@@ -113,7 +113,7 @@ class WeekUiTest {
         assertEquals("1h left", during.left)
         assertEquals("then vibrate until 17:00", during.then)
         // After Study ends, it's Work on vibrate until the end, with nothing after it.
-        val after = WeekUi.status(listOf(work, study), at(16, 13, 0)) as StatusUi.QuietNow
+        val after = WeekUi.status(EN, listOf(work, study), at(16, 13, 0)) as StatusUi.QuietNow
         assertEquals(Category.Work, after.category)
         assertEquals(QuietLevel.Vibrate, after.level)
         assertEquals("17:00", after.until)
@@ -124,7 +124,7 @@ class WeekUiTest {
     fun status_quieterWindowLaterInTheRun_isMentioned() {
         val work = alarm(1, 9, 0, 17, 0, MONDAY)
         val study = alarm(2, 14, 0, 15, 0, MONDAY, work = "Study")
-        val s = WeekUi.status(listOf(work, study), at(16, 11, 0)) as StatusUi.QuietNow
+        val s = WeekUi.status(EN, listOf(work, study), at(16, 11, 0)) as StatusUi.QuietNow
         assertEquals(QuietLevel.Vibrate, s.level)
         assertEquals("17:00", s.until)
         assertEquals("silent from 14:00", s.then)
@@ -133,7 +133,7 @@ class WeekUiTest {
     @Test
     fun card_carriesItsCategorysLevel() {
         val study = alarm(1, 10, 0, 12, 0, MONDAY, work = "Study")
-        assertEquals(QuietLevel.Silent, WeekUi.build(listOf(study), at(16, 8, 0)).days[0].cards.single().level)
+        assertEquals(QuietLevel.Silent, WeekUi.build(EN, listOf(study), at(16, 8, 0)).days[0].cards.single().level)
     }
 
     @Test
@@ -141,7 +141,7 @@ class WeekUiTest {
         val work = alarm(1, 9, 0, 17, 0, *DayOfWeek.entries.take(5).toTypedArray())   // 5 x 8h
         val study = alarm(2, 19, 0, 21, 0, MONDAY, WEDNESDAY, work = "Study")           // 2 x 2h
         assertEquals(mapOf(Category.Work to 40 * 60, Category.Study to 4 * 60), WeekUi.weeklyMinutes(listOf(work, study)))
-        assertEquals("This week · Work 40h · Study 4h", WeekUi.build(listOf(work, study), at(16, 8, 0)).weeklyTotals)
+        assertEquals("This week · Work 40h · Study 4h", WeekUi.build(EN, listOf(work, study), at(16, 8, 0)).weeklyTotals)
     }
 
     @Test
@@ -156,20 +156,20 @@ class WeekUiTest {
     fun weeklyTotals_skipOffWindows_countOvernight_andHideWhenEmpty() {
         val off = alarm(1, 9, 0, 17, 0, MONDAY, enabled = false)
         val night = alarm(2, 22, 0, 7, 0, SUNDAY, work = "Study")   // 9h, counted on Sunday
-        assertEquals("This week · Study 9h", WeekUi.build(listOf(off, night), at(16, 8, 0)).weeklyTotals)
-        assertNull(WeekUi.build(listOf(off), at(16, 8, 0)).weeklyTotals)
-        assertNull(WeekUi.build(emptyList(), at(16, 8, 0)).weeklyTotals)
+        assertEquals("This week · Study 9h", WeekUi.build(EN, listOf(off, night), at(16, 8, 0)).weeklyTotals)
+        assertNull(WeekUi.build(EN, listOf(off), at(16, 8, 0)).weeklyTotals)
+        assertNull(WeekUi.build(EN, emptyList(), at(16, 8, 0)).weeklyTotals)
     }
 
     @Test
     fun status_nothingScheduled() {
-        assertEquals(StatusUi.NothingScheduled, WeekUi.status(emptyList(), at(16, 8, 0)))
+        assertEquals(StatusUi.NothingScheduled, WeekUi.status(EN, emptyList(), at(16, 8, 0)))
     }
 
     @Test
     fun repeatText_presets() {
-        assertEquals("Every day", WeekUi.repeatText(DayOfWeek.entries))
-        assertEquals("Weekdays", WeekUi.repeatText(DayOfWeek.entries.take(5)))
-        assertEquals("Weekends", WeekUi.repeatText(listOf(SUNDAY, SATURDAY)))
+        assertEquals("Every day", WeekUi.repeatText(EN, DayOfWeek.entries))
+        assertEquals("Weekdays", WeekUi.repeatText(EN, DayOfWeek.entries.take(5)))
+        assertEquals("Weekends", WeekUi.repeatText(EN, listOf(SUNDAY, SATURDAY)))
     }
 }

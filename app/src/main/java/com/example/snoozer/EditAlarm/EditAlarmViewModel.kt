@@ -1,6 +1,8 @@
 package com.example.snoozer.EditAlarm
 
 import android.util.Log
+import com.example.snoozer.R
+import com.example.snoozer.util.Strings
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,6 +40,7 @@ class EditAlarmViewModel @Inject constructor(
     private val actions: AlarmActions,
     private val permissionChecker: PermissionChecker,
     private val timeSource: TimeSource,
+    private val strings: Strings,
 ) : ViewModel() {
 
     // Whether reminders can be shown, so the "What happens" panel doesn't promise a heads-up
@@ -81,7 +84,7 @@ class EditAlarmViewModel @Inject constructor(
     // The clock keeps "That time has already passed today" current while the screen is open.
     val uiState: StateFlow<EditUiState?> = combine(form, original, permissions, timeSource.minuteTicks) { f, o, p, now ->
         if (f == null || o == null) null
-        else EditUi.describe(f, o, isNew, permissions = p, now = now)
+        else EditUi.describe(strings, f, o, isNew, permissions = p, now = now)
     // Only while the screen is shown (the clock stops 5s after it's covered or left).
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -107,12 +110,12 @@ class EditAlarmViewModel @Inject constructor(
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "Could not load snoozer $alarmId", e)
-            events.send(EditEvent("Couldn't open that snoozer. Try again."))
+            events.send(EditEvent(strings.get(R.string.event_open_failed)))
             return
         }
         if (loaded == null) {
             // Deleted elsewhere (or a stale link): nothing to edit.
-            events.send(EditEvent("That snoozer no longer exists"))
+            events.send(EditEvent(strings.get(R.string.event_gone)))
             return
         }
         original.value = loaded
@@ -163,27 +166,27 @@ class EditAlarmViewModel @Inject constructor(
         val current = form.value ?: return
         val saved = original.value ?: return
         // Checked fresh, not from uiState (which may be paused), with the time as of this tap.
-        if (busy || !EditUi.describe(current, saved, isNew, now = timeSource.now()).canSave) return
+        if (busy || !EditUi.describe(strings, current, saved, isNew, now = timeSource.now()).canSave) return
         // The screen only leaves after the write finishes; leaving clears this ViewModel and
         // would cancel a write still in flight.
-        runWrite(failure = "Couldn't save. Your changes are still here; try again.") {
+        runWrite(failure = strings.get(R.string.event_save_failed)) {
             if (alarmId == null) {
                 actions.create(current.toNewAlarm())
             } else {
                 // Re-read so the update starts from what is saved now (e.g. its on/off state).
                 val saved = repository.getAlarmById(alarmId)
-                    ?: return@runWrite EditEvent("That snoozer no longer exists")
+                    ?: return@runWrite EditEvent(strings.get(R.string.event_gone))
                 actions.update(old = saved, new = current.applyTo(saved))
             }
-            EditEvent("Snoozer saved")
+            EditEvent(strings.get(R.string.event_saved))
         }
     }
 
     fun delete() {
         if (busy || alarmId == null) return
-        runWrite(failure = "Couldn't delete. Try again.") {
+        runWrite(failure = strings.get(R.string.event_delete_failed)) {
             repository.getAlarmById(alarmId)?.let { actions.delete(it) }
-            EditEvent("Snoozer deleted")
+            EditEvent(strings.get(R.string.event_deleted))
         }
     }
 

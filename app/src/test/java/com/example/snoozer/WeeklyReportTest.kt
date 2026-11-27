@@ -24,7 +24,7 @@ class WeeklyReportTest {
     private fun s(c: Category, from: LocalDateTime, to: LocalDateTime?, louder: Boolean = false, missed: Boolean = false) =
         QuietStretch(startMillis = ms(from), endMillis = to?.let(::ms), category = c.stored, louder = louder, missed = missed)
 
-    private fun ready(vararg stretches: QuietStretch) = WeeklyReport.build(stretches.toList(), now, zone) as ReportUiState.Ready
+    private fun ready(vararg stretches: QuietStretch) = WeeklyReport.build(EN, stretches.toList(), now, zone) as ReportUiState.Ready
 
     @Test
     fun totals_perCategoryAndDay_withTheChangeFromTheWeekBefore() {
@@ -71,16 +71,16 @@ class WeeklyReportTest {
             s(Category.Work, t(20, 9, month = 10), t(20, 10, month = 10)),
             s(Category.Study, t(1, 0), t(1, 4)),
         )
-        val r = WeeklyReport.build(stretches, nowNov, zone) as ReportUiState.Ready
+        val r = WeeklyReport.build(EN, stretches, nowNov, zone) as ReportUiState.Ready
         assertEquals("Mon 26 Oct – Sun 1 Nov", r.range)
         assertEquals(300, r.days[6].studyMinutes)
     }
 
     @Test
     fun aStretchStillGoing_countsUpToNow_andTheFirstWeekSaysSo() {
-        val first = WeeklyReport.build(listOf(s(Category.Work, t(25, 9), null)), now, zone)
+        val first = WeeklyReport.build(EN, listOf(s(Category.Work, t(25, 9), null)), now, zone)
         assertEquals(ReportUiState.FirstWeek("1h quiet", "Next report Monday 00:00 · in 5 days"), first)
-        val strip = WeeklyReport.strip(listOf(s(Category.Work, t(25, 9), null)), now, zone, seenWeek = null)
+        val strip = WeeklyReport.strip(EN, listOf(s(Category.Work, t(25, 9), null)), now, zone, seenWeek = null)
         assertEquals("Your first report arrives Monday", strip.title)
         assertFalse(strip.isNew)
     }
@@ -118,13 +118,13 @@ class WeeklyReportTest {
     @Test
     fun strip_showsLastWeek_andTheDotUntilOpened() {
         val stretches = listOf(s(Category.Work, t(17, 9), t(17, 11)), s(Category.Study, t(18, 19), t(18, 20)))
-        val strip = WeeklyReport.strip(stretches, now, zone, seenWeek = LocalDate.of(2026, 11, 9))
+        val strip = WeeklyReport.strip(EN, stretches, now, zone, seenWeek = LocalDate.of(2026, 11, 9))
         assertEquals("Last week · 3h quiet", strip.title)
         assertEquals("Work 2h · Study 1h", strip.detail)
         assertTrue(strip.isNew)
         assertEquals("Last week's report: 3h quiet. Work 2h, Study 1h. New.", strip.description)
-        assertFalse(WeeklyReport.strip(stretches, now, zone, seenWeek = LocalDate.of(2026, 11, 16)).isNew)
+        assertFalse(WeeklyReport.strip(EN, stretches, now, zone, seenWeek = LocalDate.of(2026, 11, 16)).isNew)
         assertEquals(LocalDate.of(2026, 11, 16), WeeklyReport.reportWeek(now))
-        assertEquals("Next report Monday 00:00 · tomorrow", WeeklyReport.nextReport(LocalDateTime.of(2026, 11, 29, 23, 0)))
+        assertEquals("Next report Monday 00:00 · tomorrow", WeeklyReport.nextReport(EN, LocalDateTime.of(2026, 11, 29, 23, 0)))
     }
 }

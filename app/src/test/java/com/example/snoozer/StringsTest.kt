@@ -18,20 +18,27 @@ class StringsTest {
     private val ko = ResourceStrings(Locale.KOREAN)
 
     @Test
-    fun english_matchesTheWordsScreensShowToday() {
-        Category.entries.forEach { assertEquals(it.label, en.get(it.labelRes)) }
-        QuietLevel.entries.forEach {
-            assertEquals(it.label, en.get(it.labelRes))
-            assertEquals(it.description, en.get(it.descriptionRes))
-        }
-        // Every day of a year, so each month's short name is covered.
+    fun english_matchesTheWordsBeforeTranslation() {
+        assertEquals(listOf("Work", "Study"), Category.entries.map { en.get(it.labelRes) })
+        assertEquals(listOf("Vibrate", "Silent"), QuietLevel.entries.map { en.get(it.labelRes) })
+        assertEquals(listOf("Phone on vibrate", "Phone fully silent"), QuietLevel.entries.map { en.get(it.descriptionRes) })
+        // Every day of a year, the way dates read before: "4 Dec".
         var d = LocalDate.of(2026, 1, 1)
         while (d.year == 2026) {
-            assertEquals(AlarmTime.formatDate(d), AlarmTime.formatDate(d, en))
+            assertEquals("${d.dayOfMonth} ${d.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)}", AlarmTime.formatDate(d, en))
             d = d.plusDays(1)
         }
-        (0..1500 step 5).forEach { assertEquals(AlarmTime.formatDuration(it), AlarmTime.formatDuration(it, en)) }
+        (0..1500 step 5).forEach { m ->
+            val old = when {
+                m / 60 == 0 -> "${m % 60}m"
+                m % 60 == 0 -> "${m / 60}h"
+                else -> "${m / 60}h ${m % 60}m"
+            }
+            assertEquals(old, AlarmTime.formatDuration(m, en))
+        }
         assertEquals("0m", AlarmTime.formatDuration(-5, en))
+        assertEquals("Wednesday 18 November", AlarmTime.formatLongDate(LocalDate.of(2026, 11, 18), en))
+        assertEquals("December 2026", AlarmTime.formatMonth(java.time.YearMonth.of(2026, 12), en))
     }
 
     @Test
@@ -52,6 +59,8 @@ class StringsTest {
         assertEquals("1시간 30분", AlarmTime.formatDuration(90, ko))
         assertEquals("목", AlarmTime.dayName(DayOfWeek.THURSDAY, TextStyle.SHORT, ko))
         assertEquals("목요일", AlarmTime.dayName(DayOfWeek.THURSDAY, TextStyle.FULL, ko))
+        assertEquals("11월 18일 수요일", AlarmTime.formatLongDate(LocalDate.of(2026, 11, 18), ko))
+        assertEquals("2026년 12월", AlarmTime.formatMonth(java.time.YearMonth.of(2026, 12), ko))
         assertEquals("Thu", AlarmTime.dayName(DayOfWeek.THURSDAY, TextStyle.SHORT, en))
     }
 

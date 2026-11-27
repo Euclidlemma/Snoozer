@@ -41,7 +41,7 @@ class TimetableImportTest {
         val saved = TimetableImport.toAlarms(c, c.map { it.key }.toSet(), emptyList(), Category.Study)
         assertEquals(2, saved.size)
         val existing = saved.take(1).mapIndexed { i, a -> a.copy(id = i + 1) }
-        val rows = TimetableImport.rows(c, TimetableImport.defaultChecked(c, existing, today), existing, today)
+        val rows = TimetableImport.rows(EN, c, TimetableImport.defaultChecked(c, existing, today), existing, today)
         assertEquals(listOf(true, false), rows.map { it.alreadyAdded })
         // Asking again adds only the one that's new.
         assertEquals(listOf("CS 135"), TimetableImport.toAlarms(c, c.map { it.key }.toSet(), existing, Category.Study).map { it.name })
@@ -65,7 +65,7 @@ class TimetableImportTest {
     fun pastClasses_startUnticked_andSaySo() {
         val c = TimetableImport.merge(listOf(cls("Old", MONDAY, until = LocalDate.of(2026, 4, 30))))
         assertTrue(TimetableImport.defaultChecked(c, emptyList(), today).isEmpty())
-        val row = TimetableImport.rows(c, emptySet(), emptyList(), today).single()
+        val row = TimetableImport.rows(EN, c, emptySet(), emptyList(), today).single()
         assertEquals("Already over (ended 30 Apr)", row.dates)
         assertFalse(row.checked)
     }
@@ -73,17 +73,17 @@ class TimetableImportTest {
     @Test
     fun rowsAndLabels() {
         val c = TimetableImport.merge(listOf(cls("MATH 101", MONDAY, WEDNESDAY, FRIDAY), cls("Open", FRIDAY, until = null)))
-        val rows = TimetableImport.rows(c, c.map { it.key }.toSet(), emptyList(), today)
+        val rows = TimetableImport.rows(EN, c, c.map { it.key }.toSet(), emptyList(), today)
         assertEquals("Mon, Wed, Fri", rows[0].days)
         assertEquals("09:30 – 10:20", rows[0].time)
         assertEquals("8 Sep – 4 Dec", rows[0].dates)
         assertEquals("from 8 Sep", rows[1].dates)
         val ready = ImportUiState.Ready(rows, Category.Study, null)
-        assertEquals("Add 2 classes", ready.addLabel)
-        assertEquals("Pick a class to add", ready.copy(rows = rows.map { it.copy(checked = false) }).addLabel)
+        assertEquals("Add 2 classes", ready.addLabel(EN))
+        assertEquals("Pick a class to add", ready.copy(rows = rows.map { it.copy(checked = false) }).addLabel(EN))
         assertEquals("3 skipped: 2 all-day, 1 not weekly",
-            TimetableImport.skippedText(mapOf(SkipReason.NotWeekly to 1, SkipReason.AllDay to 2)))
-        assertNull(TimetableImport.skippedText(emptyMap()))
+            TimetableImport.skippedText(EN, mapOf(SkipReason.NotWeekly to 1, SkipReason.AllDay to 2)))
+        assertNull(TimetableImport.skippedText(EN, emptyMap()))
     }
 
     @Test
@@ -108,12 +108,12 @@ class TimetableImportTest {
                 LocalDate.of(2026, 9, 7), LocalDate.of(2026, 12, 4))
         })
         val all = many.map { it.key }.toSet()
-        assertNull(TimetableImport.budgetNote(many, all, emptyList(), now))
+        assertNull(TimetableImport.budgetNote(EN, many, all, emptyList(), now))
         // One existing snoozer on a single day tips it over, and the note says how much room is left.
         val existing = listOf(Alarm(1, 7, 0, 8, 0, listOf(FRIDAY), work = "Work"))
         assertEquals("That's more than Snoozer can keep at once: there's room for 149 more class days. Untick some classes.",
-            TimetableImport.budgetNote(many, all, existing, now))
+            TimetableImport.budgetNote(EN, many, all, existing, now))
         // Switched-off and ended snoozers keep no alarms.
-        assertNull(TimetableImport.budgetNote(many, all, existing.map { it.copy(isEnabled = false) }, now))
+        assertNull(TimetableImport.budgetNote(EN, many, all, existing.map { it.copy(isEnabled = false) }, now))
     }
 }

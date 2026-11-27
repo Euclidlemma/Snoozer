@@ -30,10 +30,10 @@ class QuietStatusTest {
 
     @Test
     fun formatDuration_andTime() {
-        assertEquals("45m", AlarmTime.formatDuration(45))
-        assertEquals("2h", AlarmTime.formatDuration(120))
-        assertEquals("1h 30m", AlarmTime.formatDuration(90))
-        assertEquals("0m", AlarmTime.formatDuration(-5))
+        assertEquals("45m", AlarmTime.formatDuration(45, EN))
+        assertEquals("2h", AlarmTime.formatDuration(120, EN))
+        assertEquals("1h 30m", AlarmTime.formatDuration(90, EN))
+        assertEquals("0m", AlarmTime.formatDuration(-5, EN))
         assertEquals("09:05", AlarmTime.formatTime(9, 5))
     }
 

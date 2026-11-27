@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- The app's name stays Snoozer in Korean. -->
     <string name="app_name">Snoozer</string>
 
@@ -14,4 +14,307 @@
     <string name="duration_minutes">%1$d분</string>
     <string name="duration_hours">%1$d시간</string>
     <string name="duration_hours_minutes">%1$d시간 %2$d분</string>
+
+    <!-- What each category does (onboarding, edit screen) -->
+    <string name="explain_title">%1$s 중에는</string>
+    <string name="explain_vibrate">벨소리 대신 진동이 울려요.</string>
+    <string name="explain_calls_buzz">전화와 메시지는 진동으로 알려 줘요.</string>
+    <string name="explain_silent">완전 무음: 벨소리도 진동도 없어요.</string>
+    <string name="explain_alarms_ring">알람은 그대로 울려요.</string>
+    <string name="explain_heads_up_off_setup">미리 알림이 꺼져 있어요. 받으려면 권한 설정에서 알림을 허용하세요.</string>
+    <string name="explain_heads_up_off_android">미리 알림이 꺼져 있어요. 받으려면 휴대폰 설정에서 Snoozer 알림을 켜세요.</string>
+    <string name="explain_heads_up_quiet">시작하기 전에 조용히 미리 알려 줘요.</string>
+    <plurals name="explain_heads_up_minutes">
+        <item quantity="other">시작 %1$d분 전에 미리 알려 줘요.</item>
+    </plurals>
+    <string name="explain_summary_vibrate">진동. 전화는 진동으로 알려 줘요.</string>
+    <string name="explain_summary_silent">완전 무음. 알람만 울려요.</string>
+
+    <!-- Reminder notifications -->
+    <plurals name="reminder_study_title">
+        <item quantity="other">%1$s, %2$d분 후 시작</item>
+    </plurals>
+    <string name="reminder_work_title">%1$s, %2$s 시작</string>
+    <string name="reminder_study_body">%1$s부터 %2$s까지 휴대폰이 완전 무음이 돼요.</string>
+    <string name="reminder_study_body_overnight">%1$s부터 내일 %2$s까지 휴대폰이 완전 무음이 돼요.</string>
+    <string name="reminder_work_body">%1$s까지 휴대폰이 진동으로 바뀌어요.</string>
+    <string name="reminder_work_body_overnight">내일 %1$s까지 휴대폰이 진동으로 바뀌어요.</string>
+    <string name="channel_study_name">공부 미리 알림</string>
+    <plurals name="channel_study_description">
+        <item quantity="other">공부 조용한 시간이 시작되기 %1$d분 전에 알려 줘요.</item>
+    </plurals>
+    <string name="channel_work_name">일 미리 알림</string>
+    <string name="channel_work_description">일 조용한 시간이 시작되기 전에 조용히 알려 줘요.</string>
+
+    <!-- Week screen: status, days and cards -->
+    <plurals name="snoozer_count">
+        <item quantity="other">조용한 시간 %1$d개</item>
+    </plurals>
+    <string name="this_week_totals">이번 주 · %1$s</string>
+    <string name="category_amount">%1$s %2$s</string>
+    <string name="time_left">%1$s 남음</string>
+    <string name="level_from">%2$s부터 %1$s</string>
+    <string name="then_level_until">그다음 %2$s까지 %1$s</string>
+    <string name="quiet_generic">조용함</string>
+    <string name="starts_in">%1$s 후</string>
+    <string name="day_summary">%1$s · %2$s</string>
+    <string name="day_summary_quiet">%1$s · %2$s</string>
+    <string name="day_all_off">모두 꺼짐</string>
+    <string name="day_all_ended">모두 끝남</string>
+    <string name="day_all_off_or_ended">모두 꺼지거나 끝남</string>
+    <string name="day_not_started">아직 시작 전</string>
+    <string name="day_none_this_week">이번 주에는 없음</string>
+    <string name="note_ended">%1$s 종료</string>
+    <string name="note_only_today">오늘만</string>
+    <string name="note_only_on">%2$s (%1$s)만</string>
+    <string name="note_starts">%1$s 시작</string>
+    <string name="note_until">%1$s까지</string>
+    <string name="repeat_every_day">매일</string>
+    <string name="repeat_weekdays">평일</string>
+    <string name="repeat_weekends">주말</string>
+    <string name="time_on_day">%2$s %1$s</string>
+    <string name="today">오늘</string>
+    <string name="tomorrow">내일</string>
+    <plurals name="days_span">
+        <item quantity="other">%1$d일</item>
+    </plurals>
+    <string name="status_quiet_now">지금 조용해요 · %1$s · %2$s</string>
+    <string name="status_until">%1$s까지</string>
+    <string name="status_next">다음 조용한 시간</string>
+    <string name="status_next_detail">%1$s · %2$s · %3$s</string>
+    <string name="status_none_title">아직 조용한 시간이 없어요</string>
+    <string name="status_none_body">+를 눌러 첫 조용한 시간을 만들어 보세요.</string>
+    <string name="status_paused_title">Snoozer가 멈춰 있어요</string>
+    <string name="status_paused_body">방해 금지 권한이 꺼져 있어서 휴대폰이 조용해지지 않아요.</string>
+    <string name="allow_access">권한 허용</string>
+    <string name="list_today">, 오늘</string>
+    <string name="list_item">, %1$s</string>
+    <string name="header_today">" · 오늘"</string>
+    <string name="tag_category_level">%1$s · %2$s</string>
+    <string name="tag_quiet_now">지금 조용함</string>
+    <string name="card_switch">%1$s, %2$s~%3$s</string>
+    <string name="time_range">%1$s – %2$s</string>
+    <string name="next_day">다음 날</string>
+    <string name="repeats">반복: %1$s</string>
+    <string name="free_day_title">비어 있는 날</string>
+    <string name="free_day_body">%1$s에는 휴대폰을 조용하게 하지 않아요.</string>
+    <string name="add_snoozer">조용한 시간 추가</string>
+    <string name="import_a_timetable">시간표 가져오기</string>
+    <string name="import_timetable">시간표 가져오기</string>
+    <plurals name="remove_ended_title">
+        <item quantity="other">끝난 조용한 시간 %1$d개를 지울까요?</item>
+    </plurals>
+    <plurals name="remove_ended_body">
+        <item quantity="other">마지막 날짜가 지나서 더 이상 휴대폰을 조용하게 하지 않아요. 지금까지의 조용한 시간은 주간 리포트에 남아요.</item>
+    </plurals>
+    <string name="remove">지우기</string>
+    <string name="keep">남겨 두기</string>
+    <plurals name="ended_banner">
+        <item quantity="other">조용한 시간 %1$d개가 끝났어요.</item>
+    </plurals>
+    <plurals name="remove_them">
+        <item quantity="other">지우기</item>
+    </plurals>
+    <string name="open_how_it_works">Snoozer 사용법 열기</string>
+    <string name="how_work_and_study_work">일과 공부가 작동하는 방식</string>
+
+    <!-- Home: one-line status -->
+    <string name="home_quiet_until">지금 조용해요, %1$s까지</string>
+    <string name="home_quiet_until_then">지금 조용해요, %1$s까지 · %2$s</string>
+    <string name="home_next">다음 조용한 시간: %1$s</string>
+    <string name="home_nothing">아직 계획된 조용한 시간이 없어요</string>
+    <string name="home_paused">멈춤: 방해 금지 권한이 없으면 Snoozer가 휴대폰을 조용하게 할 수 없어요</string>
+
+    <!-- Month calendar and date picker -->
+    <string name="format_date_long">M월 d일 EEEE</string>
+    <string name="format_month_year">yyyy년 M월</string>
+    <string name="first_class">%1$s 첫 수업</string>
+    <string name="last_class">%1$s 마지막 수업</string>
+    <string name="cell_description">%1$s: %2$s</string>
+    <string name="cell_description_ends">%1$s: %2$s, %3$s 마지막 날</string>
+    <string name="cell_work_and_study">일과 공부</string>
+    <string name="cell_nothing">계획 없음</string>
+    <string name="month_empty_day">이날은 휴대폰을 조용하게 하지 않아요.</string>
+    <string name="next_month">다음 달</string>
+    <string name="previous_month">이전 달</string>
+    <string name="legend_last_class">마지막 수업</string>
+
+    <!-- Edit screen -->
+    <string name="edit_error_same_time">시작과 끝 시간이 같을 수 없어요.</string>
+    <string name="edit_error_no_days">요일을 하나 이상 고르세요.</string>
+    <string name="edit_error_past_date">오늘이나 그 이후 날짜를 고르세요.</string>
+    <string name="edit_error_time_passed">오늘 그 시간은 이미 지났어요.</string>
+    <string name="edit_quiet_for">%1$s 동안 조용해요</string>
+    <string name="edit_quiet_for_overnight">%1$s 동안 조용해요, 다음 날 %2$s까지</string>
+    <string name="edit_quiet_for_today">오늘 %1$s 동안 조용해요</string>
+    <string name="edit_quiet_for_today_overnight">오늘 %1$s 동안 조용해요, 다음 날 %2$s까지</string>
+    <string name="edit_quiet_for_on">%3$s (%2$s) %1$s 동안 조용해요</string>
+    <string name="edit_quiet_for_on_overnight">%3$s (%2$s) %1$s 동안 조용해요, 다음 날 %4$s까지</string>
+    <string name="date_range">%1$s – %2$s</string>
+    <string name="dates_from">%1$s부터</string>
+    <string name="one_date_text">%1$s에만 조용해요. 반복하지 않아요.</string>
+    <string name="leave_title">저장하지 않고 나갈까요?</string>
+    <string name="leave_body">바꾼 내용이 저장되지 않아요.</string>
+    <string name="leave">나가기</string>
+    <string name="keep_editing">계속 편집</string>
+    <string name="delete_title">이 조용한 시간을 삭제할까요?</string>
+    <string name="delete_body">무음 일정이 지워지고 되돌릴 수 없어요.</string>
+    <string name="delete">삭제</string>
+    <string name="cancel">취소</string>
+    <string name="back">뒤로</string>
+    <string name="new_snoozer">새 조용한 시간</string>
+    <string name="edit_snoozer">조용한 시간 편집</string>
+    <string name="section_when">언제</string>
+    <string name="start">시작</string>
+    <string name="end">끝</string>
+    <string name="change_time">%1$s 시간 바꾸기</string>
+    <string name="section_repeat">반복</string>
+    <string name="every_week">매주</string>
+    <string name="one_date">하루만</string>
+    <string name="save_snoozer">저장</string>
+    <string name="save_changes">변경 사항 저장</string>
+    <string name="section_name">이름</string>
+    <string name="name_optional">이름, 선택 사항</string>
+    <string name="name_hint">선택 사항, 예: 수학 101</string>
+    <string name="section_dates">기간</string>
+    <string name="dates_body">Snoozer는 이 기간에만 휴대폰을 조용하게 해요.</string>
+    <string name="repeat_every_week_instead">기간 없이 매주 반복</string>
+    <string name="how_they_differ">일과 공부의 차이</string>
+    <string name="event_open_failed">조용한 시간을 열지 못했어요. 다시 해 보세요.</string>
+    <string name="event_gone">이 조용한 시간은 더 이상 없어요</string>
+    <string name="event_save_failed">저장하지 못했어요. 바꾼 내용은 그대로 있으니 다시 해 보세요.</string>
+    <string name="event_saved">저장했어요</string>
+    <string name="event_deleted">삭제했어요</string>
+    <string name="event_delete_failed">삭제하지 못했어요. 다시 해 보세요.</string>
+
+    <!-- Weekly report -->
+    <string name="report_first_title">첫 리포트는 월요일에 나와요</string>
+    <string name="report_so_far">이번 주 지금까지: %1$s</string>
+    <string name="report_first_description">주간 리포트. 첫 리포트는 월요일에 나와요. 이번 주 지금까지: %1$s.</string>
+    <string name="report_strip_title">지난주 · 조용한 시간 %1$s</string>
+    <string name="report_strip_description">지난주 리포트: 조용한 시간 %1$s. %2$s.</string>
+    <string name="report_strip_new">" 새 리포트."</string>
+    <plurals name="report_sessions">
+        <item quantity="other">%1$d회</item>
+    </plurals>
+    <string name="report_up">▲ %1$s</string>
+    <string name="report_down">▼ %1$s</string>
+    <string name="report_same">같음</string>
+    <string name="report_more">그 전주보다 %1$s 많아요</string>
+    <string name="report_less">그 전주보다 %1$s 적어요</string>
+    <string name="report_same_as_before">그 전주와 같아요</string>
+    <string name="report_longest">가장 긴 시간</string>
+    <string name="report_detail">%1$s · %2$s</string>
+    <string name="report_quietest_day">가장 조용한 날</string>
+    <string name="report_category_days">%1$s한 날</string>
+    <string name="report_days_of_week">7일 중 %1$d일</string>
+    <string name="report_missed">%1$s은 계획했지만 조용하지 않았어요: Snoozer에 방해 금지 권한이 없었어요.</string>
+    <string name="report_turned_up_item">%1$s %2$s</string>
+    <plurals name="report_turned_up">
+        <item quantity="other">조용한 시간 %1$d번 동안 소리를 다시 켰어요 (%2$s).</item>
+    </plurals>
+    <string name="report_nothing_yet">아직 없음</string>
+    <string name="report_so_far_quiet">%1$s</string>
+    <string name="report_next_tomorrow">다음 리포트는 월요일 00:00 · 내일</string>
+    <plurals name="report_next_in_days">
+        <item quantity="other">다음 리포트는 월요일 00:00 · %1$d일 후</item>
+    </plurals>
+    <string name="report_range_same_month" tools:ignore="StringFormatCount">%3$s (%1$s) – %5$s (%4$s)</string>
+    <string name="report_range" tools:ignore="StringFormatCount">%3$s (%1$s) – %5$s (%4$s)</string>
+    <string name="report_short_range_same_month" tools:ignore="StringFormatCount">%2$s – %3$s</string>
+    <string name="report_your_first_week">첫 주</string>
+    <string name="report_title">주간 리포트</string>
+    <string name="report_stayed_quiet">휴대폰이 조용했던 시간</string>
+    <string name="report_day_nothing">없음</string>
+    <string name="report_day_summary">%1$s: %2$s</string>
+    <string name="report_day_by_day">요일별</string>
+    <string name="report_earlier_weeks">지난 주들</string>
+    <string name="report_first_body">Snoozer가 이번 주의 조용한 시간을 세고 있어요. 월요일 00:00에 일과 공부에 쓴 시간을 볼 수 있어요.</string>
+
+    <!-- Home and Setup -->
+    <string name="setup">권한 설정</string>
+    <string name="perm_dnd">방해 금지 권한</string>
+    <string name="perm_dnd_body">필수. Snoozer가 휴대폰을 조용하게 하고 되돌릴 수 있게 해요.</string>
+    <string name="perm_exact">정확한 알람</string>
+    <string name="perm_exact_body">권장. 없으면 조용한 시간이 최대 1시간 늦게 시작될 수 있어요.</string>
+    <string name="perm_notifications">알림</string>
+    <plurals name="perm_notifications_body">
+        <item quantity="other">선택. 조용한 시간이 시작되기 %1$d분 전에 알려 줘요.</item>
+    </plurals>
+    <string name="perm_battery">배터리: 제한 없음</string>
+    <string name="perm_battery_body">권장. 휴대폰이 Snoozer를 잠재워서 늦어지는 일을 막아요. 앱 정보가 열리면 배터리를 누르고 제한 없음을 고르세요.</string>
+    <string name="perm_unused">사용하지 않아도 계속 실행</string>
+    <string name="perm_unused_body">권장. 몇 달 동안 열지 않은 앱은 휴대폰이 멈추게 해서 Snoozer도 멈출 수 있어요. \'사용하지 않는 앱 관리\'를 끄세요 (일부 휴대폰: \'사용하지 않으면 앱 활동 일시중지\').</string>
+    <string name="home_allow_dnd_to_continue">계속하려면 방해 금지 권한을 허용하세요.</string>
+    <string name="open_my_week">내 일주일 보기</string>
+    <string name="app_name_caps">SNOOZER</string>
+    <string name="home_tagline">휴대폰이 조용하도록 지키고 있어요.</string>
+    <string name="allow">허용</string>
+    <string name="allow_named">%1$s 허용</string>
+    <string name="allowed">허용됨</string>
+    <string name="not_allowed_yet">아직 허용 안 됨</string>
+
+    <!-- Onboarding -->
+    <string name="welcome_body">휴대폰의 경호원이에요. 조용하고 싶은 시간을 고르면 Snoozer가 매주 알아서 조용하게 해 줘요.</string>
+    <string name="two_kinds_title">두 가지 조용함</string>
+    <string name="overlap_title">겹치면 더 조용한 쪽이 이겨요</string>
+    <string name="overlap_note">일 중간에 공부가 있으면 공부하는 동안은 무음, 끝나면 다시 진동이에요.</string>
+    <string name="overlap_work_bar">%1$s 9–17</string>
+    <string name="ringer_normal">벨소리</string>
+    <string name="phone_ringer">휴대폰: %1$s</string>
+    <string name="overlap_never_louder">휴대폰이 이미 무음이면 Snoozer가 더 크게 바꾸지 않아요.</string>
+    <string name="heads_up_title">먼저 미리 알림</string>
+    <string name="heads_up_note">조용한 시간이 시작되기 몇 분 전에 알려 줘요. 선택 사항이라 끌 수 있어요.</string>
+    <string name="sample_notice_header">Snoozer · 지금</string>
+    <string name="category_line">%1$s: %2$s</string>
+    <string name="plan_first_title">첫 조용한 시간 만들기</string>
+    <string name="plan_title">조용한 시간 만들기</string>
+    <string name="plan_first_note">권한 설정을 마치면 \'내 일주일 보기\'를 누르고 +를 눌러 첫 조용한 시간을 만드세요. 일이나 공부로 시작하고 언제든 바꿀 수 있어요.</string>
+    <string name="plan_note">주 화면에서 +를 눌러 조용한 시간을 만드세요. 일이나 공부를 고르고 언제든 바꿀 수 있어요.</string>
+    <string name="plan_timetable_note">수업 시간표가 있나요? 주 화면의 \'시간표 가져오기\'로 모든 수업을 한 번에 추가할 수 있고, 학기가 끝나면 멈춰요.</string>
+    <string name="onboarding_back">‹ 뒤로</string>
+    <string name="skip">건너뛰기</string>
+    <string name="close">닫기</string>
+    <string name="page_of">%2$d쪽 중 %1$d쪽</string>
+    <string name="next">다음</string>
+    <string name="get_started">시작하기</string>
+    <string name="done">완료</string>
+
+    <!-- Timetable import -->
+    <string name="skip_all_day" tools:ignore="PluralsCandidate">종일 %1$d개</string>
+    <string name="skip_not_weekly" tools:ignore="PluralsCandidate">매주 아님 %1$d개</string>
+    <string name="skip_one_off" tools:ignore="PluralsCandidate">한 번뿐 %1$d개</string>
+    <string name="skip_too_long" tools:ignore="PluralsCandidate">하루 이상 %1$d개</string>
+    <string name="skip_unreadable" tools:ignore="PluralsCandidate">읽을 수 없음 %1$d개</string>
+    <string name="skipped_text" tools:ignore="PluralsCandidate">%1$d개 건너뜀: %2$s</string>
+    <plurals name="import_budget">
+        <item quantity="other">Snoozer가 한 번에 둘 수 있는 것보다 많아요. 수업일은 %1$d개만 더 넣을 수 있어요. 수업 몇 개의 체크를 해제하세요.</item>
+    </plurals>
+    <string name="import_already_over">이미 끝남 (%1$s 종료)</string>
+    <string name="import_from">%1$s부터</string>
+    <string name="import_pick_one">추가할 수업을 고르세요</string>
+    <plurals name="import_add">
+        <item quantity="other">수업 %1$d개 추가</item>
+    </plurals>
+    <plurals name="import_found">
+        <item quantity="other">매주 수업 %1$d개를 찾았어요</item>
+    </plurals>
+    <string name="import_open_failed">파일을 열지 못했어요. 다시 골라 보세요.</string>
+    <string name="import_read_failed">파일을 읽지 못했어요. 다시 골라 보세요.</string>
+    <string name="import_too_big">시간표 파일이라기엔 너무 커요.</string>
+    <string name="import_no_file">고른 파일이 없어요.</string>
+    <string name="import_not_calendar">캘린더(.ics) 파일이 아닌 것 같아요.</string>
+    <string name="import_failed">파일을 읽지 못했어요. 캘린더(.ics) 파일이 맞나요?</string>
+    <plurals name="import_added">
+        <item quantity="other">수업 %1$d개를 추가했어요</item>
+    </plurals>
+    <string name="import_add_failed">수업을 모두 추가하지 못했어요. 다시 해 보세요.</string>
+    <string name="import_reading">시간표를 읽는 중…</string>
+    <string name="import_pick_another">다른 파일 고르기</string>
+    <string name="import_no_weekly">이 파일에는 매주 수업이 없어요.</string>
+    <string name="import_add_as">추가할 종류</string>
+    <string name="import_row_line">%1$s · %2$s</string>
+    <string name="import_row_line_next_day">%1$s · %2$s (+1일)</string>
+    <string name="import_already_added">이미 Snoozer에 있음</string>
+    <string name="no_file_picker">이 휴대폰에는 파일 선택기가 없어요</string>
 </resources>

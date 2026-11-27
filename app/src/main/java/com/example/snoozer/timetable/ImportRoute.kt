@@ -52,7 +52,7 @@ fun rememberTimetablePicker(onPicked: (Uri) -> Unit): () -> Unit {
             launcher.launch(CalendarTypes)
         } catch (e: ActivityNotFoundException) {
             // A phone with no document picker (some locked-down devices).
-            Toast.makeText(context, "No file picker on this phone", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.example.snoozer.R.string.no_file_picker), Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -51,6 +51,13 @@ class AndroidStrings @Inject constructor(@ApplicationContext private val context
     override val locale: Locale get() = context.resources.configuration.locales[0]
 }
 
+/** The form of plurals [id] for [count], in a composable ("2 snoozers"). */
+@Composable
+fun pluralResource(@PluralsRes id: Int, count: Int, vararg args: Any): String {
+    LocalConfiguration.current // read again when the language changes
+    return LocalContext.current.resources.getQuantityString(id, count, *args)
+}
+
 /** [Strings] for a composable, such as a preview that builds a screen state. */
 @Composable
 fun rememberStrings(): Strings {

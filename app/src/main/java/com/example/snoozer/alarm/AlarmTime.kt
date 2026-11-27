@@ -128,13 +128,18 @@ object AlarmTime {
     fun durationMinutes(alarm: Alarm): Int =
         Math.floorMod(endMinuteOfDay(alarm) - startMinuteOfDay(alarm), MINUTES_PER_DAY)
 
-    /** "4 Dec": day and short month, the way dates read on cards and in the calendar. */
-    fun formatDate(date: LocalDate): String =
-        "${date.dayOfMonth} ${date.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH)}"
 
     /** [date] the way dates read on cards and in the calendar: "4 Dec" in English, "12월 4일" in Korean. */
     fun formatDate(date: LocalDate, strings: Strings): String =
         DateTimeFormatter.ofPattern(strings.get(R.string.format_date_short), strings.locale).format(date)
+
+    /** "Wednesday 18 November" / "11월 18일 수요일", for titles and screen readers. */
+    fun formatLongDate(date: LocalDate, strings: Strings): String =
+        DateTimeFormatter.ofPattern(strings.get(R.string.format_date_long), strings.locale).format(date)
+
+    /** "December 2026" / "2026년 12월". */
+    fun formatMonth(month: java.time.YearMonth, strings: Strings): String =
+        DateTimeFormatter.ofPattern(strings.get(R.string.format_month_year), strings.locale).format(month)
 
     /** [day]'s name in the person's language: "Thu", "Thursday" or "T"; "목", "목요일" or "목". */
     fun dayName(day: DayOfWeek, style: TextStyle, strings: Strings): String = day.getDisplayName(style, strings.locale)
@@ -154,17 +159,6 @@ object AlarmTime {
     /** "09:05" style 24-hour time. */
     fun formatTime(hour: Int, minute: Int): String = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
 
-    /** Short human duration: "45m", "2h", "1h 30m". Negative values count as 0. */
-    fun formatDuration(minutes: Int): String {
-        val m = minutes.coerceAtLeast(0)
-        val hours = m / 60
-        val rest = m % 60
-        return when {
-            hours == 0 -> "${rest}m"
-            rest == 0 -> "${hours}h"
-            else -> "${hours}h ${rest}m"
-        }
-    }
 
     /**
      * Real minutes from [from] (seconds dropped) to [to], for "in 2h 15m" style labels. Both are
@@ -260,21 +254,22 @@ data class ReminderTime(val day: DayOfWeek, val hour: Int, val minute: Int)
 /** The reminder notification's words for [alarm]: a title and one line under it. */
 data class ReminderText(val title: String, val body: String) {
     companion object {
-        fun of(alarm: Alarm, minutesUntilStart: Int = AlarmTime.REMINDER_LEAD_MINUTES): ReminderText {
-            val inMinutes = if (minutesUntilStart == 1) "1 minute" else "$minutesUntilStart minutes"
+        fun of(alarm: Alarm, strings: Strings, minutesUntilStart: Int = AlarmTime.REMINDER_LEAD_MINUTES): ReminderText {
             val start = AlarmTime.formatTime(alarm.startHour, alarm.startMinute)
             val end = AlarmTime.formatTime(alarm.endHour, alarm.endMinute)
-            val endsTomorrow = if (AlarmTime.isOvernight(alarm)) " tomorrow" else ""
+            val overnight = AlarmTime.isOvernight(alarm)
             // A named snoozer (an imported class) says its name: "MATH 101 starts in 5 minutes".
-            val name = alarm.name?.takeIf { it.isNotBlank() }
+            val name = alarm.name?.takeIf { it.isNotBlank() } ?: strings.get(alarm.category.labelRes)
             return when (alarm.category) {
                 Category.Study -> ReminderText(
-                    "${name ?: "Study"} starts in $inMinutes",
-                    "Your phone goes fully silent at $start until $end$endsTomorrow.",
+                    strings.plural(R.plurals.reminder_study_title, minutesUntilStart, name, minutesUntilStart),
+                    if (overnight) strings.get(R.string.reminder_study_body_overnight, start, end)
+                    else strings.get(R.string.reminder_study_body, start, end),
                 )
                 Category.Work -> ReminderText(
-                    "${name ?: "Work"} starts at $start",
-                    "Your phone goes on vibrate until $end$endsTomorrow.",
+                    strings.get(R.string.reminder_work_title, name, start),
+                    if (overnight) strings.get(R.string.reminder_work_body_overnight, end)
+                    else strings.get(R.string.reminder_work_body, end),
                 )
             }
         }

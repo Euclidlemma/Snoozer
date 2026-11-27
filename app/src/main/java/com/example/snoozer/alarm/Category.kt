@@ -12,9 +12,6 @@ enum class Category(val stored: String, @StringRes val labelRes: Int) {
     Work("Work", R.string.category_work),
     Study("Study", R.string.category_study);
 
-    /** The English name, still shown by screens that haven't moved to [labelRes] yet. */
-    val label: String get() = stored
-
     companion object {
         /** Reads the stored text. Anything unknown counts as [Work], as the colors always did. */
         fun from(stored: String): Category = entries.firstOrNull { it.stored == stored } ?: Work

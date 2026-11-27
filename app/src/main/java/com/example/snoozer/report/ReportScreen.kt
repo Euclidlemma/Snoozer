@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.snoozer.R
+import com.example.snoozer.dayPickers.WeekUi
+import androidx.compose.ui.res.stringResource
+import com.example.snoozer.util.rememberStrings
 import com.example.snoozer.alarm.AlarmTime
 import com.example.snoozer.alarm.Category
 import com.example.snoozer.alarm.quietLevel
@@ -79,7 +82,7 @@ fun ReportContent(state: ReportUiState, onBack: () -> Unit, modifier: Modifier =
                     onBack = onBack,
                     subtitle = when (state) {
                         is ReportUiState.Ready -> state.range
-                        is ReportUiState.FirstWeek -> "Your first week"
+                        is ReportUiState.FirstWeek -> stringResource(R.string.report_your_first_week)
                         ReportUiState.Loading -> null
                     },
                 )
@@ -127,10 +130,10 @@ private fun ReportTopBar(onBack: () -> Unit, subtitle: String?) {
         DoodleButton(onClick = onBack, seed = 801, wobble = DoodleDefaults.WobbleLight) {
             Icon(painterResource(R.drawable.ic_doodle_back), contentDescription = null)
             Spacer(Modifier.width(Spacing.XS))
-            Text("Back")
+            Text(stringResource(R.string.back))
         }
         Column(Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }) {
-            Text("Weekly report", style = SnoozerTheme.type.title)
+            Text(stringResource(R.string.report_title), style = SnoozerTheme.type.title)
             if (subtitle != null) {
                 Text(subtitle, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -167,9 +170,10 @@ private fun Report(state: ReportUiState.Ready, modifier: Modifier = Modifier) {
 @Composable
 private fun CountUp(minutes: Int, p: () -> Float, style: androidx.compose.ui.text.TextStyle, color: Color = Color.Unspecified) {
     val shown by remember(minutes) { derivedStateOf { (minutes * p()).toInt() } }
-    val final = AlarmTime.formatDuration(minutes)
+    val strings = rememberStrings()
+    val final = AlarmTime.formatDuration(minutes, strings)
     Text(
-        AlarmTime.formatDuration(shown),
+        AlarmTime.formatDuration(shown, strings),
         style = style,
         color = color,
         modifier = Modifier.clearAndSetSemantics { contentDescription = final },
@@ -199,7 +203,7 @@ private fun Hero(state: ReportUiState.Ready, reveal: State<Float>) {
             modifier = Modifier.bob(),
         )
         Column(Modifier.weight(1f)) {
-            Text("Your phone stayed quiet for", style = SnoozerTheme.type.body, color = ink)
+            Text(stringResource(R.string.report_stayed_quiet), style = SnoozerTheme.type.body, color = ink)
             CountUp(state.totalMinutes, { slice(reveal.value, 0.05f, 0.55f) }, SnoozerTheme.type.headline.copy(fontSize = MaterialTheme.typography.displaySmall.fontSize), ink)
             if (state.change != null) {
                 val arrow = when (state.change.up) { true -> "▲ "; false -> "▼ "; null -> "" }
@@ -238,7 +242,7 @@ private fun Ring(state: ReportUiState.Ready, reveal: State<Float>) {
                 val lead = if (share >= 0.5f) Category.Work else Category.Study
                 val pct = Math.round(if (lead == Category.Work) share * 100 else (1 - share) * 100)
                 Text(if (empty) "–" else "$pct%", style = SnoozerTheme.type.title)
-                if (!empty) Text(lead.label, style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!empty) Text(stringResource(lead.labelRes), style = SnoozerTheme.type.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.XS)) {
@@ -256,7 +260,7 @@ private fun LegendLine(category: Category, minutes: Int, color: Color) {
                 .doodleFill(color, cornerRadius = DoodleDefaults.Round, wobble = 0.dp)
                 .sketchyBorder(MaterialTheme.colorScheme.onSurface, width = 1.dp, cornerRadius = DoodleDefaults.Round, wobble = 0.dp)
         )
-        Text("${category.label} ${AlarmTime.formatDuration(minutes)}", style = SnoozerTheme.type.body)
+        Text(WeekUi.amount(rememberStrings(), category, minutes), style = SnoozerTheme.type.body)
     }
 }
 
@@ -278,8 +282,8 @@ private fun CategoryCard(report: CategoryReportUi, reveal: State<Float>, from: F
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.S)) {
                 DoodleIllustration(report.category.illustration, size = 52.dp, seed = 830 + report.category.ordinal)
                 Column {
-                    Text(report.category.label, style = SnoozerTheme.type.label)
-                    Text(report.category.quietLevel.label.lowercase(), style = SnoozerTheme.type.caption)
+                    Text(stringResource(report.category.labelRes), style = SnoozerTheme.type.label)
+                    Text(stringResource(report.category.quietLevel.labelRes).lowercase(), style = SnoozerTheme.type.caption)
                 }
             }
             CountUp(report.minutes, { slice(reveal.value, from, from + 0.3f) }, SnoozerTheme.type.headline, colors.content)
@@ -294,14 +298,16 @@ private fun DayBars(days: List<DayBarUi>, reveal: State<Float>) {
     val work = SnoozerTheme.colors.forCategory(Category.Work).hatch
     val study = SnoozerTheme.colors.forCategory(Category.Study).hatch
     val max = days.maxOf { it.totalMinutes }.coerceAtLeast(1)
+    val strings = rememberStrings()
     val summary = days.joinToString("; ") { d ->
-        "${d.name}: " + if (d.totalMinutes == 0) "nothing" else
-            listOfNotNull(
-                d.workMinutes.takeIf { it > 0 }?.let { "Work ${AlarmTime.formatDuration(it)}" },
-                d.studyMinutes.takeIf { it > 0 }?.let { "Study ${AlarmTime.formatDuration(it)}" },
-            ).joinToString(", ")
+        strings.get(R.string.report_day_summary, d.name,
+            if (d.totalMinutes == 0) strings.get(R.string.report_day_nothing)
+            else listOfNotNull(
+                d.workMinutes.takeIf { it > 0 }?.let { WeekUi.amount(strings, Category.Work, it) },
+                d.studyMinutes.takeIf { it > 0 }?.let { WeekUi.amount(strings, Category.Study, it) },
+            ).joinToString(", "))
     }
-    DoodleSection(title = "Day by day", seed = 840) {
+    DoodleSection(title = stringResource(R.string.report_day_by_day), seed = 840) {
         Row(
             // Wraps its content (bars share the bottom edge), so the star and the day letters always
             // fit, at any font size.
@@ -420,7 +426,7 @@ private fun Footer(nextReport: String) {
 
 @Composable
 private fun EarlierWeeks(weeks: List<EarlierWeekUi>) {
-    DoodleSection(title = "Earlier weeks", seed = 870) {
+    DoodleSection(title = stringResource(R.string.report_earlier_weeks), seed = 870) {
         weeks.forEach { w ->
             Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
                 Text(w.range, style = SnoozerTheme.type.body, modifier = Modifier.weight(1f))
@@ -447,15 +453,15 @@ private fun FirstWeek(state: ReportUiState.FirstWeek, modifier: Modifier = Modif
             seed = 880,
             modifier = Modifier.bob(),
         )
-        Text("Your first report arrives Monday", style = SnoozerTheme.type.title, textAlign = TextAlign.Center,
+        Text(stringResource(R.string.report_first_title), style = SnoozerTheme.type.title, textAlign = TextAlign.Center,
             modifier = Modifier.semantics { heading() })
         Text(
-            "Snoozer is counting this week's quiet time now. On Monday at 00:00 you'll see how much you got for Work and for Study.",
+            stringResource(R.string.report_first_body),
             style = SnoozerTheme.type.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Text("So far this week: ${state.soFar}", style = SnoozerTheme.type.label)
+        Text(stringResource(R.string.report_so_far, state.soFar), style = SnoozerTheme.type.label)
         Footer(state.nextReport)
     }
 }

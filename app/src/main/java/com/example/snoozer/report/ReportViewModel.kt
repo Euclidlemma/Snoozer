@@ -46,6 +46,7 @@ class ReportViewModel @Inject constructor(
     private val dao: QuietStretchDao,
     private val timeSource: TimeSource,
     private val seen: ReportSeenStore,
+    private val strings: com.example.snoozer.util.Strings,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -58,6 +59,6 @@ class ReportViewModel @Inject constructor(
         combine(dao.observeSince(WeeklyReport.keepFrom(timeSource.now(), zone)), timeSource.minuteTicks) { stretches, now ->
             // Opening the report (or having it open when a new one comes in) clears the dot.
             seen.markSeen(WeeklyReport.reportWeek(now))
-            WeeklyReport.build(stretches, now, zone)
+            WeeklyReport.build(strings, stretches, now, zone)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportUiState.Loading)
 }
