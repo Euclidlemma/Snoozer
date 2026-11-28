@@ -116,5 +116,11 @@ object ReminderNotifier {
                 description = res.getString(R.string.channel_work_description)
             }
         )
+        manager.createNotificationChannel(
+            NotificationChannel(QuietService.CHANNEL, res.getString(R.string.channel_switching_name), NotificationManager.IMPORTANCE_MIN).apply {
+                description = res.getString(R.string.channel_switching_description)
+                setShowBadge(false)
+            }
+        )
     }
 }

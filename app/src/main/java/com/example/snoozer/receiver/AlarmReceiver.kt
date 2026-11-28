@@ -25,6 +25,15 @@ class AlarmReceiver : BroadcastReceiver() {
         // The start day of the window, even for an overnight window's unmute.
         val day = DayOfWeek.of(dayValue)
 
+        // Mutes and unmutes run in a foreground service: Android 17 ignores ringer changes from
+        // a closed app otherwise. Only if that isn't allowed is the work done here.
+        val job = when (action) {
+            "MUTE" -> QuietService.Job.Mute(alarmId)
+            "UNMUTE" -> QuietService.Job.Unmute(alarmId, day)
+            else -> null
+        }
+        if (job != null && QuietService.start(context, job)) return
+
         val actions = EntryPointAccessors.fromApplication(
             context.applicationContext,
             ReceiverEntryPoint::class.java

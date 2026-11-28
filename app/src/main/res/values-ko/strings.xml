@@ -45,6 +45,9 @@
     </plurals>
     <string name="channel_work_name">일 미리 알림</string>
     <string name="channel_work_description">일 스누저가 시작되기 전에 조용히 알려 줘요.</string>
+    <string name="channel_switching_name">소리 모드 변경</string>
+    <string name="channel_switching_description">Snoozer가 소리 모드를 바꾸는 동안 잠깐 보여요. Android에서 필요해요.</string>
+    <string name="switching_sound">소리 모드를 바꾸고 있어요…</string>
 
     <!-- Week screen: status, days and cards -->
     <plurals name="snoozer_count">

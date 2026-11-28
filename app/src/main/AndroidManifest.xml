@@ -13,6 +13,11 @@
          user taps Allow in Home's Setup list; everything else works without it. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Android 17 ignores ringer changes from an app with no visible screen unless it runs a
+         foreground service, so each mute and unmute runs in one for a moment (QuietService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <application
         android:name=".AlarmApp"
         android:allowBackup="true"
@@ -49,6 +54,16 @@
         <!-- Start/End Alarm Receiver. Only our own PendingIntents reach it, so it must
              not be exported; otherwise any app could mute or unmute the phone. -->
         <receiver android:name=".receiver.AlarmReceiver" android:exported="false" />
+
+        <!-- Changes the ringer at a snoozer's start and end (see QuietService). -->
+        <service
+            android:name=".receiver.QuietService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Switches the ringer to vibrate or silent at the start of a quiet time the user scheduled, and back at its end. Runs for about a second. Android 17 ignores ringer changes from apps without a foreground service." />
+        </service>
 
         <!-- Reschedules all alarms whenever the system may have dropped or shifted them.
              All of these actions are protected system broadcasts. -->

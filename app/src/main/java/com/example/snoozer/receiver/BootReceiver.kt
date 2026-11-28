@@ -30,6 +30,8 @@ interface ReceiverEntryPoint {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in RESCHEDULE_ACTIONS) return
+        // In a foreground service, so a catch-up of the ringer isn't ignored on Android 17.
+        if (QuietService.start(context, QuietService.Job.Reschedule)) return
 
         val actions = EntryPointAccessors.fromApplication(
             context.applicationContext,

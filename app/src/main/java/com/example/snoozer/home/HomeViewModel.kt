@@ -6,6 +6,11 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snoozer.alarm.Alarm
+import com.example.snoozer.alarm.AlarmActions
+import android.util.Log
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.example.snoozer.alarm.AlarmRepository
 import com.example.snoozer.dayPickers.StatusUi
 import com.example.snoozer.dayPickers.WeekUi
@@ -53,6 +58,7 @@ class HomeViewModel @Inject constructor(
     repository: AlarmRepository,
     timeSource: TimeSource,
     private val permissionChecker: PermissionChecker,
+    private val actions: AlarmActions,
     private val strings: Strings,
     language: ShownLanguage,
 ) : ViewModel() {
@@ -69,5 +75,19 @@ class HomeViewModel @Inject constructor(
 
     fun refreshPermissions() {
         permissions.value = permissionChecker.check()
+        // Access may have just been given in Settings: if a snoozer is running but couldn't
+        // quiet the phone, quiet it now. It changes nothing when the ringer already agrees.
+        if (permissions.value.dnd) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    actions.catchUp()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // A database that can't be read right now: the next alarm or open tries again.
+                    Log.e("HomeViewModel", "Couldn't catch the ringer up", e)
+                }
+            }
+        }
     }
 }

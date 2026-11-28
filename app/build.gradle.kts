@@ -17,10 +17,12 @@ android {
         applicationId = "com.inseokim.snoozer"
         // java.time (DayOfWeek) is used throughout and needs API 26.
         minSdk = 26
+        // Don't raise to 37 without changing QuietService: Android 17's background audio rules
+        // would then ignore its ringer changes again (see the LIMIT note there).
         targetSdk = 36
         // versionCode must grow with every upload to Play (1, 2, 3...); versionName is what people see.
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

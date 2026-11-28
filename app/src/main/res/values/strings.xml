@@ -49,6 +49,9 @@
     </plurals>
     <string name="channel_work_name">Work reminders</string>
     <string name="channel_work_description">A quiet notice before a Work quiet time starts.</string>
+    <string name="channel_switching_name">Sound changes</string>
+    <string name="channel_switching_description">Shown for a moment while Snoozer changes the sound mode. Android requires it.</string>
+    <string name="switching_sound">Changing the sound mode…</string>
 
     <!-- Week screen: status, days and cards -->
     <plurals name="snoozer_count">

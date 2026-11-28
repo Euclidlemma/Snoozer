@@ -190,18 +190,36 @@ class AlarmActions @Inject constructor(
     suspend fun rescheduleAll() = lock.withLock {
         repository.getAllAlarmsDirect().forEach { scheduler.scheduleAlarm(it) }
         // Alarms that should have fired meanwhile (the phone was off, or the clock jumped) never
-        // will. If what runs now differs from what Snoozer last set (per the quiet log), catch the
-        // ringer and the log up. When they agree, leave the ringer alone: the user may have
-        // turned it up on purpose, and an update or clock change shouldn't undo that.
+        // will, so the ringer may be behind.
+        catchUpRinger()
+    }
+
+    /**
+     * When Home shows (opening the app, or coming back from Settings). A snoozer that started
+     * before Do Not Disturb access was given couldn't quiet the phone, and its mute won't fire
+     * again; without exact alarms, a mute may also still be on its way. Quiet the phone now
+     * instead of leaving it loud.
+     */
+    suspend fun catchUp() = lock.withLock { catchUpRinger() }
+
+    /**
+     * Brings the ringer in line with what runs now. It acts when that differs from what Snoozer
+     * last set (per the quiet log), or when the last change was missed for lack of access and
+     * can be made now. When they agree, the ringer is left alone: the user may have turned it
+     * up on purpose, and an update or clock change shouldn't undo that.
+     */
+    private suspend fun catchUpRinger() {
         val running = AlarmTime.quietLevelAt(repository.getAllAlarmsDirect(), timeSource.now())
-        val logged = try {
-            quietLog.open()?.categoryValue?.quietLevel
+        val open = try {
+            quietLog.open()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            running // can't tell: change nothing
+            return // can't tell: change nothing
         }
-        if (running != logged) applyQuiet()
+        val logged = open?.categoryValue?.quietLevel
+        val missedButPossibleNow = open?.missed == true && ringer.canChange()
+        if (running != logged || missedButPossibleNow) applyQuiet()
     }
 
     private fun isRunning(alarm: Alarm): Boolean =

@@ -160,6 +160,28 @@ and answer from it if it says otherwise.
 | Financial features | None |
 | Health | No health features |
 | Exact alarms | Uses `SCHEDULE_EXACT_ALARM`, which people grant in settings. It is not `USE_EXACT_ALARM`, so no extra declaration is expected. |
+| Foreground service permissions | **Yes**, type **Special use** (`FOREGROUND_SERVICE_SPECIAL_USE`). Text below. |
+
+### Foreground service declaration (from 1.0.1)
+
+App content → Foreground service permissions → Special use. Play asks what the service does, why
+it must run in the foreground, and what users would lose if it were deferred. It may also ask for
+a short video.
+
+**Description**
+
+```
+At the start and end of a quiet time the user has scheduled in the app, Snoozer switches the phone's ringer to vibrate or silent, and later back to the user's own mode. Each switch runs in a foreground service for about one second and then stops. Android 17 ignores ringer changes (AudioManager.setRingerMode) from apps without a visible screen or a foreground service, so without it the phone would not go quiet when the app is closed.
+```
+
+**Impact if deferred or interrupted**
+
+```
+The phone would keep ringing during the quiet time the user scheduled (a class, an exam, work), or stay silent after it ends so the user misses calls. The change must happen at the scheduled minute.
+```
+
+**Video (if asked):** a screen recording of adding a snoozer that starts in two minutes, closing
+Snoozer from Recents, and the ringer switching at the start time.
 
 ## Publishing the privacy policy
 

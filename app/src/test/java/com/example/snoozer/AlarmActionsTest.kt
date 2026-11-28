@@ -285,6 +285,40 @@ class AlarmActionsTest {
     }
 
     @Test
+    fun catchUp_afterAccessIsGivenMidWindow_quietsThePhoneAtOnce() = runBlocking {
+        // The snoozer started at 09:00 before Do Not Disturb access was given, so its mute
+        // couldn't change anything. Access given at 09:04 in Settings, then Home opens.
+        val study = alarm(1, 9, 11, "Study")
+        saved(study)
+        ringer.allowed = false
+        time.at = at(9); actions.onMuteFired(1)
+        assertTrue(stretches.rows.single().missed)
+        ringer.calls.clear() // the fake records the try; the real ringer can't change without access
+        ringer.allowed = true
+        time.at = at(9, 4); actions.catchUp()
+        assertEquals(listOf("Silent"), ringer.calls)
+        // The log now has the real quiet time from 09:04, after the missed minutes.
+        assertEquals(listOf(true, false), stretches.rows.map { it.missed })
+        assertEquals(at(9, 4), local(stretches.rows.last().startMillis))
+    }
+
+    @Test
+    fun catchUp_withoutAccessOrWhenItAgrees_changesNothing() = runBlocking {
+        val work = alarm(1, 9, 17, "Work")
+        saved(work)
+        ringer.allowed = false
+        time.at = at(9); actions.onMuteFired(1)
+        time.at = at(10); actions.catchUp() // still no access: nothing to do yet
+        ringer.allowed = true
+        time.at = at(11); actions.catchUp()
+        ringer.calls.clear()
+        // Quiet as it should be, then turned up by hand: opening the app again keeps that.
+        ringer.turnedUp = true
+        time.at = at(12); actions.catchUp()
+        assertEquals(emptyList<String>(), ringer.calls)
+    }
+
+    @Test
     fun ensureScheduled_resetsAlarmsWipedByAForceStop_andLeavesThemOtherwise() = runBlocking {
         val work = alarm(1, 9, 17, "Work")
         saved(work)

@@ -44,6 +44,9 @@ introduction flag, the saved ringer mode and the alarm setup flag are left out o
 
 - **Do Not Disturb access:** to switch your phone to vibrate or silent and back.
 - **Exact alarms:** to start and end quiet time on the minute.
+- **Foreground service:** to change the sound mode at the start and end of quiet time while
+  Snoozer is closed. It runs for about a second each time, and newer Android versions require it
+  for this.
 - **Notifications:** for the reminder 5 minutes before quiet time starts.
 - **Run at startup:** to set your schedule again after the phone restarts.
 
